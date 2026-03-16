@@ -1,0 +1,21 @@
+{
+  "type": "nextjs",
+  "name": "Next.js App",
+  "description": "Next.js application with App Router",
+  "tags": ["nextjs", "react", "starter"],
+  "buildConfig": {
+    "framework": "nextjs",
+    "buildCommand": "npm run build",
+    "outputDirectory": ".next",
+    "installCommand": "npm install",
+    "nodeVersion": "20"
+  },
+  "files": {
+    "app/page.tsx": "'use client'\n\nimport { useState } from 'react'\n\nexport default function Home() {\n  const [count, setCount] = useState(0)\n\n  return (\n    <main className=\"app\">\n      <h1>Next.js 16 App</h1>\n      <button onClick={() => setCount((v) => v + 1)}>Count is {count}</button>\n    </main>\n  )\n}",
+    "app/layout.tsx": "import type { Metadata } from 'next'\nimport './globals.css'\n\nexport const metadata: Metadata = {\n  title: 'Next.js App',\n  description: 'Created by z0-agent',\n}\n\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <html lang=\"en\">\n      <body>{children}</body>\n    </html>\n  )\n}",
+    "app/globals.css": "* {\n  box-sizing: border-box;\n}\n\nhtml, body {\n  margin: 0;\n  font-family: ui-sans-serif, system-ui, sans-serif;\n  background: #020617;\n  color: #e2e8f0;\n}\n\n.app {\n  min-height: 100vh;\n  display: grid;\n  place-content: center;\n  gap: 1rem;\n}",
+    "next.config.ts": "import type { NextConfig } from 'next'\n\nconst nextConfig: NextConfig = {}\n\nexport default nextConfig",
+    "tsconfig.json": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2017\",\n    \"lib\": [\"dom\", \"dom.iterable\", \"esnext\"],\n    \"allowJs\": true,\n    \"skipLibCheck\": true,\n    \"strict\": true,\n    \"noEmit\": true,\n    \"esModuleInterop\": true,\n    \"module\": \"esnext\",\n    \"moduleResolution\": \"bundler\",\n    \"resolveJsonModule\": true,\n    \"isolatedModules\": true,\n    \"jsx\": \"preserve\",\n    \"incremental\": true,\n    \"plugins\": [{ \"name\": \"next\" }],\n    \"paths\": { \"@/*\": [\"./*\"] }\n  },\n  \"include\": [\"next-env.d.ts\", \"**/*.ts\", \"**/*.tsx\", \".next/types/**/*.ts\"],\n  \"exclude\": [\"node_modules\"]\n}",
+    "package.json": "{\n  \"name\": \"nextjs-app\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"scripts\": {\n    \"dev\": \"next dev\",\n    \"build\": \"next build\",\n    \"start\": \"next start\"\n  },\n  \"dependencies\": {\n    \"next\": \"^16.1.6\",\n    \"react\": \"^19.2.4\",\n    \"react-dom\": \"^19.2.4\"\n  },\n  \"devDependencies\": {\n    \"typescript\": \"^5.9.3\",\n    \"@types/node\": \"^24.0.0\",\n    \"@types/react\": \"^19.2.0\",\n    \"@types/react-dom\": \"^19.2.0\"\n  }\n}"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@z0/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/dev.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.4",
+    "@supabase/supabase-js": "^2.57.4",
+    "@z0/shared-types": "workspace:*",
+    "hono": "^4.9.7",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
+}

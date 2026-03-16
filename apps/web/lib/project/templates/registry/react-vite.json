@@ -1,0 +1,21 @@
+{
+  "type": "react",
+  "name": "React App",
+  "description": "React application with Vite",
+  "tags": ["react", "vite", "starter"],
+  "buildConfig": {
+    "framework": "react",
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "installCommand": "npm install",
+    "nodeVersion": "20"
+  },
+  "files": {
+    "index.html": "<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>React App</title>\n  </head>\n  <body>\n    <div id=\"root\"></div>\n    <script type=\"module\" src=\"/src/main.jsx\"></script>\n  </body>\n</html>",
+    "src/main.jsx": "import React from 'react'\nimport ReactDOM from 'react-dom/client'\nimport App from './App'\nimport './index.css'\n\nReactDOM.createRoot(document.getElementById('root')).render(\n  <React.StrictMode>\n    <App />\n  </React.StrictMode>,\n)",
+    "src/App.jsx": "import { useState } from 'react'\n\nfunction App() {\n  const [count, setCount] = useState(0)\n\n  return (\n    <main className=\"app\">\n      <h1>React + Vite</h1>\n      <button onClick={() => setCount((v) => v + 1)}>Count is {count}</button>\n    </main>\n  )\n}\n\nexport default App",
+    "src/index.css": "* {\n  box-sizing: border-box;\n}\n\nbody {\n  margin: 0;\n  font-family: ui-sans-serif, system-ui, sans-serif;\n  background: #111827;\n  color: #f9fafb;\n}\n\n.app {\n  min-height: 100vh;\n  display: grid;\n  place-items: center;\n  gap: 1rem;\n}",
+    "package.json": "{\n  \"name\": \"react-app\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"vite build\",\n    \"preview\": \"vite preview\"\n  },\n  \"dependencies\": {\n    \"react\": \"^19.2.4\",\n    \"react-dom\": \"^19.2.4\"\n  },\n  \"devDependencies\": {\n    \"@vitejs/plugin-react\": \"^5.1.4\",\n    \"vite\": \"^7.3.1\"\n  }\n}",
+    "vite.config.js": "import { defineConfig } from 'vite'\nimport react from '@vitejs/plugin-react'\n\nexport default defineConfig({\n  plugins: [react()],\n})"
+  }
+}

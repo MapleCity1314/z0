@@ -1,0 +1,19 @@
+{
+  "type": "vanilla",
+  "name": "Vanilla App",
+  "description": "Vanilla JavaScript application with Vite",
+  "tags": ["vanilla", "vite", "starter"],
+  "buildConfig": {
+    "framework": "vanilla",
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "installCommand": "npm install",
+    "nodeVersion": "20"
+  },
+  "files": {
+    "index.html": "<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>Vanilla App</title>\n    <link rel=\"stylesheet\" href=\"/style.css\" />\n  </head>\n  <body>\n    <main class=\"app\">\n      <h1>Vanilla + Vite</h1>\n      <button id=\"counter\">Count is 0</button>\n    </main>\n    <script type=\"module\" src=\"/main.js\"></script>\n  </body>\n</html>",
+    "main.js": "const button = document.getElementById('counter')\nlet count = 0\n\nbutton?.addEventListener('click', () => {\n  count += 1\n  button.textContent = `Count is ${count}`\n})",
+    "style.css": "* {\n  box-sizing: border-box;\n}\n\nbody {\n  margin: 0;\n  font-family: ui-sans-serif, system-ui, sans-serif;\n  background: #0b1020;\n  color: #e5e7eb;\n}\n\n.app {\n  min-height: 100vh;\n  display: grid;\n  place-content: center;\n  gap: 1rem;\n}",
+    "package.json": "{\n  \"name\": \"vanilla-app\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"vite build\",\n    \"preview\": \"vite preview\"\n  },\n  \"devDependencies\": {\n    \"vite\": \"^7.3.1\"\n  }\n}"
+  }
+}

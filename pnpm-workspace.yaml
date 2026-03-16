@@ -1,3 +1,10 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+catalog:
+  "@biomejs/biome": 2.2.0
+  "@types/node": ^24.5.2
+  typescript: 5.9.2
+  tsx: ^4.21.0
+  zod: ^4.1.13

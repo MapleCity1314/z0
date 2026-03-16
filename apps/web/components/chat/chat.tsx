@@ -1,0 +1,580 @@
+"use client";
+
+import { DefaultChatTransport, type UIMessage, type FileUIPart } from "ai";
+import { unstable_serialize, useSWRConfig } from "swr";
+import { useEffect, useRef, useState } from "react";
+import { useChat } from "@ai-sdk/react";
+import { cn, fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
+import { ChatSDKError } from "@/lib/error";
+import { toast } from "sonner";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useTheme } from "next-themes";
+import { useAutoResume } from "@/hooks/use-auto-resume";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton,
+} from "../ai-elements/conversation";
+import { Bot } from "lucide-react";
+import { MessageList } from "./message-list";
+import { Welcome } from "./welcome";
+import { ChatInput } from "./chat-input";
+import FluidBackground from "../fluid-background";
+import { selectableModels, type SelectableModelName } from "@/lib/agent/model";
+import { useProjectStore } from "@/store/project";
+
+interface ChatProps {
+  id: string;
+  initialMessages: UIMessage[];
+  autoResume: boolean;
+  isNewChat?: boolean;
+  welcomeMessage?: string;
+  projectId?: string | null;
+}
+
+export default function Chat({
+  id,
+  initialMessages,
+  autoResume,
+  isNewChat = false,
+  projectId: initialProjectId = null,
+}: ChatProps) {
+  const { mutate } = useSWRConfig();
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
+  const [thinkingEnabled, setThinkingEnabled] = useState(false);
+  const [selectedModel, setSelectedModel] =
+    useState<SelectableModelName>("z0-mini");
+  const [studioModeEnabled, setStudioModeEnabled] = useState(
+    Boolean(initialProjectId),
+  );
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    initialProjectId,
+  );
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { resolvedTheme } = useTheme();
+  const setStoreProjectId = useProjectStore((s) => s.setProjectId);
+  const setGenerating = useProjectStore((s) => s.setGenerating);
+  const triggerFileUpdate = useProjectStore((s) => s.triggerFileUpdate);
+
+  // 初始化时设置项目 ID
+  // 当 Chat 组件挂载时（包括切换对话），根据 initialProjectId 更新 store
+  useEffect(() => {
+    const urlProjectId = searchParams.get("projectId");
+    const effectiveProjectId = urlProjectId || initialProjectId || null;
+
+    console.log(
+      "[Chat] Initializing/switching chat, projectId:",
+      effectiveProjectId,
+    );
+    setStudioModeEnabled(Boolean(effectiveProjectId));
+    setSelectedProjectId(effectiveProjectId);
+    // 始终更新 store（包括设置为 null 来关闭面板）
+    setStoreProjectId(effectiveProjectId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]); // 依赖 id，当切换对话时重新执行
+
+  // 监听 URL 中的 projectId 变化（用户通过 URL 打开项目）
+  useEffect(() => {
+    const urlProjectId = searchParams.get("projectId");
+    if (urlProjectId && urlProjectId !== selectedProjectId) {
+      console.log("[Chat] URL projectId changed:", urlProjectId);
+      setStudioModeEnabled(true);
+      setSelectedProjectId(urlProjectId);
+      setStoreProjectId(urlProjectId);
+    }
+  }, [searchParams, selectedProjectId, setStoreProjectId]);
+
+  // 使用 ref 来避免闭包问题
+  const webSearchRef = useRef(webSearchEnabled);
+  const thinkingRef = useRef(thinkingEnabled);
+  const studioModeRef = useRef(studioModeEnabled);
+  const modelRef = useRef(selectedModel);
+  const projectIdRef = useRef(selectedProjectId);
+
+  useEffect(() => {
+    webSearchRef.current = webSearchEnabled;
+  }, [webSearchEnabled]);
+
+  useEffect(() => {
+    thinkingRef.current = thinkingEnabled;
+  }, [thinkingEnabled]);
+
+  useEffect(() => {
+    modelRef.current = selectedModel;
+  }, [selectedModel]);
+
+  useEffect(() => {
+    studioModeRef.current = studioModeEnabled;
+  }, [studioModeEnabled]);
+
+  useEffect(() => {
+    projectIdRef.current = selectedProjectId;
+  }, [selectedProjectId]);
+
+  const {
+    messages,
+    setMessages,
+    sendMessage,
+    status,
+    stop,
+    resumeStream,
+    addToolOutput,
+  } = useChat({
+    id,
+    messages: initialMessages,
+    experimental_throttle: 150,
+    generateId: generateUUID,
+
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+      fetch: fetchWithErrorHandlers,
+
+      prepareSendMessagesRequest(options) {
+        const currentModelId = modelRef.current;
+        const currentWebSearch = webSearchRef.current;
+        const currentThinking = thinkingRef.current;
+        const currentProjectId = studioModeRef.current
+          ? projectIdRef.current
+          : null;
+
+        console.log("[Client] Sending request:", {
+          model: currentModelId,
+          isReasoning: currentThinking,
+          webSearchEnabled: currentWebSearch,
+          projectId: currentProjectId || "none",
+        });
+
+        return {
+          body: {
+            id,
+            messages: options.messages,
+            model: currentModelId,
+            webSearchEnabled: currentWebSearch,
+            isReasoning: currentThinking,
+            projectId: currentProjectId,
+          },
+          headers: {
+            ...options.headers,
+          },
+        };
+      },
+
+      prepareReconnectToStreamRequest() {
+        return {
+          headers: {
+            "x-chat-reconnect": "1",
+          },
+        };
+      },
+    }),
+
+    onToolCall: async ({ toolCall }) => {
+      try {
+        if (toolCall.toolName === "web_search") {
+          const result = { results: [] };
+
+          addToolOutput({
+            tool: toolCall.toolName,
+            toolCallId: toolCall.toolCallId,
+            output: result,
+          });
+        }
+      } catch (err) {
+        addToolOutput({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          state: "output-error",
+          errorText: (err as Error).message,
+        });
+      }
+    },
+
+    onFinish: () => {
+      mutate(unstable_serialize(["chat-history", id]));
+    },
+
+    onError: (error) => {
+      console.error("Chat error:", error);
+      if (error instanceof ChatSDKError) {
+        const causeText =
+          typeof error.cause === "string" && error.cause.length > 0
+            ? ` (${error.cause})`
+            : "";
+        toast.error(`${error.message}${causeText}`);
+        return;
+      }
+      toast.error("Unknown error occurred");
+    },
+  });
+
+  const query = searchParams.get("query");
+  const [hasAppendedQuery, setHasAppendedQuery] = useState(false);
+
+  // 🔧 FIX: 处理 URL query 参数（例如从搜索框跳转过来的场景）
+  useEffect(() => {
+    if (query && !hasAppendedQuery) {
+      // 发送 query 参数中的消息
+      sendMessage({
+        role: "user" as const,
+        parts: [{ type: "text", text: query }],
+      });
+
+      setHasAppendedQuery(true);
+
+      // 清理 URL 中的 query 参数，跳转到干净的对话页面
+      // 路由结构：app/(app)/c/[id] → URL: /c/{id}
+      router.replace(`/c/${id}`);
+    }
+  }, [query, sendMessage, hasAppendedQuery, id, router]);
+
+  useAutoResume({
+    autoResume,
+    initialMessages,
+    resumeStream,
+    setMessages,
+  });
+
+  // 检测工具执行完成，处理项目创建和文件更新
+  // 使用 ref 跟踪已处理的工具调用，避免重复处理
+  const handledToolCallsRef = useRef<Set<string>>(new Set());
+
+  // 文件操作工具列表
+  const fileOperationTools = [
+    "createProjectFile",
+    "updateProjectFile",
+    "patchProjectFile",
+    "deleteProjectFile",
+  ];
+
+  useEffect(() => {
+    let hasFileUpdate = false;
+
+    // 遍历所有消息查找工具结果
+    for (const message of messages) {
+      if (message.role !== "assistant") continue;
+
+      for (const part of message.parts || []) {
+        const toolPart = part as any;
+        if (toolPart.type?.startsWith("tool-") && toolPart.toolCallId) {
+          const toolName =
+            toolPart.toolName || toolPart.type.replace("tool-", "");
+          const toolCallId = toolPart.toolCallId;
+
+          // 只处理已完成且成功的工具调用
+          if (
+            toolPart.state !== "output-available" ||
+            !toolPart.output?.success
+          ) {
+            continue;
+          }
+
+          // 避免重复处理
+          if (handledToolCallsRef.current.has(toolCallId)) {
+            continue;
+          }
+
+          // 检测 createProject 工具成功完成
+          if (toolName === "createProject" && toolPart.output?.projectId) {
+            handledToolCallsRef.current.add(toolCallId);
+            const newProjectId = toolPart.output.projectId;
+            console.log(
+              "[Chat] Detected createProject success, opening panel:",
+              newProjectId,
+            );
+
+            // 更新本地状态和 store
+            setSelectedProjectId(newProjectId);
+            setStoreProjectId(newProjectId);
+          }
+
+          // 检测文件操作工具成功完成
+          if (fileOperationTools.includes(toolName)) {
+            handledToolCallsRef.current.add(toolCallId);
+            console.log("[Chat] Detected file operation success:", toolName);
+            hasFileUpdate = true;
+          }
+        }
+      }
+    }
+
+    // 如果有文件更新，触发 ProjectPanel 重新加载
+    if (hasFileUpdate) {
+      console.log("[Chat] Triggering file update for ProjectPanel");
+      triggerFileUpdate();
+    }
+  }, [messages, setStoreProjectId, triggerFileUpdate]);
+
+  // 检测项目工具调用，触发 loading 状态
+  useEffect(() => {
+    if (!selectedProjectId) {
+      setGenerating(false);
+      return;
+    }
+
+    // 项目类工具列表（生成代码类工具）
+    const projectCodeTools = [
+      "createProjectFile",
+      "updateProjectFile",
+      "patchProjectFile",
+      "deleteProjectFile",
+      "createProject",
+      "addDependency",
+      "removeDependency",
+      "installDependencies",
+      "runBuild",
+      "runLint",
+      "runFormat",
+      "runScript",
+    ];
+
+    // 检查最后一条消息是否包含项目工具调用
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.role === "assistant") {
+      const hasProjectToolCall = lastMessage.parts?.some((part: any) => {
+        if (part.type?.startsWith("tool-")) {
+          const toolName = part.toolName || part.type.replace("tool-", "");
+          return projectCodeTools.includes(toolName);
+        }
+        return false;
+      });
+
+      if (hasProjectToolCall) {
+        // 检查工具是否正在运行
+        const isToolRunning = lastMessage.parts?.some((part: any) => {
+          if (part.type?.startsWith("tool-")) {
+            const toolName = part.toolName || part.type.replace("tool-", "");
+            if (projectCodeTools.includes(toolName)) {
+              return (
+                part.state === "input-available" ||
+                part.state === "input-streaming"
+              );
+            }
+          }
+          return false;
+        });
+
+        setGenerating(isToolRunning || false);
+      } else {
+        setGenerating(false);
+      }
+    } else {
+      setGenerating(false);
+    }
+  }, [messages, selectedProjectId, setGenerating]);
+
+  const showWelcome = messages.length === 0 && isNewChat;
+  const showAssistantLoading =
+    (status === "submitted" || status === "streaming") &&
+    messages.some((message) => message.role === "user");
+  const isDarkTheme = resolvedTheme === "dark";
+
+  // Track if we need to update URL after chat creation
+  const pendingUrlUpdateRef = useRef(false);
+
+  // 🔧 FIX: Update URL after API responds (chat is created in DB)
+  // Use replaceState to avoid page reload and keep streaming intact
+  useEffect(() => {
+    if (pendingUrlUpdateRef.current && status === "streaming") {
+      pendingUrlUpdateRef.current = false;
+      // Update URL without navigation (keeps current component state)
+      window.history.replaceState({}, "", `/c/${id}`);
+      // Refresh sidebar chat list
+      mutate("recent-chats");
+    }
+  }, [status, id, mutate]);
+
+  const handleSendMessage = (message: {
+    text: string;
+    files: FileUIPart[];
+  }) => {
+    // Build parts array: text + files
+    const parts: UIMessage["parts"] = [];
+
+    if (message.text.trim()) {
+      parts.push({ type: "text", text: message.text });
+    }
+
+    if (message.files && message.files.length > 0) {
+      parts.push(...message.files);
+    }
+
+    const uiMessage: UIMessage = {
+      id: generateUUID(),
+      role: "user",
+      parts,
+    };
+
+    // 🔧 FIX: Mark pending URL update for new chats
+    // URL will be updated in useEffect when status becomes "streaming"
+    if (showWelcome) {
+      pendingUrlUpdateRef.current = true;
+    }
+
+    sendMessage(uiMessage);
+  };
+
+  const InputComponent = (
+    <ChatInput
+      chatId={id}
+      onSubmit={handleSendMessage}
+      status={status}
+      messagesLength={messages.length}
+      showWelcome={showWelcome}
+      webSearchEnabled={webSearchEnabled}
+      onWebSearchToggle={() => setWebSearchEnabled(!webSearchEnabled)}
+      thinkingEnabled={thinkingEnabled}
+      onThinkingToggle={() => setThinkingEnabled(!thinkingEnabled)}
+      studioModeEnabled={studioModeEnabled}
+      onStudioModeToggle={() => {
+        const nextStudioMode = !studioModeEnabled;
+        setStudioModeEnabled(nextStudioMode);
+        setStoreProjectId(nextStudioMode ? (selectedProjectId ?? null) : null);
+      }}
+      selectedModel={selectedModel}
+      onModelChange={setSelectedModel}
+      selectedProjectId={selectedProjectId}
+      onProjectChange={(projectId) => {
+        setSelectedProjectId(projectId);
+        // 同步更新 store，这会自动控制面板的显示/隐藏
+        if (studioModeEnabled) {
+          setStoreProjectId(projectId);
+        }
+      }}
+      onStop={stop}
+    />
+  );
+
+  return (
+    <div className="relative h-full w-full flex flex-col bg-zinc-50 dark:bg-black text-foreground antialiased overflow-hidden group/chat-page transition-colors duration-300">
+      <AnimatePresence mode="wait">
+        {showWelcome ? (
+          /* ================= WELCOME LAYOUT ================= */
+          <motion.div
+            key="welcome"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="relative flex h-full w-full flex-col overflow-hidden px-4"
+          >
+            <div className="pointer-events-none absolute inset-0">
+              <FluidBackground isDark={isDarkTheme} />
+              <div className="absolute inset-0 bg-zinc-50/35 dark:bg-black/45" />
+            </div>
+            {/* Desktop: Centered Layout */}
+            <div className="relative z-10 hidden h-full w-full flex-col items-center justify-center pt-32 md:flex">
+              <div className="w-full max-w-3xl mx-auto space-y-8">
+                <Welcome />
+
+                <motion.div
+                  initial={{ y: 0, opacity: 1 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: "calc(50vh - 50%)", opacity: 0 }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                  className="w-full"
+                >
+                  {InputComponent}
+                </motion.div>
+              </div>
+            </div>
+
+            {/* Mobile: Input at Bottom */}
+            <div className="relative z-10 flex h-full w-full flex-col md:hidden">
+              <div className="flex-1 flex items-center justify-center px-4 pb-44">
+                <Welcome />
+              </div>
+              <motion.div
+                initial={{ y: 96, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.45, delay: 0.05, ease: "easeOut" }}
+                className={cn(
+                  "absolute bottom-0 left-0 right-0 border-t px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+16px)]",
+                  "rounded-t-3xl bg-zinc-50/95 border-zinc-200 backdrop-blur-md",
+                  "dark:bg-black/95 dark:border-zinc-800",
+                )}
+              >
+                <div className="mx-auto w-full max-w-3xl">{InputComponent}</div>
+              </motion.div>
+            </div>
+          </motion.div>
+        ) : (
+          /* ================= CHAT LAYOUT ================= */
+          <motion.div
+            key="chat"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className="h-full w-full"
+          >
+            <Conversation className="w-full h-full">
+              <ConversationContent className="max-w-3xl mx-auto w-full pt-4 pb-48 px-4 md:px-6">
+                {messages.length === 0 ? (
+                  <ConversationEmptyState
+                    icon={
+                      <Bot className="size-10 text-zinc-400 dark:text-zinc-600 mb-4" />
+                    }
+                    title="What can I help you ship?"
+                    description="Generate UI, debug code, or brainstorm ideas."
+                    className="mt-[20vh]"
+                  />
+                ) : (
+                  <>
+                    <MessageList
+                      messages={messages}
+                      isStreaming={status === "streaming"}
+                      showAssistantLoading={showAssistantLoading}
+                      onRetry={(messageIndex) => {
+                        // Find the user message before this assistant message
+                        const userMessageIndex = messageIndex - 1;
+                        if (
+                          userMessageIndex >= 0 &&
+                          messages[userMessageIndex]?.role === "user"
+                        ) {
+                          // Remove messages from this point and resend
+                          const userMessage = messages[userMessageIndex];
+                          setMessages(messages.slice(0, userMessageIndex));
+                          sendMessage(userMessage);
+                        }
+                      }}
+                    />
+                  </>
+                )}
+              </ConversationContent>
+              <ConversationScrollButton
+                className={cn(
+                  "bottom-32 backdrop-blur-sm transition-all shadow-md",
+                  "bg-white/80 hover:bg-zinc-100 text-zinc-700 border-zinc-200", // Light
+                  "dark:bg-zinc-900/80 dark:hover:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-700", // Dark
+                )}
+              />
+            </Conversation>
+
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
+              className="absolute bottom-0 left-0 w-full z-20 pointer-events-none"
+            >
+              <div
+                className={cn(
+                  "absolute bottom-0 left-0 w-full h-40 pointer-events-none bg-gradient-to-t",
+                  "from-zinc-50 via-zinc-50/90 to-transparent", // Light
+                  "dark:from-black dark:via-black/90 dark:to-transparent", // Dark
+                )}
+              />
+              <div className="relative w-full max-w-3xl mx-auto px-4 pb-6 pt-2 pointer-events-auto">
+                {InputComponent}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <p className="pointer-events-none absolute bottom-1 left-0 right-0 z-30 text-center text-[10px] font-medium text-zinc-400 select-none dark:text-zinc-600">
+        Z0 may make mistakes. Please check important information.
+      </p>
+    </div>
+  );
+}

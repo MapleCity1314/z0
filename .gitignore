@@ -2,6 +2,7 @@
 
 # Dependencies
 node_modules
+.pnpm-store
 .pnp
 .pnp.js
 
@@ -26,6 +27,9 @@ coverage
 out/
 build
 dist
+coverage
+*.tsbuildinfo
+pnpm-debug.log*
 
 
 # Debug
@@ -36,3 +40,7 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# App-local locks
+apps/*/package-lock.json
+apps/*/pnpm-lock.yaml

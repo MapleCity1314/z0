@@ -1,0 +1,9 @@
+{
+  "extends": "./packages/typescript-config/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@z0/shared-types": ["./packages/shared-types/src/index.ts"]
+    }
+  }
+}

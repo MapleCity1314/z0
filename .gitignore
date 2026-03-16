@@ -44,3 +44,8 @@ yarn-error.log*
 # App-local locks
 apps/*/package-lock.json
 apps/*/pnpm-lock.yaml
+
+# External nested repo mount
+packages/sandbox/*
+!packages/sandbox/.gitignore
+!packages/sandbox/README.md

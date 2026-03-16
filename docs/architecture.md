@@ -4,6 +4,7 @@
 
 - `z0` is the primary product monorepo.
 - `@z0/sandbox` is a separate Rust CLI repository and is not committed into this repository.
+- `packages/sandbox` remains the expected local filesystem path for that external repository during development.
 
 ## Sandbox integration contract
 
@@ -19,6 +20,16 @@ The sandbox repository owns:
 - CLI entrypoint
 - release and distribution strategy
 - runtime isolation model
+
+## Local path convention
+
+For local development, place the external sandbox repository at:
+
+```text
+packages/sandbox
+```
+
+The main repository commits only the placeholder files in that directory so GitHub does not duplicate the sandbox codebase.
 
 ## Expected environment variables
 

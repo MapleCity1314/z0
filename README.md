@@ -12,6 +12,7 @@ packages/
   config-biome/ Unified Biome JSON configs
   typescript-config/ Shared TypeScript presets
   shared-types/ Cross-app type contracts
+  sandbox/      Local mount point for the external sandbox CLI repository
 ```
 
 ## Engineering conventions
@@ -42,4 +43,4 @@ pnpm build
 - `apps/api` is the Vercel-facing Hono service layer.
 - `packages/shared-types` holds TypeScript contracts shared by web and api.
 - `@z0/sandbox` is an external Rust CLI project maintained in its own repository.
-- This repository only keeps the integration boundary for the sandbox CLI.
+- `packages/sandbox` is reserved as the local mount point for that external repository, but only the placeholder docs are committed here.

@@ -14,6 +14,10 @@ describe("agent tool catalog", () => {
       refactorInternal: 6,
       futureSkill: 4,
       futureMcp: 18,
+      fast: 14,
+      moderate: 18,
+      expensive: 12,
+      stateful: 17,
       requiresProject: 40,
       requiresWebSearch: 4,
     });

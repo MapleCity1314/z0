@@ -146,7 +146,7 @@ export async function discoverAgentSkills(params?: {
   const skillMetadata: AgentSkillMetadata[] = [];
   const seenNames = new Set<string>();
   const workspaceSkillDirectories =
-    params?.workspaceSkillDirectories ?? [resolve(getWorkspaceRoot(), ".agents/skills")];
+    params?.workspaceSkillDirectories ?? getDefaultSkillDirectories();
 
   for (const directory of workspaceSkillDirectories) {
     try {
@@ -226,4 +226,13 @@ export function createSkillTools(skills: AgentSkillMetadata[]): ToolSet {
       },
     }),
   } satisfies ToolSet;
+}
+
+export function getDefaultSkillDirectories() {
+  const workspaceRoot = getWorkspaceRoot();
+
+  return [
+    resolve(workspaceRoot, "packages/backend/skills"),
+    resolve(workspaceRoot, ".agents/skills"),
+  ];
 }

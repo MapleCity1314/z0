@@ -79,6 +79,7 @@ Current state is important:
 - `Skill`, `UserSkill`, `ChatSkill` are persisted and exposed in UI
 - `MCPServer`, `UserMCPServer`, `ChatMCPServer` are persisted and exposed in UI
 - configured skills are now mounted into runtime as discoverable instruction packs through the `loadSkill` tool
+- built-in backend skills now ship from `packages/backend/skills`
 - MCP entries are still configuration records only and are not yet executable runtime providers
 
 This means the product currently has:
@@ -129,10 +130,16 @@ Skills are now best used for:
 
 The runtime mechanism is:
 
+- discover built-in skills from `packages/backend/skills`
 - discover workspace skills from `.agents/skills`
 - discover chat-enabled skill directories from DB
 - inject skill summaries into the system prompt
 - expose `loadSkill` to load full `SKILL.md` content on demand
+
+Current built-in skills:
+
+- `refactor-diff`
+- `runtime-ui-debug`
 
 ### Future skill candidates
 
@@ -161,7 +168,13 @@ This audit drove three concrete changes:
 
 1. tool inventory is now single-sourced in backend
 2. system prompt is now generated from the actual enabled tool catalog instead of a stale handwritten block
-3. configured skills now surface into runtime through discovery plus `loadSkill`
+3. configured and built-in skills now surface into runtime through discovery plus `loadSkill`
+
+Additional optimization now implemented:
+
+- tool catalog includes performance/cost metadata
+- prompt includes explicit selection policy to prefer low-cost tools first
+- editing and runtime-debug workflows are now available as first-party skills
 
 ## Next recommended phases
 

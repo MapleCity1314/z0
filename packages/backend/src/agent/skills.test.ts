@@ -6,6 +6,7 @@ import {
   buildSkillsPrompt,
   createSkillTools,
   discoverAgentSkills,
+  getDefaultSkillDirectories,
   parseSkillFrontmatter,
   stripSkillFrontmatter,
 } from "./skills";
@@ -104,5 +105,9 @@ describe("agent skills", () => {
     });
     expect(result.content).toContain("# patch-skill");
     expect(buildSkillsPrompt([skill])).toContain("patch-skill");
+  });
+
+  it("includes the built-in backend skill directory by default", () => {
+    expect(getDefaultSkillDirectories().some((directory) => directory.endsWith("packages/backend/skills"))).toBe(true);
   });
 });

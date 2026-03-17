@@ -10,6 +10,7 @@ describe("buildChatSystemPrompt", () => {
 
     expect(prompt).toContain("<tool_group name=\"Artifacts\">");
     expect(prompt).toContain("<tool_group name=\"System operations\">");
+    expect(prompt).toContain("<tool_selection_policy>");
     expect(prompt).not.toContain("Web research");
     expect(prompt).not.toContain("Project files");
   });
@@ -31,6 +32,8 @@ describe("buildChatSystemPrompt", () => {
 
     expect(prompt).toContain("<tool_group name=\"Web research\">");
     expect(prompt).toContain("<tool_group name=\"Project files\">");
+    expect(prompt).toContain("prefer searchReplace first");
+    expect(prompt).toContain("Use DOM or screenshot tools only");
     expect(prompt).toContain("<skills>");
     expect(prompt).toContain("refactor-diff");
     expect(prompt).toContain("<memory_context>");

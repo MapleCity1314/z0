@@ -39,6 +39,38 @@ function renderToolSection(entries: AgentToolCatalogEntry[]) {
     .join("\n");
 }
 
+function renderToolSelectionPolicy(entries: AgentToolCatalogEntry[]) {
+  const hasProjectDiff = entries.some((entry) => entry.group === "project-diff");
+  const hasProjectDom = entries.some((entry) => entry.group === "project-dom");
+  const hasResearch = entries.some((entry) => entry.group === "research");
+
+  const guidance = [
+    "- Prefer the lightest tool that can answer the question or perform the edit.",
+    "- Prefer targeted reads over broad scans. Read specific files before escalating to runtime inspection.",
+    "- Avoid stateful or expensive tools unless they add evidence you cannot get from cheaper tools.",
+  ];
+
+  if (hasProjectDiff) {
+    guidance.push(
+      "- For localized code edits, prefer searchReplace first, then patchProjectFile or generateDiff/applyDiff, and use generateASTPatch only when syntax-aware edits are necessary.",
+    );
+  }
+
+  if (hasProjectDom) {
+    guidance.push(
+      "- Use DOM or screenshot tools only when static file inspection is insufficient or when verifying runtime/UI behavior.",
+    );
+  }
+
+  if (hasResearch) {
+    guidance.push(
+      "- For web research, prefer tavilySearch or tavilyExtract. Use tavilyMap or tavilyCrawl only for site-wide exploration.",
+    );
+  }
+
+  return `<tool_selection_policy>\n${guidance.join("\n")}\n</tool_selection_policy>`;
+}
+
 export function buildChatSystemPrompt(params: {
   webSearchEnabled: boolean;
   projectId: string | null;
@@ -79,6 +111,8 @@ You are z0 Agent. You are a direct, high-agency product and coding assistant.
 - Use citations when facts come from web research or external sources.
 - For project work, prefer editing or inspecting the current project over describing hypothetical changes.
 </response_policy>
+
+${renderToolSelectionPolicy(enabledTools)}
 
 <tooling>
 ${renderToolSection(enabledTools)}

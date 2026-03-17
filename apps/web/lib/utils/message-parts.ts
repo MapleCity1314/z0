@@ -1,7 +1,21 @@
 type JsonRecord = Record<string, unknown>;
+type StoredMessagePartEnvelope = {
+  kind: string;
+  version: 1;
+  payload: JsonRecord;
+};
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null;
+}
+
+function isStoredEnvelope(value: unknown): value is StoredMessagePartEnvelope {
+  return (
+    isRecord(value) &&
+    typeof value.kind === "string" &&
+    value.version === 1 &&
+    isRecord(value.payload)
+  );
 }
 
 function isLegacyToolCallPart(part: JsonRecord): boolean {
@@ -16,6 +30,22 @@ function toToolPartType(toolName: unknown): string {
   const safeToolName =
     typeof toolName === "string" && toolName.length > 0 ? toolName : "unknown";
   return `tool-${safeToolName}`;
+}
+
+function getPartKind(part: JsonRecord): string {
+  if (typeof part.type !== "string") {
+    return "unknown";
+  }
+
+  if (part.type.startsWith("tool-")) {
+    return "tool";
+  }
+
+  if (part.type.startsWith("data-")) {
+    return "data";
+  }
+
+  return part.type;
 }
 
 function getToolInput(callPart: JsonRecord): unknown {
@@ -65,6 +95,22 @@ function toLegacyMergedToolPart(
   };
 }
 
+function toStoredEnvelope(part: JsonRecord): StoredMessagePartEnvelope {
+  return {
+    kind: getPartKind(part),
+    version: 1,
+    payload: part,
+  };
+}
+
+function unwrapStoredEnvelope(part: unknown): JsonRecord | null {
+  if (!isStoredEnvelope(part)) {
+    return null;
+  }
+
+  return part.payload;
+}
+
 /**
  * Normalize stored parts so both new-format and legacy tool parts can be rendered.
  */
@@ -74,22 +120,26 @@ export function normalizeStoredMessageParts(parts: unknown): JsonRecord[] {
   }
 
   const resultById = new Map<string, JsonRecord>();
-  for (const rawPart of parts) {
-    if (!isRecord(rawPart) || !isLegacyToolResultPart(rawPart)) continue;
+  const rawParts = parts
+    .map((rawPart) => unwrapStoredEnvelope(rawPart) ?? rawPart)
+    .filter(isRecord);
+
+  for (const rawPart of rawParts) {
+    if (!isLegacyToolResultPart(rawPart)) continue;
     resultById.set(rawPart.toolCallId as string, rawPart);
   }
 
   const handledToolCallIds = new Set<string>();
   const normalized: JsonRecord[] = [];
 
-  for (const rawPart of parts) {
-    if (!isRecord(rawPart)) continue;
-
+  for (const rawPart of rawParts) {
     if (isLegacyToolCallPart(rawPart)) {
       const toolCallId = rawPart.toolCallId as string;
       if (handledToolCallIds.has(toolCallId)) continue;
 
-      normalized.push(toLegacyMergedToolPart(rawPart, resultById.get(toolCallId)));
+      normalized.push(
+        toLegacyMergedToolPart(rawPart, resultById.get(toolCallId)),
+      );
       handledToolCallIds.add(toolCallId);
       continue;
     }
@@ -110,6 +160,15 @@ export function normalizeStoredMessageParts(parts: unknown): JsonRecord[] {
 }
 
 /**
+ * Normalize incoming UI parts into a versioned storage envelope.
+ */
+export function normalizeMessagePartsForStorage(
+  parts: unknown,
+): StoredMessagePartEnvelope[] {
+  return normalizeStoredMessageParts(parts).map(toStoredEnvelope);
+}
+
+/**
  * Extract file attachments from UI message parts for DB storage.
  */
 export function extractFileAttachmentsFromParts(parts: unknown): Array<{
@@ -127,10 +186,12 @@ export function extractFileAttachmentsFromParts(parts: unknown): Array<{
     filename?: string;
   }> = [];
 
-  for (const rawPart of parts) {
-    if (!isRecord(rawPart)) continue;
+  for (const rawPart of normalizeStoredMessageParts(parts)) {
     if (rawPart.type !== "file") continue;
-    if (typeof rawPart.url !== "string" || typeof rawPart.mediaType !== "string")
+    if (
+      typeof rawPart.url !== "string" ||
+      typeof rawPart.mediaType !== "string"
+    )
       continue;
 
     attachments.push({

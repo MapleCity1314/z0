@@ -38,6 +38,7 @@ import type { DBMessage } from "@/lib/schema";
 import { getCurrentUser } from "@/lib/session";
 import {
   extractFileAttachmentsFromParts,
+  normalizeMessagePartsForStorage,
   normalizeStoredMessageParts,
 } from "@/lib/utils/message-parts";
 import { SYSTEM_PROMPT } from "./prompt";
@@ -269,7 +270,7 @@ export async function POST(request: NextRequest) {
           id: responseMessage.id || crypto.randomUUID(),
           chatId: payload.id,
           role: "assistant",
-          parts: normalizedParts,
+          parts: normalizeMessagePartsForStorage(normalizedParts),
           attachments: extractFileAttachmentsFromParts(normalizedParts),
           createdAt: new Date(),
         };

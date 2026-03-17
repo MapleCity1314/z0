@@ -10,6 +10,7 @@ import {
   saveToolCalls,
 } from "@/components/chat/actions";
 import { isFilePart } from "@/lib/agent/chat/request";
+import { normalizeMessagePartsForStorage } from "@/lib/utils/message-parts";
 
 export async function updateChatProjectLinkFromToolResults(
   chatId: string,
@@ -50,7 +51,7 @@ export function buildPersistableUserMessages(
         id: message.id,
         chatId,
         role: message.role,
-        parts: message.parts,
+        parts: normalizeMessagePartsForStorage(message.parts),
         attachments: fileAttachments,
         createdAt: new Date(),
       };

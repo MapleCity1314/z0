@@ -17,7 +17,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { Project } from "@/lib/schema";
-import { getProjectsByUserId } from "@/app/(chat)/api/project/actions";
+import { getUserProjectsAction } from "@/app/(chat)/api/projects/actions";
 
 interface ProjectSelectorProps {
   selectedProjectId?: string | null;
@@ -36,7 +36,7 @@ export function ProjectSelector({
 
   useEffect(() => {
     async function loadProjects() {
-      const result = await getProjectsByUserId();
+      const result = await getUserProjectsAction();
       if (result.success && result.data) {
         setProjects(result.data);
       }
@@ -57,7 +57,8 @@ export function ProjectSelector({
               "flex items-center gap-2 rounded-full px-3 py-1.5 text-xs transition-all",
               "border border-zinc-700/50 bg-zinc-800/80 text-zinc-300",
               "hover:bg-zinc-800 hover:text-zinc-100 hover:border-zinc-700",
-              selectedProjectId && "border-blue-500/50 bg-blue-500/10 text-blue-400"
+              selectedProjectId &&
+                "border-blue-500/50 bg-blue-500/10 text-blue-400",
             )}
           >
             <FolderOpen className="size-3.5" />
@@ -92,7 +93,7 @@ export function ProjectSelector({
                 className={cn(
                   "flex items-center gap-2 px-3 py-2 cursor-pointer",
                   "aria-selected:bg-zinc-800 aria-selected:text-white",
-                  !selectedProjectId && "bg-zinc-800 text-white"
+                  !selectedProjectId && "bg-zinc-800 text-white",
                 )}
               >
                 <div className="flex size-5 items-center justify-center">
@@ -113,7 +114,8 @@ export function ProjectSelector({
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 cursor-pointer",
                     "aria-selected:bg-zinc-800 aria-selected:text-white",
-                    selectedProjectId === project.id && "bg-zinc-800 text-white"
+                    selectedProjectId === project.id &&
+                      "bg-zinc-800 text-white",
                   )}
                 >
                   <div className="flex size-5 items-center justify-center">
@@ -146,7 +148,10 @@ interface ProjectBadgeProps {
   onRemove?: () => void;
 }
 
-export function ProjectBadge({ selectedProjectId, onRemove }: ProjectBadgeProps) {
+export function ProjectBadge({
+  selectedProjectId,
+  onRemove,
+}: ProjectBadgeProps) {
   const [project, setProject] = useState<Project | null>(null);
 
   useEffect(() => {
@@ -156,7 +161,7 @@ export function ProjectBadge({ selectedProjectId, onRemove }: ProjectBadgeProps)
     }
 
     async function loadProject() {
-      const result = await getProjectsByUserId();
+      const result = await getUserProjectsAction();
       if (result.success && result.data) {
         const found = result.data.find((p) => p.id === selectedProjectId);
         setProject(found || null);
@@ -204,7 +209,7 @@ export function ProjectSelectorMenuItem({
 
   useEffect(() => {
     async function loadProjects() {
-      const result = await getProjectsByUserId();
+      const result = await getUserProjectsAction();
       if (result.success && result.data) {
         setProjects(result.data);
       }
@@ -246,7 +251,7 @@ export function ProjectSelectorMenuItem({
                 className={cn(
                   "flex items-center gap-2 px-3 py-2 cursor-pointer",
                   "aria-selected:bg-zinc-800 aria-selected:text-white",
-                  !selectedProjectId && "bg-zinc-800 text-white"
+                  !selectedProjectId && "bg-zinc-800 text-white",
                 )}
               >
                 <div className="flex size-5 items-center justify-center">
@@ -266,7 +271,8 @@ export function ProjectSelectorMenuItem({
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 cursor-pointer",
                     "aria-selected:bg-zinc-800 aria-selected:text-white",
-                    selectedProjectId === project.id && "bg-zinc-800 text-white"
+                    selectedProjectId === project.id &&
+                      "bg-zinc-800 text-white",
                   )}
                 >
                   <div className="flex size-5 items-center justify-center">

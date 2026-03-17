@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { createProject } from "@/app/(chat)/api/project/actions";
+import { createProjectAction } from "@/app/(chat)/api/projects/actions";
 import type { Project } from "@/lib/schema";
 
 interface CreateProjectDialogProps {
@@ -35,8 +35,7 @@ const PROJECT_TYPES = [
   { value: "react", label: "React" },
   { value: "vue", label: "Vue" },
   { value: "nextjs", label: "Next.js" },
-  { value: "angular", label: "Angular" },
-  { value: "svelte", label: "Svelte" },
+  { value: "vanilla", label: "Vanilla" },
 ];
 
 export function CreateProjectDialog({
@@ -61,12 +60,11 @@ export function CreateProjectDialog({
 
     setIsLoading(true);
 
-    const data = new FormData();
-    data.append("name", formData.name);
-    data.append("description", formData.description);
-    data.append("type", formData.type);
-
-    const result = await createProject(data);
+    const result = await createProjectAction({
+      name: formData.name,
+      description: formData.description || undefined,
+      type: formData.type as "react" | "vue" | "nextjs" | "vanilla",
+    });
 
     if (result.success && result.data) {
       toast.success(result.message);

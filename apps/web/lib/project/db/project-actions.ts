@@ -1,46 +1,125 @@
-/**
- * Project Server Actions
- * 
- * 这些 Server Actions 负责：
- * 1. 用户认证（使用 NextAuth session）
- * 2. 数据库操作
- * 3. 权限验证
- * 
- * 工具通过调用这些 Server Actions 来执行需要认证的操作
- */
-
 "use server";
 
+import {
+  createProjectInputSchema,
+  updateProjectFilesInputSchema,
+  updateProjectMetadataInputSchema,
+  type ProjectRecord,
+} from "@z0/backend";
+import { z } from "zod";
+import { apiFetch } from "@/lib/api";
 import { requireAuth } from "@/lib/session";
-import { 
-  createProject as dbCreateProject,
-  getProjectsByUserId,
-  getProjectById,
-  updateProjectMetadata as dbUpdateProjectMetadata,
-  updateProjectFiles,
-} from "./project-queries";
 
-/**
- * 创建新项目
- * 需要用户认证
- */
-export async function createProjectAction(params: {
+const projectStatusFilterSchema = z.enum([
+  "all",
+  "draft",
+  "building",
+  "deployed",
+  "failed",
+]);
+
+const createProjectActionSchema = createProjectInputSchema
+  .omit({ userId: true })
+  .extend({
+    files: z.record(z.string(), z.string()).default({}),
+  });
+
+const updateProjectInfoSchema = updateProjectMetadataInputSchema.omit({
+  actorUserId: true,
+  projectId: true,
+});
+
+const updateProjectFilesActionSchema = updateProjectFilesInputSchema.omit({
+  actorUserId: true,
+});
+
+type ProjectActionResult<T> =
+  | { success: true; data: T; error?: undefined }
+  | { success: false; error: string; data?: undefined };
+
+type ProjectInfo = {
+  projectId: string;
   name: string;
-  type: "react" | "vue" | "nextjs" | "vanilla";
-  description?: string;
+  type: ProjectRecord["type"];
+  status: ProjectRecord["status"];
+  description: string | null;
+  tags: string[];
   files: Record<string, string>;
-}) {
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+function toErrorMessage(error: unknown) {
+  if (error instanceof z.ZodError) {
+    return "Invalid project input";
+  }
+  return error instanceof Error ? error.message : "Unknown project error";
+}
+
+async function getActor() {
+  const user = await requireAuth();
+  return { userId: user.id, role: user.role };
+}
+
+async function fetchOwnedProject(projectId: string) {
+  const actor = await getActor();
+  return apiFetch<ProjectRecord>(`/v1/projects/${projectId}`, undefined, {
+    actor,
+  });
+}
+
+function toProjectInfo(project: ProjectRecord): ProjectInfo {
+  return {
+    projectId: project.id,
+    name: project.name,
+    type: project.type,
+    status: project.status,
+    description: project.description,
+    tags: project.tags,
+    files: project.files ?? {},
+    createdAt: new Date(project.createdAt),
+    updatedAt: new Date(project.updatedAt),
+  };
+}
+
+export async function createProjectAction(
+  params: z.infer<typeof createProjectActionSchema>,
+): Promise<
+  ProjectActionResult<{
+    projectId: string;
+    name: string;
+    type: ProjectRecord["type"];
+  }>
+> {
   try {
-    const user = await requireAuth();
-    
-    const project = await dbCreateProject({
-      userId: user.id,
-      name: params.name,
-      description: params.description,
-      type: params.type,
-      files: params.files,
-    });
-    
+    const actor = await getActor();
+    const parsed = createProjectActionSchema.parse(params);
+
+    const project = await apiFetch<ProjectRecord>(
+      "/v1/projects",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name: parsed.name,
+          description: parsed.description,
+          type: parsed.type,
+          visibility: parsed.visibility,
+        }),
+      },
+      { actor },
+    );
+
+    if (Object.keys(parsed.files).length > 0) {
+      await apiFetch<ProjectRecord>(
+        `/v1/projects/${project.id}/files`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ files: parsed.files }),
+        },
+        { actor },
+      );
+    }
+
     return {
       success: true,
       data: {
@@ -50,292 +129,206 @@ export async function createProjectAction(params: {
       },
     };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to create project",
-    };
+    return { success: false, error: toErrorMessage(error) };
   }
 }
 
-/**
- * 获取用户的所有项目
- * 需要用户认证
- */
 export async function listProjectsAction(params?: {
-  status?: "all" | "draft" | "building" | "deployed";
-}) {
+  status?: z.infer<typeof projectStatusFilterSchema>;
+}): Promise<
+  ProjectActionResult<{
+    projects: Array<{
+      id: string;
+      name: string;
+      type: ProjectRecord["type"];
+      status: ProjectRecord["status"];
+      description: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+    }>;
+    count: number;
+  }>
+> {
   try {
-    const user = await requireAuth();
-    
-    let projects = await getProjectsByUserId(user.id);
-    
-    // 按状态过滤
-    if (params?.status && params.status !== "all") {
-      projects = projects.filter((p) => p.status === params.status);
-    }
-    
+    const actor = await getActor();
+    const status = projectStatusFilterSchema.parse(params?.status ?? "all");
+    const projects = await apiFetch<ProjectRecord[]>(
+      "/v1/projects",
+      undefined,
+      {
+        actor,
+      },
+    );
+
+    const filteredProjects =
+      status === "all"
+        ? projects
+        : projects.filter((project) => project.status === status);
+
     return {
       success: true,
       data: {
-        projects: projects.map((p) => ({
-          id: p.id,
-          name: p.name,
-          type: p.type,
-          status: p.status,
-          description: p.description,
-          createdAt: p.createdAt,
-          updatedAt: p.updatedAt,
+        projects: filteredProjects.map((project) => ({
+          id: project.id,
+          name: project.name,
+          type: project.type,
+          status: project.status,
+          description: project.description,
+          createdAt: new Date(project.createdAt),
+          updatedAt: new Date(project.updatedAt),
         })),
-        count: projects.length,
+        count: filteredProjects.length,
       },
     };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to list projects",
-    };
+    return { success: false, error: toErrorMessage(error) };
   }
 }
 
-/**
- * 获取项目信息
- * 需要用户认证 + 项目所有权验证
- */
-export async function getProjectInfoAction(projectId: string) {
+export async function getProjectInfoAction(
+  projectId: string,
+): Promise<ProjectActionResult<ProjectInfo>> {
   try {
-    const user = await requireAuth();
-    
-    const project = await getProjectById(projectId);
-    
-    if (!project) {
-      return {
-        success: false,
-        error: "Project not found",
-      };
-    }
-    
-    // 验证用户是否拥有该项目
-    if (project.userId !== user.id) {
-      return {
-        success: false,
-        error: "Forbidden: You don't own this project",
-      };
-    }
-    
-    return {
-      success: true,
-      data: {
-        projectId: project.id,
-        name: project.name,
-        type: project.type,
-        status: project.status,
-        description: project.description,
-        tags: project.tags,
-        files: project.files as Record<string, string> | undefined,
-        createdAt: project.createdAt,
-        updatedAt: project.updatedAt,
-      },
-    };
+    const project = await fetchOwnedProject(z.string().uuid().parse(projectId));
+    return { success: true, data: toProjectInfo(project) };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to get project info",
-    };
+    return { success: false, error: toErrorMessage(error) };
   }
 }
 
-/**
- * 更新项目元信息
- * 需要用户认证 + 项目所有权验证
- */
 export async function updateProjectInfoAction(
   projectId: string,
-  updates: {
-    name?: string;
-    description?: string;
-    tags?: string[];
-  }
-) {
+  updates: z.infer<typeof updateProjectInfoSchema>,
+): Promise<
+  ProjectActionResult<{
+    projectId: string;
+    name: string;
+    description: string | null;
+    tags: string[];
+  }>
+> {
   try {
-    const user = await requireAuth();
-    
-    const project = await getProjectById(projectId);
-    
-    if (!project) {
-      return {
-        success: false,
-        error: "Project not found",
-      };
-    }
-    
-    // 验证用户是否拥有该项目
-    if (project.userId !== user.id) {
-      return {
-        success: false,
-        error: "Forbidden: You don't own this project",
-      };
-    }
-    
-    const updated = await dbUpdateProjectMetadata(projectId, updates);
-    
-    if (!updated) {
-      return {
-        success: false,
-        error: "Failed to update project",
-      };
-    }
-    
+    const actor = await getActor();
+    const parsedProjectId = z.string().uuid().parse(projectId);
+    const parsedUpdates = updateProjectInfoSchema.parse(updates);
+
+    const project = await apiFetch<ProjectRecord>(
+      `/v1/projects/${parsedProjectId}/metadata`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(parsedUpdates),
+      },
+      { actor },
+    );
+
     return {
       success: true,
       data: {
-        projectId: updated.id,
-        name: updated.name,
-        description: updated.description,
-        tags: updated.tags,
+        projectId: project.id,
+        name: project.name,
+        description: project.description,
+        tags: project.tags,
       },
     };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to update project info",
-    };
+    return { success: false, error: toErrorMessage(error) };
   }
 }
 
-/**
- * 验证用户是否拥有项目
- * 这是一个通用的验证函数，供其他 actions 使用
- */
-export async function verifyProjectOwnership(projectId: string) {
+export async function verifyProjectOwnership(
+  projectId: string,
+): Promise<ProjectActionResult<{ userId: string }>> {
   try {
-    const user = await requireAuth();
-    const project = await getProjectById(projectId);
-    
-    if (!project) {
-      return { success: false, error: "Project not found" };
-    }
-    
-    if (project.userId !== user.id) {
-      return { success: false, error: "Forbidden: You don't own this project" };
-    }
-    
-    return { success: true, userId: user.id };
+    const actor = await getActor();
+    await apiFetch<ProjectRecord>(
+      `/v1/projects/${z.string().uuid().parse(projectId)}`,
+      undefined,
+      {
+        actor,
+      },
+    );
+    return { success: true, data: { userId: actor.userId } };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Authentication failed",
-    };
+    return { success: false, error: toErrorMessage(error) };
   }
 }
 
-/**
- * 更新项目文件
- * 需要用户认证 + 项目所有权验证
- */
 export async function updateProjectFilesAction(
   projectId: string,
-  newFiles: Record<string, string>
-) {
+  newFiles: Record<string, string>,
+): Promise<ProjectActionResult<{ projectId: string; filesUpdated: number }>> {
   try {
-    const user = await requireAuth();
-    
-    const project = await getProjectById(projectId);
-    
-    if (!project) {
-      return {
-        success: false,
-        error: "Project not found",
-      };
-    }
-    
-    // 验证用户是否拥有该项目
-    if (project.userId !== user.id) {
-      return {
-        success: false,
-        error: "Forbidden: You don't own this project",
-      };
-    }
-    
-    // 合并现有文件和新文件
-    const existingFiles = (project.files as Record<string, string>) || {};
-    const updatedFiles = { ...existingFiles, ...newFiles };
-    
-    const updated = await updateProjectFiles(projectId, updatedFiles);
-    
-    if (!updated) {
-      return {
-        success: false,
-        error: "Failed to update files",
-      };
-    }
-    
+    const actor = await getActor();
+    const parsed = updateProjectFilesActionSchema.parse({
+      projectId,
+      files: newFiles,
+    });
+    const project = await apiFetch<ProjectRecord>(
+      `/v1/projects/${parsed.projectId}`,
+      undefined,
+      { actor },
+    );
+
+    const updatedFiles = {
+      ...(project.files ?? {}),
+      ...parsed.files,
+    };
+
+    const updated = await apiFetch<ProjectRecord>(
+      `/v1/projects/${parsed.projectId}/files`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ files: updatedFiles }),
+      },
+      { actor },
+    );
+
     return {
       success: true,
       data: {
         projectId: updated.id,
-        filesUpdated: Object.keys(newFiles).length,
+        filesUpdated: Object.keys(parsed.files).length,
       },
     };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to update files",
-    };
+    return { success: false, error: toErrorMessage(error) };
   }
 }
 
-/**
- * 删除项目文件
- * 需要用户认证 + 项目所有权验证
- */
 export async function deleteProjectFileAction(
   projectId: string,
-  filePath: string
-) {
+  filePath: string,
+): Promise<ProjectActionResult<{ projectId: string; deletedFile: string }>> {
   try {
-    const user = await requireAuth();
-    
-    const project = await getProjectById(projectId);
-    
-    if (!project) {
-      return {
-        success: false,
-        error: "Project not found",
-      };
-    }
-    
-    // 验证用户是否拥有该项目
-    if (project.userId !== user.id) {
-      return {
-        success: false,
-        error: "Forbidden: You don't own this project",
-      };
-    }
-    
-    // 从文件列表中删除指定文件
-    const existingFiles = (project.files as Record<string, string>) || {};
-    const { [filePath]: _, ...remainingFiles } = existingFiles;
-    
-    const updated = await updateProjectFiles(projectId, remainingFiles);
-    
-    if (!updated) {
-      return {
-        success: false,
-        error: "Failed to delete file",
-      };
-    }
-    
+    const actor = await getActor();
+    const parsedProjectId = z.string().uuid().parse(projectId);
+    const parsedFilePath = z.string().min(1).parse(filePath);
+    const project = await apiFetch<ProjectRecord>(
+      `/v1/projects/${parsedProjectId}`,
+      undefined,
+      { actor },
+    );
+
+    const existingFiles = project.files ?? {};
+    const { [parsedFilePath]: _deleted, ...remainingFiles } = existingFiles;
+
+    const updated = await apiFetch<ProjectRecord>(
+      `/v1/projects/${parsedProjectId}/files`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ files: remainingFiles }),
+      },
+      { actor },
+    );
+
     return {
       success: true,
       data: {
         projectId: updated.id,
-        deletedFile: filePath,
+        deletedFile: parsedFilePath,
       },
     };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to delete file",
-    };
+    return { success: false, error: toErrorMessage(error) };
   }
 }

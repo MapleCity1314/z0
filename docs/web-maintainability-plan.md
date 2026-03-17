@@ -50,6 +50,11 @@ Next recommended step:
 - Replace page-local inline response typing with shared contracts for admin/project/version surfaces.
 - Audit `app/(admin)` pages for repeated fetch/format logic and extract server-side loaders.
 
+Progress:
+
+- Project management now keeps internal Next.js `server action` entrypoints for UI/tooling flows, but those actions call the API boundary instead of writing to the DB directly.
+- Unsupported UI-only project type variants should be removed whenever they do not exist in backend contracts.
+
 ### Phase 3
 
 After non-Agent boundaries are stable:

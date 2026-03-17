@@ -13,16 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 import type { Project } from "@/lib/schema";
-import { updateProject } from "@/app/(chat)/api/project/actions";
+import { updateProjectMetadataAction } from "@/app/(chat)/api/projects/actions";
 
 interface EditProjectDialogProps {
   open: boolean;
@@ -30,14 +23,6 @@ interface EditProjectDialogProps {
   project: Project;
   onProjectUpdated: (project: Project) => void;
 }
-
-const PROJECT_TYPES = [
-  { value: "react", label: "React" },
-  { value: "vue", label: "Vue" },
-  { value: "nextjs", label: "Next.js" },
-  { value: "angular", label: "Angular" },
-  { value: "svelte", label: "Svelte" },
-];
 
 export function EditProjectDialog({
   open,
@@ -49,14 +34,12 @@ export function EditProjectDialog({
   const [formData, setFormData] = useState({
     name: project.name,
     description: project.description || "",
-    type: project.type,
   });
 
   useEffect(() => {
     setFormData({
       name: project.name,
       description: project.description || "",
-      type: project.type,
     });
   }, [project]);
 
@@ -70,12 +53,11 @@ export function EditProjectDialog({
 
     setIsLoading(true);
 
-    const data = new FormData();
-    data.append("name", formData.name);
-    data.append("description", formData.description);
-    data.append("type", formData.type);
-
-    const result = await updateProject(project.id, data);
+    const result = await updateProjectMetadataAction(project.id, {
+      name: formData.name,
+      description: formData.description || undefined,
+      tags: project.tags as string[] | undefined,
+    });
 
     if (result.success && result.data) {
       toast.success(result.message);
@@ -112,33 +94,6 @@ export function EditProjectDialog({
               className="bg-zinc-950 border-zinc-800 text-white"
               required
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit-type" className="text-zinc-300">
-              Project Type
-            </Label>
-            <Select
-              value={formData.type}
-              onValueChange={(value) =>
-                setFormData({ ...formData, type: value })
-              }
-            >
-              <SelectTrigger className="bg-zinc-950 border-zinc-800 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-900 border-zinc-800">
-                {PROJECT_TYPES.map((type) => (
-                  <SelectItem
-                    key={type.value}
-                    value={type.value}
-                    className="text-white"
-                  >
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="space-y-2">

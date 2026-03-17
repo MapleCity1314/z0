@@ -49,3 +49,9 @@ apps/*/pnpm-lock.yaml
 packages/sandbox/*
 !packages/sandbox/.gitignore
 !packages/sandbox/README.md
+
+# Local agent tooling
+.agents/
+.claude/
+CLAUDE.md
+skills-lock.json

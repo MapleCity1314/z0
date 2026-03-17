@@ -6,10 +6,21 @@ import { Tag, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/admin/data-table/data-table";
 import { cn } from "@/lib/utils";
-import type { VersionUpdate } from "@/lib/schema";
+type VersionListItem = {
+  id: string;
+  version: string;
+  title: string;
+  type: "major" | "minor" | "patch";
+  status: "draft" | "published" | "archived";
+  features: unknown[];
+  improvements: unknown[];
+  bugFixes: unknown[];
+  isLatest: boolean;
+  createdAt: Date | string;
+};
 
 interface VersionsTableProps {
-  versions: VersionUpdate[];
+  versions: VersionListItem[];
 }
 
 const statusColors: Record<string, string> = {
@@ -31,14 +42,14 @@ export function VersionsTable({ versions }: VersionsTableProps) {
     {
       key: "version",
       title: "Version",
-      render: (item: VersionUpdate) => (
+      render: (item: VersionListItem) => (
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-muted">
             <Tag className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="flex items-center gap-2">
             <span className="font-mono font-medium">{item.version}</span>
-            {item.isLatest === "true" && (
+            {item.isLatest && (
               <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
             )}
           </div>
@@ -48,14 +59,14 @@ export function VersionsTable({ versions }: VersionsTableProps) {
     {
       key: "title",
       title: "Title",
-      render: (item: VersionUpdate) => (
+      render: (item: VersionListItem) => (
         <span className="truncate max-w-[200px]">{item.title}</span>
       ),
     },
     {
       key: "type",
       title: "Type",
-      render: (item: VersionUpdate) => (
+      render: (item: VersionListItem) => (
         <Badge variant="outline" className={cn("text-xs", typeColors[item.type])}>
           {item.type}
         </Badge>
@@ -64,7 +75,7 @@ export function VersionsTable({ versions }: VersionsTableProps) {
     {
       key: "status",
       title: "Status",
-      render: (item: VersionUpdate) => (
+      render: (item: VersionListItem) => (
         <Badge variant="outline" className={cn("text-xs", statusColors[item.status])}>
           {item.status}
         </Badge>
@@ -73,7 +84,7 @@ export function VersionsTable({ versions }: VersionsTableProps) {
     {
       key: "changes",
       title: "Changes",
-      render: (item: VersionUpdate) => {
+      render: (item: VersionListItem) => {
         const features = (item.features as unknown[])?.length || 0;
         const improvements = (item.improvements as unknown[])?.length || 0;
         const bugFixes = (item.bugFixes as unknown[])?.length || 0;
@@ -86,9 +97,9 @@ export function VersionsTable({ versions }: VersionsTableProps) {
     {
       key: "createdAt",
       title: "Created",
-      render: (item: VersionUpdate) => (
+      render: (item: VersionListItem) => (
         <span className="text-muted-foreground">
-          {formatDistanceToNow(item.createdAt, { addSuffix: true })}
+          {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
         </span>
       ),
     },

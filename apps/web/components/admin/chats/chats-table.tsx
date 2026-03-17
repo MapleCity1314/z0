@@ -9,7 +9,7 @@ import { Pagination } from "@/components/admin/data-table/pagination";
 interface Chat {
   id: string;
   title: string;
-  createdAt: Date;
+  createdAt: Date | string;
   userId: string;
   projectId: string | null;
   userName: string | null;
@@ -32,10 +32,10 @@ export function ChatsTable({ chats, page, totalPages, total }: ChatsTableProps) 
       title: "Title",
       render: (chat: Chat) => (
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-muted">
+          <div className="rounded-lg bg-muted p-2">
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </div>
-          <span className="font-medium truncate max-w-[300px]">{chat.title}</span>
+          <span className="max-w-[300px] truncate font-medium">{chat.title}</span>
         </div>
       ),
     },
@@ -53,9 +53,7 @@ export function ChatsTable({ chats, page, totalPages, total }: ChatsTableProps) 
       key: "project",
       title: "Project",
       render: (chat: Chat) => (
-        <span className="text-muted-foreground">
-          {chat.projectId ? "Linked" : "—"}
-        </span>
+        <span className="text-muted-foreground">{chat.projectId ? "Linked" : "-"}</span>
       ),
     },
     {
@@ -63,7 +61,7 @@ export function ChatsTable({ chats, page, totalPages, total }: ChatsTableProps) 
       title: "Created",
       render: (chat: Chat) => (
         <span className="text-muted-foreground">
-          {formatDistanceToNow(chat.createdAt, { addSuffix: true })}
+          {formatDistanceToNow(new Date(chat.createdAt), { addSuffix: true })}
         </span>
       ),
     },
@@ -87,13 +85,13 @@ export function ChatsTable({ chats, page, totalPages, total }: ChatsTableProps) 
         emptyMessage="No chats found"
       />
 
-      {totalPages > 1 && (
+      {totalPages > 1 ? (
         <Pagination
           page={page}
           totalPages={totalPages}
           onPageChange={handlePageChange}
         />
-      )}
+      ) : null}
     </div>
   );
 }

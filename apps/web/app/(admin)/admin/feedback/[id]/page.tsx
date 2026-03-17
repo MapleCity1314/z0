@@ -4,9 +4,8 @@ import { format } from "date-fns";
 import { ArrowLeft, User, Calendar, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getFeedbackById } from "@/lib/db/feedback-queries";
-import { getUserById } from "@/lib/db/queries";
 import { FeedbackActions } from "@/components/admin/feedback/feedback-actions";
+import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface PageProps {
@@ -37,16 +36,33 @@ const priorityColors: Record<string, string> = {
 
 export default async function FeedbackDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const feedback = await getFeedbackById(id);
+  const feedback = await apiFetch<{
+    id: string;
+    type: string;
+    category: string | null;
+    title: string;
+    content: string;
+    status: string;
+    priority: string | null;
+    adminResponse: string | null;
+    respondedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    submitter: {
+      id: string;
+      name: string;
+      email: string;
+    } | null;
+    responder: {
+      id: string;
+      name: string;
+      email: string;
+    } | null;
+  }>(`/v1/admin/feedback/${id}`).catch(() => null);
 
   if (!feedback) {
     notFound();
   }
-
-  const submitter = await getUserById(feedback.userId);
-  const responder = feedback.respondedBy
-    ? await getUserById(feedback.respondedBy)
-    : null;
 
   return (
     <div className="space-y-6">
@@ -89,10 +105,10 @@ export default async function FeedbackDetailPage({ params }: PageProps) {
             {feedback.adminResponse ? (
               <div>
                 <p className="text-sm whitespace-pre-wrap">{feedback.adminResponse}</p>
-                {responder && (
+                {feedback.responder && (
                   <p className="text-xs text-muted-foreground mt-4">
-                    Responded by {responder.name} on{" "}
-                    {feedback.respondedAt && format(feedback.respondedAt, "MMM d, yyyy")}
+                    Responded by {feedback.responder.name} on{" "}
+                    {feedback.respondedAt && format(new Date(feedback.respondedAt), "MMM d, yyyy")}
                   </p>
                 )}
               </div>
@@ -110,17 +126,17 @@ export default async function FeedbackDetailPage({ params }: PageProps) {
           {/* Submitter */}
           <div className="rounded-xl border bg-card p-6">
             <h3 className="font-semibold mb-4">Submitted by</h3>
-            {submitter ? (
+            {feedback.submitter ? (
               <Link
-                href={`/admin/users/${submitter.id}`}
+                href={`/admin/users/${feedback.submitter.id}`}
                 className="flex items-center gap-3 hover:bg-accent/50 -mx-2 px-2 py-2 rounded-lg transition-colors"
               >
                 <div className="p-2 rounded-lg bg-muted">
                   <User className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="font-medium">{submitter.name}</p>
-                  <p className="text-xs text-muted-foreground">{submitter.email}</p>
+                  <p className="font-medium">{feedback.submitter.name}</p>
+                  <p className="text-xs text-muted-foreground">{feedback.submitter.email}</p>
                 </div>
               </Link>
             ) : (
@@ -140,11 +156,11 @@ export default async function FeedbackDetailPage({ params }: PageProps) {
               )}
               <div className="flex justify-between py-2 border-b border-border">
                 <span className="text-muted-foreground">Created</span>
-                <span>{format(feedback.createdAt, "MMM d, yyyy")}</span>
+                <span>{format(new Date(feedback.createdAt), "MMM d, yyyy")}</span>
               </div>
               <div className="flex justify-between py-2">
                 <span className="text-muted-foreground">Updated</span>
-                <span>{format(feedback.updatedAt, "MMM d, yyyy")}</span>
+                <span>{format(new Date(feedback.updatedAt), "MMM d, yyyy")}</span>
               </div>
             </div>
           </div>

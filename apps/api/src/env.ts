@@ -6,6 +6,8 @@ const envSchema = z.object({
     .default("development"),
   API_NAME: z.string().default("@z0/api"),
   API_VERSION: z.string().default("0.1.0"),
+  API_BASE_URL: z.string().url().optional(),
+  DATABASE_URL: z.string().min(1),
   SUPABASE_URL: z.string().url().optional(),
   SUPABASE_ANON_KEY: z.string().optional(),
   SANDBOX_CLI_PATH: z.string().optional(),

@@ -6,10 +6,19 @@ import { MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/admin/data-table/data-table";
 import { cn } from "@/lib/utils";
-import type { Feedback } from "@/lib/schema";
+
+type FeedbackItem = {
+  id: string;
+  type: "bug" | "feature" | "improvement" | "other";
+  category: string | null;
+  title: string;
+  status: "pending" | "reviewing" | "planned" | "completed" | "rejected";
+  priority: "low" | "medium" | "high" | "critical";
+  createdAt: Date | string;
+};
 
 interface FeedbackTableProps {
-  feedback: Feedback[];
+  feedback: FeedbackItem[];
 }
 
 const statusColors: Record<string, string> = {
@@ -41,7 +50,7 @@ export function FeedbackTable({ feedback }: FeedbackTableProps) {
     {
       key: "title",
       title: "Feedback",
-      render: (item: Feedback) => (
+      render: (item: FeedbackItem) => (
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-muted">
             <MessageCircle className="h-4 w-4 text-muted-foreground" />
@@ -58,7 +67,7 @@ export function FeedbackTable({ feedback }: FeedbackTableProps) {
     {
       key: "type",
       title: "Type",
-      render: (item: Feedback) => (
+      render: (item: FeedbackItem) => (
         <Badge variant="outline" className={cn("text-xs", typeColors[item.type])}>
           {item.type}
         </Badge>
@@ -67,7 +76,7 @@ export function FeedbackTable({ feedback }: FeedbackTableProps) {
     {
       key: "status",
       title: "Status",
-      render: (item: Feedback) => (
+      render: (item: FeedbackItem) => (
         <Badge variant="outline" className={cn("text-xs", statusColors[item.status])}>
           {item.status}
         </Badge>
@@ -76,7 +85,7 @@ export function FeedbackTable({ feedback }: FeedbackTableProps) {
     {
       key: "priority",
       title: "Priority",
-      render: (item: Feedback) => (
+      render: (item: FeedbackItem) => (
         <span className={cn("text-sm font-medium capitalize", priorityColors[item.priority || "medium"])}>
           {item.priority || "medium"}
         </span>
@@ -85,9 +94,9 @@ export function FeedbackTable({ feedback }: FeedbackTableProps) {
     {
       key: "createdAt",
       title: "Created",
-      render: (item: Feedback) => (
+      render: (item: FeedbackItem) => (
         <span className="text-muted-foreground">
-          {formatDistanceToNow(item.createdAt, { addSuffix: true })}
+          {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
         </span>
       ),
     },

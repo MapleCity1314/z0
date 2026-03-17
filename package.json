@@ -10,7 +10,8 @@
     "format": "turbo run format",
     "check-types": "turbo run check-types",
     "typecheck": "pnpm check-types",
-    "check": "turbo run lint check-types"
+    "check": "turbo run lint check-types",
+    "test": "turbo run test"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.0",

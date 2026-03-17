@@ -4,7 +4,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { ArrowLeft, MessageSquare, FolderKanban, MessageCircle, Brain } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { getUserWithStats } from "@/lib/db/admin-queries";
+import { apiFetch } from "@/lib/api";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -12,7 +12,20 @@ interface PageProps {
 
 export default async function UserDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const user = await getUserWithStats(id);
+  const user = await apiFetch<{
+    id: string;
+    name: string;
+    email: string;
+    avatar: string | null;
+    createdAt: string;
+    updatedAt: string;
+    stats: {
+      chats: number;
+      projects: number;
+      feedback: number;
+      memories: number;
+    };
+  }>(`/v1/admin/users/${id}`).catch(() => null);
 
   if (!user) {
     notFound();
@@ -56,11 +69,11 @@ export default async function UserDetailPage({ params }: PageProps) {
               <div className="mt-6 w-full space-y-3 text-sm">
                 <div className="flex justify-between py-2 border-b border-border">
                   <span className="text-muted-foreground">Joined</span>
-                  <span>{format(user.createdAt, "MMM d, yyyy")}</span>
+                  <span>{format(new Date(user.createdAt), "MMM d, yyyy")}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-border">
                   <span className="text-muted-foreground">Last Active</span>
-                  <span>{formatDistanceToNow(user.updatedAt, { addSuffix: true })}</span>
+                  <span>{formatDistanceToNow(new Date(user.updatedAt), { addSuffix: true })}</span>
                 </div>
                 <div className="flex justify-between py-2">
                   <span className="text-muted-foreground">User ID</span>

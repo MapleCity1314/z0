@@ -2,8 +2,8 @@ import { cn } from "@/lib/utils";
 
 interface FeedbackStatsProps {
   stats: {
-    byStatus: { status: string; count: number }[];
-    byType: { type: string; count: number }[];
+    byStatus: { status: string | null; count: number }[];
+    byType: { type: string | null; count: number }[];
     byPriority: { priority: string | null; count: number }[];
   };
 }
@@ -33,9 +33,9 @@ export function FeedbackStats({ stats }: FeedbackStatsProps) {
         <h3 className="text-sm font-medium text-muted-foreground mb-4">By Status</h3>
         <div className="space-y-3">
           {stats.byStatus.map((item) => (
-            <div key={item.status} className="flex items-center gap-3">
-              <div className={cn("w-2 h-2 rounded-full", statusColors[item.status])} />
-              <span className="flex-1 text-sm capitalize">{item.status}</span>
+            <div key={item.status ?? "unknown"} className="flex items-center gap-3">
+              <div className={cn("w-2 h-2 rounded-full", statusColors[item.status ?? "pending"])} />
+              <span className="flex-1 text-sm capitalize">{item.status ?? "unknown"}</span>
               <span className="text-sm font-medium">{item.count}</span>
             </div>
           ))}
@@ -47,9 +47,9 @@ export function FeedbackStats({ stats }: FeedbackStatsProps) {
         <h3 className="text-sm font-medium text-muted-foreground mb-4">By Type</h3>
         <div className="space-y-3">
           {stats.byType.map((item) => (
-            <div key={item.type} className="flex items-center gap-3">
-              <div className={cn("w-2 h-2 rounded-full", typeColors[item.type])} />
-              <span className="flex-1 text-sm capitalize">{item.type}</span>
+            <div key={item.type ?? "unknown"} className="flex items-center gap-3">
+              <div className={cn("w-2 h-2 rounded-full", typeColors[item.type ?? "other"])} />
+              <span className="flex-1 text-sm capitalize">{item.type ?? "unknown"}</span>
               <span className="text-sm font-medium">{item.count}</span>
             </div>
           ))}

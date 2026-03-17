@@ -1,13 +1,25 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "./auth";
+import { headers } from "next/headers";
+import { auth } from "./auth";
 
 export async function getSession() {
-  return await getServerSession(authOptions);
+  return auth.api.getSession({
+    headers: await headers(),
+  });
 }
 
 export async function getCurrentUser() {
   const session = await getSession();
-  return session?.user;
+  if (!session) {
+    return null;
+  }
+
+  return {
+    id: session.user.id,
+    name: session.user.name,
+    email: session.user.email,
+    avatar: session.user.image ?? null,
+    role: (session.user as { role?: string }).role ?? "user",
+  };
 }
 
 export async function requireAuth() {

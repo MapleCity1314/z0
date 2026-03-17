@@ -6,10 +6,8 @@ import { ThemeProvider } from "@/components/provider/theme-provider";
 import { SessionProvider } from "@/components/provider/session-provider";
 import { UserProvider } from "@/components/provider/user-provider";
 import { Toaster } from "sonner";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { getUserById } from "@/lib/db/queries";
 import { defaultMetadata } from "@/lib/metadata";
+import { getCurrentUser } from "@/lib/session";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,27 +22,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = defaultMetadata;
 
 async function AuthProvider({ children }: { children: React.ReactNode }) {
-  const session = await getServerSession(authOptions);
-  let initialUser: { id: string; name: string | null; email: string; avatar: string | null } | null = null;
-
-  if (session?.user?.id) {
-    try {
-      const user = await getUserById(session.user.id);
-      if (user) {
-        initialUser = {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          avatar: user.avatar,
-        };
+  const user = await getCurrentUser();
+  const initialUser = user
+    ? {
+        id: user.id,
+        name: user.name ?? null,
+        email: user.email,
+        avatar: user.avatar ?? null,
       }
-    } catch (error) {
-      console.error("Failed to load user in layout:", error);
-    }
-  }
+    : null;
 
   return (
-    <SessionProvider session={session}>
+    <SessionProvider>
       <UserProvider initialUser={initialUser}>{children}</UserProvider>
     </SessionProvider>
   );
@@ -57,9 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Suspense fallback={null}>
           <AuthProvider>
             <ThemeProvider>

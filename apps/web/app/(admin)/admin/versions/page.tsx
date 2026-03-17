@@ -1,11 +1,24 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getAllVersions } from "@/lib/db/version-queries";
 import { VersionsTable } from "@/components/admin/versions/versions-table";
+import { apiFetch } from "@/lib/api";
 
 export default async function VersionsPage() {
-  const versions = await getAllVersions();
+  const versions = await apiFetch<
+    Array<{
+      id: string;
+      version: string;
+      title: string;
+      type: "major" | "minor" | "patch";
+      status: "draft" | "published" | "archived";
+      features: unknown[];
+      improvements: unknown[];
+      bugFixes: unknown[];
+      isLatest: boolean;
+      createdAt: string;
+    }>
+  >("/v1/admin/versions");
 
   return (
     <div className="space-y-6">
@@ -22,7 +35,12 @@ export default async function VersionsPage() {
         </Button>
       </div>
 
-      <VersionsTable versions={versions} />
+      <VersionsTable
+        versions={versions.map((item) => ({
+          ...item,
+          createdAt: new Date(item.createdAt),
+        }))}
+      />
     </div>
   );
 }

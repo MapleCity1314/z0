@@ -11,8 +11,8 @@ interface User {
   name: string;
   email: string;
   avatar: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 interface UsersTableProps {
@@ -49,7 +49,7 @@ export function UsersTable({ users, page, totalPages, total }: UsersTableProps) 
       title: "Joined",
       render: (user: User) => (
         <span className="text-muted-foreground">
-          {formatDistanceToNow(user.createdAt, { addSuffix: true })}
+          {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}
         </span>
       ),
     },
@@ -58,7 +58,7 @@ export function UsersTable({ users, page, totalPages, total }: UsersTableProps) 
       title: "Last Active",
       render: (user: User) => (
         <span className="text-muted-foreground">
-          {formatDistanceToNow(user.updatedAt, { addSuffix: true })}
+          {formatDistanceToNow(new Date(user.updatedAt), { addSuffix: true })}
         </span>
       ),
     },

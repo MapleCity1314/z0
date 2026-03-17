@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { ArrowLeft, User, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getChatWithMessages } from "@/lib/db/admin-queries";
+import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface PageProps {
@@ -13,7 +13,21 @@ interface PageProps {
 
 export default async function ChatDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const chat = await getChatWithMessages(id);
+  const chat = await apiFetch<{
+    id: string;
+    title: string;
+    createdAt: string;
+    userId: string;
+    projectId: string | null;
+    userName: string | null;
+    messages: Array<{
+      id: string;
+      role: string;
+      parts: unknown;
+      attachments: unknown;
+      createdAt: string;
+    }>;
+  }>(`/v1/admin/chats/${id}`).catch(() => null);
 
   if (!chat) {
     notFound();
@@ -38,7 +52,7 @@ export default async function ChatDetailPage({ params }: PageProps) {
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
-              {format(chat.createdAt, "MMM d, yyyy HH:mm")}
+              {format(new Date(chat.createdAt), "MMM d, yyyy HH:mm")}
             </span>
             <Badge variant="secondary">{chat.messages.length} messages</Badge>
           </div>
@@ -72,7 +86,7 @@ export default async function ChatDetailPage({ params }: PageProps) {
                     {msg.role}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
-                    {format(msg.createdAt, "HH:mm:ss")}
+                    {format(new Date(msg.createdAt), "HH:mm:ss")}
                   </span>
                 </div>
                 <div className="text-sm whitespace-pre-wrap">

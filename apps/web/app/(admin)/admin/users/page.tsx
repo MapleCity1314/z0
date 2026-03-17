@@ -1,5 +1,5 @@
-import { getAllUsers } from "@/lib/db/admin-queries";
 import { UsersTable } from "@/components/admin/users/users-table";
+import { apiFetch } from "@/lib/api";
 
 interface PageProps {
   searchParams: Promise<{ page?: string; search?: string }>;
@@ -8,7 +8,19 @@ interface PageProps {
 export default async function UsersPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = Number(params.page) || 1;
-  const { users, total, limit } = await getAllUsers({ page, limit: 20 });
+  const { items, total, limit } = await apiFetch<{
+    items: Array<{
+      id: string;
+      name: string;
+      email: string;
+      avatar: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    total: number;
+    limit: number;
+    page: number;
+  }>(`/v1/admin/users?page=${page}&limit=20`);
   const totalPages = Math.ceil(total / limit);
 
   return (
@@ -19,7 +31,11 @@ export default async function UsersPage({ searchParams }: PageProps) {
       </div>
 
       <UsersTable
-        users={users}
+        users={items.map((item) => ({
+          ...item,
+          createdAt: new Date(item.createdAt),
+          updatedAt: new Date(item.updatedAt),
+        }))}
         page={page}
         totalPages={totalPages}
         total={total}

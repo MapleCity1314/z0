@@ -15,8 +15,8 @@ interface Project {
   type: string;
   status: string;
   visibility: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   userId: string;
   userName: string | null;
 }
@@ -114,7 +114,7 @@ export function ProjectsTable({
       title: "Updated",
       render: (project: Project) => (
         <span className="text-muted-foreground">
-          {formatDistanceToNow(project.updatedAt, { addSuffix: true })}
+          {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
         </span>
       ),
     },

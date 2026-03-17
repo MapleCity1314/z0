@@ -2,43 +2,63 @@ import { Users, MessageSquare, FolderKanban, MessageCircle } from "lucide-react"
 import { connection } from "next/server";
 import { StatCard } from "@/components/admin/dashboard/stat-card";
 import { ActivityFeed } from "@/components/admin/dashboard/activity-feed";
-import {
-  getDashboardStats,
-  getRecentUsers,
-  getRecentChats,
-  getRecentFeedback,
-} from "@/lib/db/admin-queries";
+import { apiFetch } from "@/lib/api";
 
 export default async function AdminDashboard() {
   await connection();
 
-  const [stats, recentUsers, recentChats, recentFeedback] = await Promise.all([
-    getDashboardStats(),
-    getRecentUsers(5),
-    getRecentChats(5),
-    getRecentFeedback(5),
+  const [stats, activity] = await Promise.all([
+    apiFetch<{
+      users: { total: number; today: number };
+      chats: { total: number; today: number };
+      projects: { total: number; public: number };
+      feedback: { total: number; pending: number };
+    }>("/v1/admin/dashboard"),
+    apiFetch<{
+      recentUsers: Array<{
+        id: string;
+        name: string;
+        email: string;
+        avatar: string | null;
+        createdAt: string;
+      }>;
+      recentChats: Array<{
+        id: string;
+        title: string;
+        createdAt: string;
+        userId: string;
+        userName: string | null;
+      }>;
+      recentFeedback: Array<{
+        id: string;
+        title: string;
+        status: string;
+        createdAt: string;
+        userName: string | null;
+      }>;
+    }>("/v1/admin/dashboard/activity"),
   ]);
 
-  const userActivities = recentUsers.map((u) => ({
+  const userActivities = activity.recentUsers.map((u) => ({
     id: u.id,
     type: "user" as const,
     title: u.name,
     subtitle: u.email,
     avatar: u.avatar,
     href: `/admin/users/${u.id}`,
-    createdAt: u.createdAt,
+    createdAt: new Date(u.createdAt),
   }));
 
-  const chatActivities = recentChats.map((c) => ({
+  const chatActivities = activity.recentChats.map((c) => ({
     id: c.id,
     type: "chat" as const,
     title: c.title,
     subtitle: c.userName || "Unknown user",
     href: `/admin/chats/${c.id}`,
-    createdAt: c.createdAt,
+    createdAt: new Date(c.createdAt),
   }));
 
-  const feedbackActivities = recentFeedback.map((f) => ({
+  const feedbackActivities = activity.recentFeedback.map((f) => ({
     id: f.id,
     type: "feedback" as const,
     title: f.title,
@@ -48,7 +68,7 @@ export default async function AdminDashboard() {
       variant: f.status === "pending" ? "destructive" as const : "secondary" as const,
     },
     href: `/admin/feedback/${f.id}`,
-    createdAt: f.createdAt,
+    createdAt: new Date(f.createdAt),
   }));
 
   return (

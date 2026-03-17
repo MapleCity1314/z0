@@ -1,5 +1,5 @@
-import { getAllChats } from "@/lib/db/admin-queries";
 import { ChatsTable } from "@/components/admin/chats/chats-table";
+import { apiFetch } from "@/lib/api";
 
 interface PageProps {
   searchParams: Promise<{ page?: string; userId?: string }>;
@@ -8,11 +8,25 @@ interface PageProps {
 export default async function ChatsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = Number(params.page) || 1;
-  const { chats, total, limit } = await getAllChats({
-    page,
-    limit: 20,
-    userId: params.userId,
+  const query = new URLSearchParams({
+    page: String(page),
+    limit: "20",
+    ...(params.userId ? { userId: params.userId } : {}),
   });
+  const { items, total, limit } = await apiFetch<{
+    items: Array<{
+      id: string;
+      title: string;
+      createdAt: string;
+      userId: string;
+      projectId: string | null;
+      userName: string | null;
+      userEmail: string | null;
+    }>;
+    total: number;
+    limit: number;
+    page: number;
+  }>(`/v1/admin/chats?${query.toString()}`);
   const totalPages = Math.ceil(total / limit);
 
   return (
@@ -23,7 +37,10 @@ export default async function ChatsPage({ searchParams }: PageProps) {
       </div>
 
       <ChatsTable
-        chats={chats}
+        chats={items.map((item) => ({
+          ...item,
+          createdAt: new Date(item.createdAt),
+        }))}
         page={page}
         totalPages={totalPages}
         total={total}

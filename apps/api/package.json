@@ -8,19 +8,23 @@
     "build": "tsc -p tsconfig.build.json",
     "lint": "biome lint .",
     "format": "biome format --write .",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.4",
     "@supabase/supabase-js": "^2.57.4",
+    "@z0/backend": "workspace:*",
     "@z0/shared-types": "workspace:*",
     "hono": "^4.9.7",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@types/node": "catalog:",
     "tsx": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "^3.2.4"
   }
 }

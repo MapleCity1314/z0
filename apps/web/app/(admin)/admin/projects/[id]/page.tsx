@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
-import { ArrowLeft, User, Calendar, Globe, Lock, ExternalLink } from "lucide-react";
+import { ArrowLeft, User, Globe, Lock, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getProjectById } from "@/lib/project/db/project-queries";
-import { getUserById } from "@/lib/db/queries";
+import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface PageProps {
@@ -21,14 +20,31 @@ const statusColors: Record<string, string> = {
 
 export default async function ProjectDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const project = await getProjectById(id);
+  const project = await apiFetch<{
+    id: string;
+    userId: string;
+    name: string;
+    description: string | null;
+    type: string;
+    status: string;
+    visibility: string;
+    files: Record<string, string>;
+    deploymentUrl: string | null;
+    deploymentProvider: string | null;
+    createdAt: string;
+    updatedAt: string;
+    owner: {
+      id: string;
+      name: string;
+      email: string;
+    } | null;
+  }>(`/v1/admin/projects/${id}`).catch(() => null);
 
   if (!project) {
     notFound();
   }
 
-  const owner = await getUserById(project.userId);
-  const files = project.files as Record<string, string>;
+  const files = project.files;
   const fileCount = Object.keys(files).length;
 
   return (
@@ -79,11 +95,11 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               </div>
               <div className="flex justify-between py-2 border-b border-border">
                 <span className="text-muted-foreground">Created</span>
-                <span>{format(project.createdAt, "MMM d, yyyy")}</span>
+                <span>{format(new Date(project.createdAt), "MMM d, yyyy")}</span>
               </div>
               <div className="flex justify-between py-2">
                 <span className="text-muted-foreground">Updated</span>
-                <span>{format(project.updatedAt, "MMM d, yyyy")}</span>
+                <span>{format(new Date(project.updatedAt), "MMM d, yyyy")}</span>
               </div>
             </div>
           </div>
@@ -91,17 +107,17 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           {/* Owner */}
           <div className="rounded-xl border bg-card p-6">
             <h3 className="font-semibold mb-4">Owner</h3>
-            {owner ? (
+            {project.owner ? (
               <Link
-                href={`/admin/users/${owner.id}`}
+                href={`/admin/users/${project.owner.id}`}
                 className="flex items-center gap-3 hover:bg-accent/50 -mx-2 px-2 py-2 rounded-lg transition-colors"
               >
                 <div className="p-2 rounded-lg bg-muted">
                   <User className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="font-medium">{owner.name}</p>
-                  <p className="text-xs text-muted-foreground">{owner.email}</p>
+                  <p className="font-medium">{project.owner.name}</p>
+                  <p className="text-xs text-muted-foreground">{project.owner.email}</p>
                 </div>
               </Link>
             ) : (

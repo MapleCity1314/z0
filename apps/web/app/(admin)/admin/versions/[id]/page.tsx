@@ -4,8 +4,8 @@ import { format } from "date-fns";
 import { ArrowLeft, Star, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getVersionById } from "@/lib/db/version-queries";
 import { VersionActions } from "@/components/admin/versions/version-actions";
+import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface PageProps {
@@ -31,16 +31,34 @@ const typeColors: Record<string, string> = {
 
 export default async function VersionDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const version = await getVersionById(id);
+  const version = await apiFetch<{
+    id: string;
+    version: string;
+    title: string;
+    description: string | null;
+    type: "major" | "minor" | "patch";
+    features: ChangelogItem[];
+    improvements: ChangelogItem[];
+    bugFixes: ChangelogItem[];
+    breaking: ChangelogItem[];
+    migration: string | null;
+    status: "draft" | "published" | "archived";
+    isLatest: boolean;
+    downloadUrl: string | null;
+    docsUrl: string | null;
+    createdAt: string;
+    updatedAt: string;
+    publishedAt: string | null;
+  }>(`/v1/admin/versions/${id}`).catch(() => null);
 
   if (!version) {
     notFound();
   }
 
-  const features = (version.features as ChangelogItem[]) || [];
-  const improvements = (version.improvements as ChangelogItem[]) || [];
-  const bugFixes = (version.bugFixes as ChangelogItem[]) || [];
-  const breaking = (version.breaking as ChangelogItem[]) || [];
+  const features = version.features || [];
+  const improvements = version.improvements || [];
+  const bugFixes = version.bugFixes || [];
+  const breaking = version.breaking || [];
 
   return (
     <div className="space-y-6">
@@ -55,7 +73,7 @@ export default async function VersionDetailPage({ params }: PageProps) {
             <h1 className="text-2xl font-semibold tracking-tight font-mono">
               v{version.version}
             </h1>
-            {version.isLatest === "true" && (
+            {version.isLatest && (
               <Star className="h-5 w-5 text-amber-500 fill-amber-500" />
             )}
           </div>
@@ -126,17 +144,17 @@ export default async function VersionDetailPage({ params }: PageProps) {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-border">
                 <span className="text-muted-foreground">Created</span>
-                <span>{format(version.createdAt, "MMM d, yyyy")}</span>
+                <span>{format(new Date(version.createdAt), "MMM d, yyyy")}</span>
               </div>
               {version.publishedAt && (
                 <div className="flex justify-between py-2 border-b border-border">
                   <span className="text-muted-foreground">Published</span>
-                  <span>{format(version.publishedAt, "MMM d, yyyy")}</span>
+                  <span>{format(new Date(version.publishedAt), "MMM d, yyyy")}</span>
                 </div>
               )}
               <div className="flex justify-between py-2">
                 <span className="text-muted-foreground">Updated</span>
-                <span>{format(version.updatedAt, "MMM d, yyyy")}</span>
+                <span>{format(new Date(version.updatedAt), "MMM d, yyyy")}</span>
               </div>
             </div>
           </div>
@@ -176,7 +194,7 @@ export default async function VersionDetailPage({ params }: PageProps) {
           <VersionActions
             versionId={version.id}
             currentStatus={version.status}
-            isLatest={version.isLatest === "true"}
+            isLatest={version.isLatest}
           />
         </div>
       </div>

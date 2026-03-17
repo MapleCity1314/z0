@@ -2,9 +2,6 @@
   "extends": "../typescript-config/library.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "paths": {
-      "@z0/db": ["../db/src/index.ts"]
-    },
     "outDir": "./dist"
   },
   "include": ["src/**/*.ts"]

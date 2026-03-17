@@ -15,6 +15,7 @@
     "@hono/node-server": "^1.19.4",
     "@supabase/supabase-js": "^2.57.4",
     "@z0/backend": "workspace:*",
+    "@z0/db": "workspace:*",
     "@z0/shared-types": "workspace:*",
     "hono": "^4.9.7",
     "zod": "catalog:",

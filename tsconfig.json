@@ -4,7 +4,8 @@
     "baseUrl": ".",
     "paths": {
       "@z0/shared-types": ["./packages/shared-types/src/index.ts"],
-      "@z0/backend": ["./packages/backend/src/index.ts"]
+      "@z0/backend": ["./packages/backend/src/index.ts"],
+      "@z0/db": ["./packages/db/src/index.ts"]
     }
   }
 }

@@ -1,2 +1,1 @@
-export * from "./client";
-export * from "./schema";
+export * from "@z0/db";

@@ -1,3 +1,3 @@
-import { getDb } from "@z0/backend/db";
+import { getDb } from "@z0/db";
 
 export const db = getDb();

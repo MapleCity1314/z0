@@ -70,12 +70,8 @@
           "name": "Artifact_chatId_Chat_id_fk",
           "tableFrom": "Artifact",
           "tableTo": "Chat",
-          "columnsFrom": [
-            "chatId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chatId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -127,12 +123,8 @@
           "name": "Chat_userId_User_id_fk",
           "tableFrom": "Chat",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -140,12 +132,8 @@
           "name": "Chat_projectId_Project_id_fk",
           "tableFrom": "Chat",
           "tableTo": "Project",
-          "columnsFrom": [
-            "projectId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["projectId"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -261,12 +249,8 @@
           "name": "Feedback_userId_User_id_fk",
           "tableFrom": "Feedback",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -274,12 +258,8 @@
           "name": "Feedback_respondedBy_User_id_fk",
           "tableFrom": "Feedback",
           "tableTo": "User",
-          "columnsFrom": [
-            "respondedBy"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["respondedBy"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -337,12 +317,8 @@
           "name": "messages_chatId_Chat_id_fk",
           "tableFrom": "messages",
           "tableTo": "Chat",
-          "columnsFrom": [
-            "chatId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chatId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -479,12 +455,8 @@
           "name": "Project_userId_User_id_fk",
           "tableFrom": "Project",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -525,12 +497,8 @@
           "name": "Stream_chatId_Chat_id_fk",
           "tableFrom": "Stream",
           "tableTo": "Chat",
-          "columnsFrom": [
-            "chatId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chatId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -730,12 +698,8 @@
           "name": "VersionUpdate_publishedBy_User_id_fk",
           "tableFrom": "VersionUpdate",
           "tableTo": "User",
-          "columnsFrom": [
-            "publishedBy"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["publishedBy"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -745,9 +709,7 @@
         "VersionUpdate_version_unique": {
           "name": "VersionUpdate_version_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "version"
-          ]
+          "columns": ["version"]
         }
       },
       "policies": {},

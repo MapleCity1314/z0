@@ -131,12 +131,8 @@
           "name": "Account_userId_User_id_fk",
           "tableFrom": "Account",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -232,12 +228,8 @@
           "name": "AdminSession_userId_User_id_fk",
           "tableFrom": "AdminSession",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -247,9 +239,7 @@
         "AdminSession_token_unique": {
           "name": "AdminSession_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -516,12 +506,8 @@
           "name": "AgentRun_chatId_Chat_id_fk",
           "tableFrom": "AgentRun",
           "tableTo": "Chat",
-          "columnsFrom": [
-            "chatId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chatId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -529,12 +515,8 @@
           "name": "AgentRun_userId_User_id_fk",
           "tableFrom": "AgentRun",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -542,12 +524,8 @@
           "name": "AgentRun_projectId_Project_id_fk",
           "tableFrom": "AgentRun",
           "tableTo": "Project",
-          "columnsFrom": [
-            "projectId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["projectId"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -676,12 +654,8 @@
           "name": "AIUsageLog_userId_User_id_fk",
           "tableFrom": "AIUsageLog",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -689,12 +663,8 @@
           "name": "AIUsageLog_chatId_Chat_id_fk",
           "tableFrom": "AIUsageLog",
           "tableTo": "Chat",
-          "columnsFrom": [
-            "chatId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chatId"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -771,12 +741,8 @@
           "name": "Artifact_chatId_Chat_id_fk",
           "tableFrom": "Artifact",
           "tableTo": "Chat",
-          "columnsFrom": [
-            "chatId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chatId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -884,12 +850,8 @@
           "name": "AuditLog_userId_User_id_fk",
           "tableFrom": "AuditLog",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -993,12 +955,8 @@
           "name": "Chat_userId_User_id_fk",
           "tableFrom": "Chat",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1006,12 +964,8 @@
           "name": "Chat_projectId_Project_id_fk",
           "tableFrom": "Chat",
           "tableTo": "Project",
-          "columnsFrom": [
-            "projectId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["projectId"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1108,12 +1062,8 @@
           "name": "ChatMCPServer_chatId_Chat_id_fk",
           "tableFrom": "ChatMCPServer",
           "tableTo": "Chat",
-          "columnsFrom": [
-            "chatId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chatId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1121,12 +1071,8 @@
           "name": "ChatMCPServer_userMcpServerId_UserMCPServer_id_fk",
           "tableFrom": "ChatMCPServer",
           "tableTo": "UserMCPServer",
-          "columnsFrom": [
-            "userMcpServerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userMcpServerId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1223,12 +1169,8 @@
           "name": "ChatSkill_chatId_Chat_id_fk",
           "tableFrom": "ChatSkill",
           "tableTo": "Chat",
-          "columnsFrom": [
-            "chatId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chatId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1236,12 +1178,8 @@
           "name": "ChatSkill_userSkillId_UserSkill_id_fk",
           "tableFrom": "ChatSkill",
           "tableTo": "UserSkill",
-          "columnsFrom": [
-            "userSkillId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userSkillId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1409,12 +1347,8 @@
           "name": "Feedback_userId_User_id_fk",
           "tableFrom": "Feedback",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1422,12 +1356,8 @@
           "name": "Feedback_respondedBy_User_id_fk",
           "tableFrom": "Feedback",
           "tableTo": "User",
-          "columnsFrom": [
-            "respondedBy"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["respondedBy"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1523,12 +1453,8 @@
           "name": "MCPServer_createdBy_User_id_fk",
           "tableFrom": "MCPServer",
           "tableTo": "User",
-          "columnsFrom": [
-            "createdBy"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["createdBy"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1642,12 +1568,8 @@
           "name": "Memory_userId_User_id_fk",
           "tableFrom": "Memory",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1742,12 +1664,8 @@
           "name": "messages_chatId_Chat_id_fk",
           "tableFrom": "messages",
           "tableTo": "Chat",
-          "columnsFrom": [
-            "chatId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chatId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1835,12 +1753,8 @@
           "name": "Notification_userId_User_id_fk",
           "tableFrom": "Notification",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2029,12 +1943,8 @@
           "name": "Project_userId_User_id_fk",
           "tableFrom": "Project",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2136,12 +2046,8 @@
           "name": "Session_userId_User_id_fk",
           "tableFrom": "Session",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2243,12 +2149,8 @@
           "name": "Skill_createdBy_User_id_fk",
           "tableFrom": "Skill",
           "tableTo": "User",
-          "columnsFrom": [
-            "createdBy"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["createdBy"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2289,12 +2191,8 @@
           "name": "Stream_chatId_Chat_id_fk",
           "tableFrom": "Stream",
           "tableTo": "Chat",
-          "columnsFrom": [
-            "chatId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chatId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2353,12 +2251,8 @@
           "name": "SystemConfig_updatedBy_User_id_fk",
           "tableFrom": "SystemConfig",
           "tableTo": "User",
-          "columnsFrom": [
-            "updatedBy"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updatedBy"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2368,9 +2262,7 @@
         "SystemConfig_key_unique": {
           "name": "SystemConfig_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
+          "columns": ["key"]
         }
       },
       "policies": {},
@@ -2547,12 +2439,8 @@
           "name": "ToolCall_runId_AgentRun_id_fk",
           "tableFrom": "ToolCall",
           "tableTo": "AgentRun",
-          "columnsFrom": [
-            "runId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["runId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2560,12 +2448,8 @@
           "name": "ToolCall_chatId_Chat_id_fk",
           "tableFrom": "ToolCall",
           "tableTo": "Chat",
-          "columnsFrom": [
-            "chatId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chatId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2761,12 +2645,8 @@
           "name": "UserMCPServer_userId_User_id_fk",
           "tableFrom": "UserMCPServer",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2774,12 +2654,8 @@
           "name": "UserMCPServer_mcpServerId_MCPServer_id_fk",
           "tableFrom": "UserMCPServer",
           "tableTo": "MCPServer",
-          "columnsFrom": [
-            "mcpServerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["mcpServerId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2876,12 +2752,8 @@
           "name": "UserSkill_userId_User_id_fk",
           "tableFrom": "UserSkill",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2889,12 +2761,8 @@
           "name": "UserSkill_skillId_Skill_id_fk",
           "tableFrom": "UserSkill",
           "tableTo": "Skill",
-          "columnsFrom": [
-            "skillId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["skillId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3135,12 +3003,8 @@
           "name": "VersionUpdate_publishedBy_User_id_fk",
           "tableFrom": "VersionUpdate",
           "tableTo": "User",
-          "columnsFrom": [
-            "publishedBy"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["publishedBy"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3150,9 +3014,7 @@
         "VersionUpdate_version_unique": {
           "name": "VersionUpdate_version_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "version"
-          ]
+          "columns": ["version"]
         }
       },
       "policies": {},

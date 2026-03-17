@@ -9,10 +9,6 @@
     "lint": "biome lint .",
     "format": "biome format --write",
     "check-types": "tsc --noEmit",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
@@ -43,6 +39,7 @@
     "@webcontainer/api": "^1.6.1",
     "@xyflow/react": "^12.9.3",
     "@z0/backend": "workspace:*",
+    "@z0/db": "workspace:*",
     "ai": "^6.0.116",
     "archiver": "^7.0.1",
     "bcryptjs": "^3.0.3",
@@ -91,7 +88,6 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.1.0",
     "babel-plugin-react-compiler": "1.0.0",
-    "drizzle-kit": "^0.31.8",
     "jsdom": "^27.0.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",

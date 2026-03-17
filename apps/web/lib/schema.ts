@@ -1,1 +1,1 @@
-export * from "@z0/backend/db";
+export * from "@z0/db";

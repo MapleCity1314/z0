@@ -8,6 +8,7 @@ Current shape:
 - `apps/web`: the main Next.js 16 application. It still contains the Agent-facing UI and chat runtime.
 - `apps/api`: the extracted Hono API for non-Agent backend capabilities.
 - `packages/backend`: shared backend domain layer, including DB schema, Better Auth setup, and service modules.
+- `packages/db`: shared Postgres schema, client, and Drizzle migrations.
 - `packages/shared-types`: cross-app contracts.
 - `packages/sandbox`: reserved mount point for the external sandbox CLI repo. Only placeholder files belong here.
 
@@ -40,6 +41,7 @@ Practical interpretation:
 - `apps/api/src/app.ts`: Hono app entrypoint
 - `apps/api/src/repositories.ts`: API-side repository wiring
 - `packages/backend/src/db`: shared schema and DB helpers
+- `packages/db/src`: shared schema and DB helpers
 - `packages/backend/src/auth`: shared Better Auth configuration
 - `packages/backend/src/modules`: domain modules such as projects, feedback, versions, users, and admin
 
@@ -69,6 +71,7 @@ apps/
   web/                  Next.js 16 app, Agent UI, auth UI, admin UI
   api/                  Hono API service
 packages/
+  db/                   Shared DB schema, client, Drizzle config, migrations
   backend/              Shared backend modules, auth, DB schema, tests
   shared-types/         Cross-app contracts
   config-biome/         Shared Biome config
@@ -96,11 +99,11 @@ Scoped:
 - `pnpm --filter @z0/api test`
 - `pnpm --filter @z0/web test`
 
-Database work currently lives in `apps/web` scripts:
-- `pnpm --filter @z0/web db:generate`
-- `pnpm --filter @z0/web db:migrate`
-- `pnpm --filter @z0/web db:push`
-- `pnpm --filter @z0/web db:studio`
+Database work currently lives in `packages/db` scripts:
+- `pnpm --filter @z0/db db:generate`
+- `pnpm --filter @z0/db db:migrate`
+- `pnpm --filter @z0/db db:push`
+- `pnpm --filter @z0/db db:studio`
 
 ## 6. Coding Rules
 

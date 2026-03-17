@@ -5,6 +5,25 @@ export type ToolTaskInfo = {
   subtitle?: string;
 };
 
+export type ToolRendererKind = "artifact" | "inspector" | "task";
+export type DataRendererKind =
+  | "image"
+  | "artifact"
+  | "plan"
+  | "chain-of-thought"
+  | "inline-citation"
+  | "json";
+export type MessageRendererKind =
+  | "text"
+  | "file"
+  | "reasoning"
+  | "source-url"
+  | "source-document"
+  | "tool"
+  | "data"
+  | "step-start"
+  | "json";
+
 export function isToolPart(
   part: UIMessagePart<any, any>,
 ): part is UIMessagePart<any, any> & { type: `tool-${string}` } {
@@ -22,6 +41,92 @@ export function getMessageCopyText(message: UIMessage) {
     .filter((part) => part.type === "text")
     .map((part) => part.text)
     .join("\n");
+}
+
+export function getToolName(part: UIMessagePart<any, any>) {
+  if (!isToolPart(part)) {
+    return null;
+  }
+
+  return (part as any).toolName || part.type.replace("tool-", "");
+}
+
+export function getDataPartName(part: UIMessagePart<any, any>) {
+  if (!isDataPart(part)) {
+    return null;
+  }
+
+  return part.type.replace("data-", "");
+}
+
+export function resolveToolRendererKind(
+  toolName: string,
+  toolPart: Record<string, any>,
+): ToolRendererKind {
+  if (
+    ["createArtifact", "codeArtifact", "updateArtifact"].includes(toolName) &&
+    toolPart.output?.code
+  ) {
+    return "artifact";
+  }
+
+  if (["readArtifact", "listArtifacts"].includes(toolName)) {
+    return "inspector";
+  }
+
+  return "task";
+}
+
+export function resolveDataRendererKind(dataType: string): DataRendererKind {
+  const knownKinds = new Set<DataRendererKind>([
+    "image",
+    "artifact",
+    "plan",
+    "chain-of-thought",
+    "inline-citation",
+  ]);
+
+  return knownKinds.has(dataType as DataRendererKind)
+    ? (dataType as DataRendererKind)
+    : "json";
+}
+
+export function resolveMessageRendererKind(
+  part: UIMessagePart<any, any>,
+): MessageRendererKind {
+  if (part.type === "text") {
+    return "text";
+  }
+
+  if (part.type === "file") {
+    return "file";
+  }
+
+  if (part.type === "reasoning") {
+    return "reasoning";
+  }
+
+  if (part.type === "source-url") {
+    return "source-url";
+  }
+
+  if (part.type === "source-document") {
+    return "source-document";
+  }
+
+  if (part.type === "step-start") {
+    return "step-start";
+  }
+
+  if (isToolPart(part)) {
+    return "tool";
+  }
+
+  if (isDataPart(part)) {
+    return "data";
+  }
+
+  return "json";
 }
 
 export function getToolTaskStatus(state?: string) {

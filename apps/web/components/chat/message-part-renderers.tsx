@@ -2,8 +2,8 @@
 
 import {
   Artifact,
-  ArtifactActions,
   ArtifactAction,
+  ArtifactActions,
   ArtifactContent,
   ArtifactHeader,
   ArtifactTitle,
@@ -70,10 +70,16 @@ import {
 } from "@/components/ai-elements/tool";
 import { Button } from "@/components/ui/button";
 import {
+  getDataPartName,
+  getToolName,
   getToolTaskInfo,
   getToolTaskStatus,
-  isDataPart,
-  isToolPart,
+  resolveDataRendererKind,
+  resolveMessageRendererKind,
+  resolveToolRendererKind,
+  type DataRendererKind,
+  type MessageRendererKind,
+  type ToolRendererKind,
 } from "@/lib/agent/chat/message-part-rendering";
 import { useExecutorStore } from "@/store/executor";
 import { useProjectStore } from "@/store/project";
@@ -81,6 +87,18 @@ import type { UIMessagePart } from "ai";
 import { CopyIcon, FolderOpen, PlayIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { BundledLanguage } from "shiki";
+
+type PartRenderer = (part: UIMessagePart<any, any>, index: number) => ReactNode;
+type ToolPartRenderer = (
+  part: UIMessagePart<any, any>,
+  index: number,
+  toolName: string,
+) => ReactNode;
+type DataPartRenderer = (
+  part: UIMessagePart<any, any>,
+  index: number,
+  dataType: string,
+) => ReactNode;
 
 function OpenProjectButton({ projectId }: { projectId: string }) {
   const setProjectId = useProjectStore((state) => state.setProjectId);
@@ -438,118 +456,99 @@ function renderToolTaskItems(toolName: string, toolPart: any) {
   return items.length > 0 ? items : null;
 }
 
-export function renderMessagePart(
-  part: UIMessagePart<any, any>,
-  index: number,
-) {
-  if (part.type === "text") {
-    return <MessageResponse key={index}>{part.text}</MessageResponse>;
-  }
+const basePartRenderers: Record<
+  Exclude<MessageRendererKind, "tool" | "data" | "json">,
+  PartRenderer
+> = {
+  text: (part, index) => (
+    <MessageResponse key={index}>{(part as any).text}</MessageResponse>
+  ),
+  file: (part, index) => (
+    <MessageAttachments key={index}>
+      <MessageAttachment data={part as any} />
+    </MessageAttachments>
+  ),
+  reasoning: (part, index) => (
+    <div key={index} className="mx-auto w-full max-w-3xl">
+      <Reasoning isStreaming={(part as any).state === "streaming"}>
+        <ReasoningTrigger />
+        <ReasoningContent>{(part as any).text ?? ""}</ReasoningContent>
+      </Reasoning>
+    </div>
+  ),
+  "source-url": (part, index) => (
+    <div key={index} className="mx-auto w-full max-w-3xl">
+      <Sources>
+        <SourcesTrigger count={1} />
+        <SourcesContent>
+          <Source
+            href={(part as any).url}
+            title={(part as any).title || (part as any).url}
+          >
+            {(part as any).title || (part as any).url}
+          </Source>
+        </SourcesContent>
+      </Sources>
+    </div>
+  ),
+  "source-document": (part, index) => (
+    <div key={index} className="mx-auto w-full max-w-3xl">
+      <Sources>
+        <SourcesTrigger count={1} />
+        <SourcesContent>
+          <Source href="#" title={(part as any).title || "Document"}>
+            {(part as any).title || "Document"}
+          </Source>
+        </SourcesContent>
+      </Sources>
+    </div>
+  ),
+  "step-start": () => null,
+};
 
-  if (part.type === "file") {
+const toolPartRenderers: Record<ToolRendererKind, ToolPartRenderer> = {
+  artifact: (part, index, toolName) => {
+    const output = (part as any).output;
+    const title =
+      toolName === "updateArtifact"
+        ? `${output.title || "Untitled"} (Updated)`
+        : output.title || "Untitled";
+
     return (
-      <MessageAttachments key={index}>
-        <MessageAttachment data={part} />
-      </MessageAttachments>
+      <CodeArtifactRenderer
+        key={index}
+        title={title}
+        language={output.language || "text"}
+        code={output.code}
+        description={
+          toolName === "updateArtifact" ? undefined : output.description
+        }
+        artifactIndex={output.index}
+      />
     );
-  }
-
-  if (part.type === "reasoning") {
-    return (
-      <div key={index} className="mx-auto w-full max-w-3xl">
-        <Reasoning isStreaming={part.state === "streaming"}>
-          <ReasoningTrigger />
-          <ReasoningContent>{part.text ?? ""}</ReasoningContent>
-        </Reasoning>
-      </div>
-    );
-  }
-
-  if (part.type === "source-url") {
-    return (
-      <div key={index} className="mx-auto w-full max-w-3xl">
-        <Sources>
-          <SourcesTrigger count={1} />
-          <SourcesContent>
-            <Source href={part.url} title={part.title || part.url}>
-              {part.title || part.url}
-            </Source>
-          </SourcesContent>
-        </Sources>
-      </div>
-    );
-  }
-
-  if (part.type === "source-document") {
-    return (
-      <div key={index} className="mx-auto w-full max-w-3xl">
-        <Sources>
-          <SourcesTrigger count={1} />
-          <SourcesContent>
-            <Source href="#" title={part.title || "Document"}>
-              {part.title || "Document"}
-            </Source>
-          </SourcesContent>
-        </Sources>
-      </div>
-    );
-  }
-
-  if (isToolPart(part)) {
+  },
+  inspector: (part, index, toolName) => (
+    <div key={index} className="mx-auto w-full max-w-3xl">
+      <Tool defaultOpen={false}>
+        <ToolHeader
+          title={toolName}
+          type={(part as any).type}
+          state={(part as any).state}
+        />
+        <ToolContent>
+          {(part as any).input ? (
+            <ToolInput input={(part as any).input} />
+          ) : null}
+          <ToolOutput
+            output={(part as any).output}
+            errorText={(part as any).errorText}
+          />
+        </ToolContent>
+      </Tool>
+    </div>
+  ),
+  task: (part, index, toolName) => {
     const toolPart = part as any;
-    const toolName = toolPart.toolName || toolPart.type.replace("tool-", "");
-
-    if (
-      (toolName === "createArtifact" || toolName === "codeArtifact") &&
-      toolPart.output?.code
-    ) {
-      const output = toolPart.output;
-      return (
-        <CodeArtifactRenderer
-          key={index}
-          title={output.title || "Untitled"}
-          language={output.language || "text"}
-          code={output.code}
-          description={output.description}
-          artifactIndex={output.index}
-        />
-      );
-    }
-
-    if (toolName === "updateArtifact" && toolPart.output?.code) {
-      const output = toolPart.output;
-      return (
-        <CodeArtifactRenderer
-          key={index}
-          title={`${output.title || "Untitled"} (Updated)`}
-          language={output.language || "text"}
-          code={output.code}
-          artifactIndex={output.index}
-        />
-      );
-    }
-
-    if (toolName === "readArtifact" || toolName === "listArtifacts") {
-      return (
-        <div key={index} className="mx-auto w-full max-w-3xl">
-          <Tool defaultOpen={false}>
-            <ToolHeader
-              title={toolName}
-              type={toolPart.type}
-              state={toolPart.state}
-            />
-            <ToolContent>
-              {toolPart.input ? <ToolInput input={toolPart.input} /> : null}
-              <ToolOutput
-                output={toolPart.output}
-                errorText={toolPart.errorText}
-              />
-            </ToolContent>
-          </Tool>
-        </div>
-      );
-    }
-
     const isRunning =
       toolPart.state === "input-available" ||
       toolPart.state === "input-streaming";
@@ -576,129 +575,161 @@ export function renderMessagePart(
         </Task>
       </div>
     );
-  }
+  },
+};
 
-  if (isDataPart(part)) {
+const dataPartRenderers: Record<DataRendererKind, DataPartRenderer> = {
+  image: (part, index) => {
     const dataPart = part as any;
-    const dataType = dataPart.type.replace("data-", "");
+    return (
+      <div key={index} className="mx-auto my-2 w-full max-w-3xl">
+        <Image
+          base64={dataPart.base64}
+          uint8Array={dataPart.uint8Array}
+          mediaType={dataPart.mediaType}
+          alt={dataPart.alt || "Generated image"}
+        />
+      </div>
+    );
+  },
+  artifact: (part, index) => {
+    const dataPart = part as any;
+    return (
+      <div key={index} className="mx-auto w-full max-w-3xl">
+        <Artifact>
+          <ArtifactHeader>
+            <ArtifactTitle>{dataPart.title || "Artifact"}</ArtifactTitle>
+          </ArtifactHeader>
+          <ArtifactContent>
+            {typeof dataPart.content === "string" ? (
+              <MessageResponse>{dataPart.content}</MessageResponse>
+            ) : (
+              dataPart.content
+            )}
+          </ArtifactContent>
+        </Artifact>
+      </div>
+    );
+  },
+  plan: (part, index) => {
+    const dataPart = part as any;
+    return (
+      <div key={index} className="mx-auto w-full max-w-3xl">
+        <Plan isStreaming={false}>
+          <PlanHeader>
+            <PlanTitle>{dataPart.title || "Plan"}</PlanTitle>
+            <PlanTrigger />
+          </PlanHeader>
+          {dataPart.description ? (
+            <PlanDescription>{dataPart.description}</PlanDescription>
+          ) : null}
+          <PlanContent>
+            {typeof dataPart.content === "string" ? (
+              <MessageResponse>{dataPart.content}</MessageResponse>
+            ) : (
+              dataPart.content
+            )}
+          </PlanContent>
+        </Plan>
+      </div>
+    );
+  },
+  "chain-of-thought": (part, index) => {
+    const dataPart = part as any;
+    return (
+      <div key={index} className="mx-auto w-full max-w-3xl">
+        <ChainOfThought>
+          <ChainOfThoughtHeader>
+            {dataPart.title || "Chain of Thought"}
+          </ChainOfThoughtHeader>
+          <ChainOfThoughtContent>
+            {dataPart.steps?.map((step: any, stepIndex: number) => (
+              <ChainOfThoughtStep
+                key={stepIndex}
+                label={step.label}
+                description={step.description}
+                status={step.status || "complete"}
+              >
+                {step.content}
+              </ChainOfThoughtStep>
+            ))}
+          </ChainOfThoughtContent>
+        </ChainOfThought>
+      </div>
+    );
+  },
+  "inline-citation": (part, index) => {
+    const dataPart = part as any;
+    return (
+      <InlineCitation key={index}>
+        <InlineCitationText>{dataPart.text}</InlineCitationText>
+        {dataPart.sources?.length ? (
+          <InlineCitationCard>
+            <InlineCitationCardTrigger sources={dataPart.sources} />
+            <InlineCitationCardBody>
+              <InlineCitationCarousel>
+                <InlineCitationCarouselContent>
+                  {dataPart.sources.map(
+                    (source: string, sourceIndex: number) => (
+                      <InlineCitationCarouselItem key={sourceIndex}>
+                        <InlineCitationSource url={source} />
+                      </InlineCitationCarouselItem>
+                    ),
+                  )}
+                </InlineCitationCarouselContent>
+              </InlineCitationCarousel>
+            </InlineCitationCardBody>
+          </InlineCitationCard>
+        ) : null}
+      </InlineCitation>
+    );
+  },
+  json: (part, index) => {
+    const dataPart = part as any;
+    const dataStr =
+      typeof dataPart.data === "string"
+        ? dataPart.data
+        : JSON.stringify(dataPart.data, null, 2);
 
-    switch (dataType) {
-      case "image":
-        return (
-          <div key={index} className="mx-auto my-2 w-full max-w-3xl">
-            <Image
-              base64={dataPart.base64}
-              uint8Array={dataPart.uint8Array}
-              mediaType={dataPart.mediaType}
-              alt={dataPart.alt || "Generated image"}
-            />
-          </div>
-        );
-      case "artifact":
-        return (
-          <div key={index} className="mx-auto w-full max-w-3xl">
-            <Artifact>
-              <ArtifactHeader>
-                <ArtifactTitle>{dataPart.title || "Artifact"}</ArtifactTitle>
-              </ArtifactHeader>
-              <ArtifactContent>
-                {typeof dataPart.content === "string" ? (
-                  <MessageResponse>{dataPart.content}</MessageResponse>
-                ) : (
-                  dataPart.content
-                )}
-              </ArtifactContent>
-            </Artifact>
-          </div>
-        );
-      case "plan":
-        return (
-          <div key={index} className="mx-auto w-full max-w-3xl">
-            <Plan isStreaming={false}>
-              <PlanHeader>
-                <PlanTitle>{dataPart.title || "Plan"}</PlanTitle>
-                <PlanTrigger />
-              </PlanHeader>
-              {dataPart.description ? (
-                <PlanDescription>{dataPart.description}</PlanDescription>
-              ) : null}
-              <PlanContent>
-                {typeof dataPart.content === "string" ? (
-                  <MessageResponse>{dataPart.content}</MessageResponse>
-                ) : (
-                  dataPart.content
-                )}
-              </PlanContent>
-            </Plan>
-          </div>
-        );
-      case "chain-of-thought":
-        return (
-          <div key={index} className="mx-auto w-full max-w-3xl">
-            <ChainOfThought>
-              <ChainOfThoughtHeader>
-                {dataPart.title || "Chain of Thought"}
-              </ChainOfThoughtHeader>
-              <ChainOfThoughtContent>
-                {dataPart.steps?.map((step: any, stepIndex: number) => (
-                  <ChainOfThoughtStep
-                    key={stepIndex}
-                    label={step.label}
-                    description={step.description}
-                    status={step.status || "complete"}
-                  >
-                    {step.content}
-                  </ChainOfThoughtStep>
-                ))}
-              </ChainOfThoughtContent>
-            </ChainOfThought>
-          </div>
-        );
-      case "inline-citation":
-        return (
-          <InlineCitation key={index}>
-            <InlineCitationText>{dataPart.text}</InlineCitationText>
-            {dataPart.sources?.length ? (
-              <InlineCitationCard>
-                <InlineCitationCardTrigger sources={dataPart.sources} />
-                <InlineCitationCardBody>
-                  <InlineCitationCarousel>
-                    <InlineCitationCarouselContent>
-                      {dataPart.sources.map(
-                        (source: string, sourceIndex: number) => (
-                          <InlineCitationCarouselItem key={sourceIndex}>
-                            <InlineCitationSource url={source} />
-                          </InlineCitationCarouselItem>
-                        ),
-                      )}
-                    </InlineCitationCarouselContent>
-                  </InlineCitationCarousel>
-                </InlineCitationCardBody>
-              </InlineCitationCard>
-            ) : null}
-          </InlineCitation>
-        );
-      default: {
-        const dataStr =
-          typeof dataPart.data === "string"
-            ? dataPart.data
-            : JSON.stringify(dataPart.data, null, 2);
+    return (
+      <div key={index} className="mx-auto w-full max-w-3xl">
+        <CodeBlock code={dataStr} language="json">
+          <CodeBlockCopyButton />
+        </CodeBlock>
+      </div>
+    );
+  },
+};
 
-        return (
-          <div key={index} className="mx-auto w-full max-w-3xl">
-            <CodeBlock code={dataStr} language="json">
-              <CodeBlockCopyButton />
-            </CodeBlock>
-          </div>
-        );
-      }
-    }
+function renderToolPart(part: UIMessagePart<any, any>, index: number) {
+  const toolName = getToolName(part);
+
+  if (!toolName) {
+    return renderUnknownPart(part, index);
   }
 
-  if (part.type === "step-start") {
-    return null;
+  return toolPartRenderers[resolveToolRendererKind(toolName, part as any)](
+    part,
+    index,
+    toolName,
+  );
+}
+
+function renderDataPart(part: UIMessagePart<any, any>, index: number) {
+  const dataType = getDataPartName(part);
+
+  if (!dataType) {
+    return renderUnknownPart(part, index);
   }
 
+  return dataPartRenderers[resolveDataRendererKind(dataType)](
+    part,
+    index,
+    dataType,
+  );
+}
+
+function renderUnknownPart(part: UIMessagePart<any, any>, index: number) {
   return (
     <div key={index} className="mx-auto w-full max-w-3xl">
       <CodeBlock code={JSON.stringify(part, null, 2)} language="json">
@@ -706,4 +737,25 @@ export function renderMessagePart(
       </CodeBlock>
     </div>
   );
+}
+
+export function renderMessagePart(
+  part: UIMessagePart<any, any>,
+  index: number,
+) {
+  const rendererKind = resolveMessageRendererKind(part);
+
+  if (rendererKind === "tool") {
+    return renderToolPart(part, index);
+  }
+
+  if (rendererKind === "data") {
+    return renderDataPart(part, index);
+  }
+
+  if (rendererKind === "json") {
+    return renderUnknownPart(part, index);
+  }
+
+  return basePartRenderers[rendererKind](part, index);
 }

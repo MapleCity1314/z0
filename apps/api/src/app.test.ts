@@ -92,6 +92,23 @@ describe("createApp", () => {
     expect(response.status).toBe(401);
   });
 
+  it("protects the agent chat route with actor headers", async () => {
+    const response = await app.request("/v1/agent/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        id: "chat-1",
+        messages: [],
+        model: "z0-mini",
+        isReasoning: false,
+        webSearchEnabled: false,
+        projectId: null,
+      }),
+      headers: { "content-type": "application/json" },
+    });
+
+    expect(response.status).toBe(401);
+  });
+
   it("returns current user profile", async () => {
     services.usersService.getProfile.mockResolvedValue(
       ok({

@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { registerAgentRoutes } from "./routes/agent";
 import { registerAdminRoutes } from "./routes/admin";
 import { registerFeedbackRoutes } from "./routes/feedback";
 import { registerHealthRoutes } from "./routes/health";
@@ -50,6 +51,7 @@ export function createApp(overrides: Partial<AppServices> = {}) {
   app.use("/*", cors());
 
   registerHealthRoutes(app);
+  registerAgentRoutes(app);
   registerUserRoutes(app, resolvedServices);
   registerProjectRoutes(app, resolvedServices);
   registerFeedbackRoutes(app, resolvedServices);

@@ -1,31 +1,20 @@
 import {
-  createAgentChatResponse,
   mapAgentChatError,
   parseChatRequestBody,
   validateChatRequest,
   withTimeout,
 } from "@z0/backend";
 import { type NextRequest, NextResponse } from "next/server";
-import { getChatById, saveMessages } from "@/components/chat/actions";
+import { getChatById } from "@/components/chat/actions";
 import {
   formatMemoriesForContext,
   getRelevantMemories,
 } from "@/lib/agent/memory/service";
-import { getModelFromServer } from "@/lib/agent/model";
 import { processAllMessageFiles } from "@/lib/agent/chat/attachments";
 import {
-  persistAgentTelemetry,
   runDeferredPersistence,
-  updateChatProjectLinkFromToolResults,
 } from "@/lib/agent/chat/persistence";
-import { buildAgentTools } from "@/lib/agent/chat/tools";
-import type { DBMessage } from "@/lib/schema";
 import { getCurrentUser } from "@/lib/session";
-import {
-  extractFileAttachmentsFromParts,
-  normalizeMessagePartsForStorage,
-  normalizeStoredMessageParts,
-} from "@/lib/utils/message-parts";
 
 export const maxDuration = 30;
 
@@ -65,49 +54,64 @@ export async function POST(request: NextRequest) {
       messageCount: payload.messages.length,
     });
 
-    return await createAgentChatResponse({
-      payload,
-      dependencies: {
-        getCurrentUser,
-        getChatOwnerId: async (chatId) => {
-          const chatResult = await getChatById({ id: chatId });
-          return chatResult.success && chatResult.data
-            ? chatResult.data.userId
-            : null;
-        },
-        processMessages: processAllMessageFiles,
-        buildMemoryContext: async (userId, query) => {
-          const memories = await fetchMemoriesForPrompt(userId, query);
-          return formatMemoriesForContext(memories);
-        },
-        buildTools: buildAgentTools,
-        getModel: getModelFromServer as Parameters<
-          typeof createAgentChatResponse
-        >[0]["dependencies"]["getModel"],
-        updateChatProjectLinkFromToolResults,
-        persistTelemetry: persistAgentTelemetry,
-        runDeferredPersistence,
-        saveAssistantMessage: async ({ chatId, responseMessage }) => {
-          const normalizedParts = normalizeStoredMessageParts(
-            responseMessage.parts,
-          );
-          const assistantMessage: DBMessage = {
-            id: responseMessage.id || crypto.randomUUID(),
-            chatId,
-            role: "assistant",
-            parts: normalizeMessagePartsForStorage(normalizedParts),
-            attachments: extractFileAttachmentsFromParts(normalizedParts),
-            createdAt: new Date(),
-          };
+    const user = await getCurrentUser();
+    if (!user?.id) {
+      return NextResponse.json(
+        { code: "unauthorized:chat", message: "Unauthorized" },
+        { status: 401 },
+      );
+    }
 
-          const saveResult = await saveMessages({
-            messages: [assistantMessage],
-          });
-          if (!saveResult.success) {
-            throw new Error(saveResult.message);
-          }
+    const processedMessages = await processAllMessageFiles(payload.messages);
+    const userQuery = [...payload.messages]
+      .reverse()
+      .find((message) => message.role === "user")
+      ?.parts.filter((part): part is { type: "text"; text: string } => part.type === "text")
+      .map((part) => part.text)
+      .join(" ")
+      .trim() ?? "";
+    const memoryContext = formatMemoriesForContext(
+      await fetchMemoriesForPrompt(user.id, userQuery),
+    );
+
+    const chatResult = await getChatById({ id: payload.id });
+    const isNewChat = !chatResult.success || !chatResult.data;
+
+    runDeferredPersistence({
+      chatId: payload.id,
+      userId: user.id,
+      messages: processedMessages,
+      projectId: payload.projectId,
+      isNewChat,
+      userQuery,
+    }).catch(() => undefined);
+
+    const response = await fetch(
+      `${process.env.API_BASE_URL ?? "http://localhost:3001"}/v1/agent/chat`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-user-id": user.id,
+          ...(user.role ? { "x-user-role": user.role } : {}),
         },
+        body: JSON.stringify({
+          ...payload,
+          messages: processedMessages,
+          memoryContext,
+        }),
+        cache: "no-store",
       },
+    );
+
+    if (!response.ok) {
+      const errorPayload = await response.json();
+      return NextResponse.json(errorPayload, { status: response.status });
+    }
+
+    return new Response(response.body, {
+      status: response.status,
+      headers: response.headers,
     });
   } catch (error) {
     console.error("[Server] API error:", error);

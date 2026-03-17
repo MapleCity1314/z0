@@ -70,7 +70,8 @@ describe("createApp", () => {
   let app: Hono;
 
   beforeAll(async () => {
-    process.env.DATABASE_URL = process.env.DATABASE_URL ?? "postgres://user:pass@localhost:5432/z0";
+    process.env.DATABASE_URL =
+      process.env.DATABASE_URL ?? "postgres://user:pass@localhost:5432/z0";
     const { createApp } = await import("./app");
     app = createApp({
       usersService: services.usersService as never,
@@ -106,12 +107,16 @@ describe("createApp", () => {
       }),
     );
 
-    const response = await app.request("/v1/users/me", { headers: actorHeaders });
+    const response = await app.request("/v1/users/me", {
+      headers: actorHeaders,
+    });
     const payload = (await response.json()) as any;
 
     expect(response.status).toBe(200);
     expect(payload.data.name).toBe("Ada");
-    expect(services.usersService.getProfile).toHaveBeenCalledWith(actorHeaders["x-user-id"]);
+    expect(services.usersService.getProfile).toHaveBeenCalledWith(
+      actorHeaders["x-user-id"],
+    );
   });
 
   it("returns the authenticated user's projects", async () => {
@@ -137,7 +142,9 @@ describe("createApp", () => {
       ]),
     );
 
-    const response = await app.request("/v1/projects", { headers: actorHeaders });
+    const response = await app.request("/v1/projects", {
+      headers: actorHeaders,
+    });
     const payload = (await response.json()) as any;
 
     expect(response.status).toBe(200);
@@ -168,7 +175,9 @@ describe("createApp", () => {
       ]),
     );
 
-    const response = await app.request("/v1/feedback", { headers: actorHeaders });
+    const response = await app.request("/v1/feedback", {
+      headers: actorHeaders,
+    });
     const payload = (await response.json()) as any;
 
     expect(response.status).toBe(200);
@@ -208,7 +217,9 @@ describe("createApp", () => {
   });
 
   it("blocks admin routes for non-admin users", async () => {
-    const response = await app.request("/v1/admin/dashboard", { headers: actorHeaders });
+    const response = await app.request("/v1/admin/dashboard", {
+      headers: actorHeaders,
+    });
 
     expect(response.status).toBe(403);
   });
@@ -242,7 +253,9 @@ describe("createApp", () => {
     expect(dashboardResponse.status).toBe(200);
     expect(activityResponse.status).toBe(200);
     expect(((await dashboardResponse.json()) as any).data.users.total).toBe(4);
-    expect(((await activityResponse.json()) as any).data.recentUsers).toHaveLength(1);
+    expect(
+      ((await activityResponse.json()) as any).data.recentUsers,
+    ).toHaveLength(1);
   });
 
   it("returns admin feedback stats", async () => {
@@ -252,7 +265,9 @@ describe("createApp", () => {
       byPriority: [{ priority: "high", count: 1 }],
     });
 
-    const response = await app.request("/v1/admin/feedback/stats", { headers: adminHeaders });
+    const response = await app.request("/v1/admin/feedback/stats", {
+      headers: adminHeaders,
+    });
     const payload = (await response.json()) as any;
 
     expect(response.status).toBe(200);
@@ -284,7 +299,9 @@ describe("createApp", () => {
       }),
     );
 
-    const response = await app.request("/v1/admin/versions/ver-1", { headers: adminHeaders });
+    const response = await app.request("/v1/admin/versions/ver-1", {
+      headers: adminHeaders,
+    });
     const payload = (await response.json()) as any;
 
     expect(response.status).toBe(200);
@@ -294,7 +311,9 @@ describe("createApp", () => {
   it("returns 404 for missing admin project details", async () => {
     services.adminService.getProjectDetail.mockResolvedValue(null);
 
-    const response = await app.request("/v1/admin/projects/missing", { headers: adminHeaders });
+    const response = await app.request("/v1/admin/projects/missing", {
+      headers: adminHeaders,
+    });
     const payload = (await response.json()) as any;
 
     expect(response.status).toBe(404);
@@ -321,5 +340,172 @@ describe("createApp", () => {
 
     expect(response.status).toBe(400);
     expect(payload.error.message).toBe("Feedback response is required");
+  });
+
+  it("updates feedback status for admins", async () => {
+    services.feedbackService.updateStatus.mockResolvedValue(
+      ok({
+        id: "fb-1",
+        userId: actorHeaders["x-user-id"],
+        type: "feature",
+        category: null,
+        title: "Add shortcuts",
+        content: "Please add keyboard shortcuts",
+        status: "planned",
+        priority: "medium",
+        metadata: null,
+        attachments: [],
+        adminResponse: null,
+        respondedBy: null,
+        respondedAt: null,
+        createdAt: new Date("2026-03-01T00:00:00Z"),
+        updatedAt: new Date("2026-03-02T00:00:00Z"),
+      }),
+    );
+
+    const response = await app.request("/v1/admin/feedback/fb-1/status", {
+      method: "PATCH",
+      headers: {
+        ...adminHeaders,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ status: "planned" }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(services.feedbackService.updateStatus).toHaveBeenCalledWith(
+      "fb-1",
+      "planned",
+    );
+  });
+
+  it("responds to feedback as the authenticated admin", async () => {
+    services.feedbackService.respond.mockResolvedValue(
+      ok({
+        id: "fb-2",
+        userId: actorHeaders["x-user-id"],
+        type: "bug",
+        category: null,
+        title: "Broken layout",
+        content: "The sidebar overlaps content",
+        status: "reviewing",
+        priority: "high",
+        metadata: null,
+        attachments: [],
+        adminResponse: "Fix is in progress",
+        respondedBy: actorHeaders["x-user-id"],
+        respondedAt: new Date("2026-03-03T00:00:00Z"),
+        createdAt: new Date("2026-03-01T00:00:00Z"),
+        updatedAt: new Date("2026-03-03T00:00:00Z"),
+      }),
+    );
+
+    const response = await app.request("/v1/admin/feedback/fb-2/respond", {
+      method: "POST",
+      headers: {
+        ...adminHeaders,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ response: "Fix is in progress" }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(services.feedbackService.respond).toHaveBeenCalledWith(
+      "fb-2",
+      actorHeaders["x-user-id"],
+      "Fix is in progress",
+    );
+  });
+
+  it("creates and publishes versions as the authenticated admin", async () => {
+    services.versionsService.create.mockResolvedValue(
+      ok({
+        id: "ver-2",
+        version: "1.3.0",
+        title: "Admin extraction",
+        description: "Moves admin writes to api",
+        type: "minor",
+        features: [],
+        improvements: [],
+        bugFixes: [],
+        breaking: [],
+        highlights: [],
+        migration: null,
+        status: "draft",
+        isLatest: false,
+        publishedBy: actorHeaders["x-user-id"],
+        downloadUrl: null,
+        docsUrl: null,
+        createdAt: new Date("2026-03-01T00:00:00Z"),
+        updatedAt: new Date("2026-03-02T00:00:00Z"),
+        publishedAt: null,
+      }),
+    );
+    services.versionsService.publish.mockResolvedValue(
+      ok({
+        id: "ver-2",
+        version: "1.3.0",
+        title: "Admin extraction",
+        description: "Moves admin writes to api",
+        type: "minor",
+        features: [],
+        improvements: [],
+        bugFixes: [],
+        breaking: [],
+        highlights: [],
+        migration: null,
+        status: "published",
+        isLatest: true,
+        publishedBy: actorHeaders["x-user-id"],
+        downloadUrl: null,
+        docsUrl: null,
+        createdAt: new Date("2026-03-01T00:00:00Z"),
+        updatedAt: new Date("2026-03-03T00:00:00Z"),
+        publishedAt: new Date("2026-03-03T00:00:00Z"),
+      }),
+    );
+
+    const createResponse = await app.request("/v1/admin/versions", {
+      method: "POST",
+      headers: {
+        ...adminHeaders,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        version: "1.3.0",
+        title: "Admin extraction",
+        description: "Moves admin writes to api",
+        type: "minor",
+      }),
+    });
+    const publishResponse = await app.request(
+      "/v1/admin/versions/ver-2/publish",
+      {
+        method: "POST",
+        headers: adminHeaders,
+      },
+    );
+
+    expect(createResponse.status).toBe(201);
+    expect(publishResponse.status).toBe(200);
+    expect(services.versionsService.create).toHaveBeenCalledWith({
+      actorUserId: actorHeaders["x-user-id"],
+      version: "1.3.0",
+      title: "Admin extraction",
+      description: "Moves admin writes to api",
+      type: "minor",
+      features: undefined,
+      improvements: undefined,
+      bugFixes: undefined,
+      breaking: undefined,
+      highlights: undefined,
+      migration: undefined,
+      downloadUrl: undefined,
+      docsUrl: undefined,
+    });
+    expect(services.versionsService.publish).toHaveBeenCalledWith(
+      "ver-2",
+      actorHeaders["x-user-id"],
+    );
   });
 });

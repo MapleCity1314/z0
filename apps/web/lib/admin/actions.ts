@@ -3,64 +3,58 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
-  updateFeedbackStatus as dbUpdateFeedbackStatus,
-  addFeedbackResponse as dbAddFeedbackResponse,
-} from "@/lib/db/feedback-queries";
-import {
-  createVersionUpdate as dbCreateVersionUpdate,
-  publishVersion as dbPublishVersion,
-  archiveVersion as dbArchiveVersion,
-  deleteVersion as dbDeleteVersion,
-} from "@/lib/db/version-queries";
+  addFeedbackResponse,
+  archiveVersion,
+  createVersion,
+  deleteVersion,
+  publishVersion,
+  updateFeedbackStatus,
+} from "@/lib/admin/client";
+import type {
+  CreateAdminVersionInput,
+  FeedbackStatus,
+} from "@/lib/admin/contracts";
 
 // Feedback Actions
 export async function updateFeedbackStatusAction(
   feedbackId: string,
-  status: "pending" | "reviewing" | "planned" | "completed" | "rejected"
+  status: FeedbackStatus,
 ) {
-  await dbUpdateFeedbackStatus(feedbackId, status);
+  await updateFeedbackStatus(feedbackId, status);
   revalidatePath(`/admin/feedback/${feedbackId}`);
   revalidatePath("/admin/feedback");
 }
 
 export async function addFeedbackResponseAction(
   feedbackId: string,
-  response: string
+  response: string,
 ) {
-  // TODO: 获取当前管理员ID
-  const adminId = "";
-  await dbAddFeedbackResponse(feedbackId, adminId, response);
+  await addFeedbackResponse(feedbackId, response);
   revalidatePath(`/admin/feedback/${feedbackId}`);
+  revalidatePath("/admin/feedback");
 }
 
 // Version Actions
-export async function createVersionAction(data: {
-  version: string;
-  title: string;
-  description?: string;
-  type: "major" | "minor" | "patch";
-}) {
-  await dbCreateVersionUpdate(data);
+export async function createVersionAction(data: CreateAdminVersionInput) {
+  await createVersion(data);
   revalidatePath("/admin/versions");
   redirect("/admin/versions");
 }
 
 export async function publishVersionAction(versionId: string) {
-  // TODO: 获取当前管理员ID
-  const adminId = "";
-  await dbPublishVersion(versionId, adminId);
+  await publishVersion(versionId);
   revalidatePath(`/admin/versions/${versionId}`);
   revalidatePath("/admin/versions");
 }
 
 export async function archiveVersionAction(versionId: string) {
-  await dbArchiveVersion(versionId);
+  await archiveVersion(versionId);
   revalidatePath(`/admin/versions/${versionId}`);
   revalidatePath("/admin/versions");
 }
 
 export async function deleteVersionAction(versionId: string) {
-  await dbDeleteVersion(versionId);
+  await deleteVersion(versionId);
   revalidatePath("/admin/versions");
   redirect("/admin/versions");
 }

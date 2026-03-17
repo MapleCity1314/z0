@@ -41,7 +41,7 @@ export async function createVersionUpdate(data: {
       highlights: data.highlights || [],
       migration: data.migration,
       status: "draft",
-      isLatest: "false",
+      isLatest: false,
       publishedBy: data.publishedBy,
       downloadUrl: data.downloadUrl,
       docsUrl: data.docsUrl,
@@ -56,7 +56,9 @@ export async function createVersionUpdate(data: {
 /**
  * Get version by ID
  */
-export async function getVersionById(versionId: string): Promise<VersionUpdate | null> {
+export async function getVersionById(
+  versionId: string,
+): Promise<VersionUpdate | null> {
   const [result] = await db
     .select()
     .from(versionUpdate)
@@ -69,7 +71,9 @@ export async function getVersionById(versionId: string): Promise<VersionUpdate |
 /**
  * Get version by version number
  */
-export async function getVersionByNumber(version: string): Promise<VersionUpdate | null> {
+export async function getVersionByNumber(
+  version: string,
+): Promise<VersionUpdate | null> {
   const [result] = await db
     .select()
     .from(versionUpdate)
@@ -86,7 +90,7 @@ export async function getLatestVersion(): Promise<VersionUpdate | null> {
   const [result] = await db
     .select()
     .from(versionUpdate)
-    .where(eq(versionUpdate.isLatest, "true"))
+    .where(eq(versionUpdate.isLatest, true))
     .limit(1);
 
   return result || null;
@@ -95,7 +99,9 @@ export async function getLatestVersion(): Promise<VersionUpdate | null> {
 /**
  * Get all published versions
  */
-export async function getPublishedVersions(limit = 50): Promise<VersionUpdate[]> {
+export async function getPublishedVersions(
+  limit = 50,
+): Promise<VersionUpdate[]> {
   return db
     .select()
     .from(versionUpdate)
@@ -108,29 +114,27 @@ export async function getPublishedVersions(limit = 50): Promise<VersionUpdate[]>
  * Get all versions (admin)
  */
 export async function getAllVersions(): Promise<VersionUpdate[]> {
-  return db
-    .select()
-    .from(versionUpdate)
-    .orderBy(desc(versionUpdate.createdAt));
+  return db.select().from(versionUpdate).orderBy(desc(versionUpdate.createdAt));
 }
 
 /**
  * Publish version
  */
-export async function publishVersion(versionId: string, publishedBy: string): Promise<VersionUpdate | null> {
+export async function publishVersion(
+  versionId: string,
+  publishedBy: string,
+): Promise<VersionUpdate | null> {
   const now = new Date();
 
   // First, set all versions to not latest
-  await db
-    .update(versionUpdate)
-    .set({ isLatest: "false" });
+  await db.update(versionUpdate).set({ isLatest: false });
 
   // Then publish this version and set as latest
   const [updated] = await db
     .update(versionUpdate)
     .set({
       status: "published",
-      isLatest: "true",
+      isLatest: true,
       publishedBy,
       publishedAt: now,
       updatedAt: now,
@@ -157,7 +161,7 @@ export async function updateVersionContent(
     migration?: string;
     downloadUrl?: string;
     docsUrl?: string;
-  }
+  },
 ): Promise<VersionUpdate | null> {
   const [updated] = await db
     .update(versionUpdate)
@@ -174,12 +178,14 @@ export async function updateVersionContent(
 /**
  * Archive version
  */
-export async function archiveVersion(versionId: string): Promise<VersionUpdate | null> {
+export async function archiveVersion(
+  versionId: string,
+): Promise<VersionUpdate | null> {
   const [updated] = await db
     .update(versionUpdate)
     .set({
       status: "archived",
-      isLatest: "false",
+      isLatest: false,
       updatedAt: new Date(),
     })
     .where(eq(versionUpdate.id, versionId))
@@ -192,9 +198,7 @@ export async function archiveVersion(versionId: string): Promise<VersionUpdate |
  * Delete version
  */
 export async function deleteVersion(versionId: string): Promise<boolean> {
-  await db
-    .delete(versionUpdate)
-    .where(eq(versionUpdate.id, versionId));
+  await db.delete(versionUpdate).where(eq(versionUpdate.id, versionId));
 
   return true;
 }

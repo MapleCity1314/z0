@@ -20,6 +20,7 @@ import {
 import {
   addMessageMetadata,
   buildZ0MaxErrorHint,
+  extractLatestAgentRunContext,
   extractLatestUserQuery,
   getAnthropicReasoningOptions,
   parseRequestBody,
@@ -102,6 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userQuery = extractLatestUserQuery(payload.messages);
+    const runContext = extractLatestAgentRunContext(payload.messages);
     const triggerMessageId = [...payload.messages]
       .reverse()
       .find((message: UIMessage) => message.role === "user")?.id;
@@ -167,8 +169,12 @@ export async function POST(request: NextRequest) {
             chatId: payload.id,
             userId: user.id,
             projectId: payload.projectId,
+            parentRunId: runContext?.parentRunId,
+            rootRunId: runContext?.rootRunId,
             triggerMessageId,
             model: payload.model,
+            agentKind: runContext?.agentKind,
+            agentName: runContext?.agentName,
             isReasoning: payload.isReasoning,
             webSearchEnabled: payload.webSearchEnabled,
             messageCount: payload.messages.length,
@@ -182,6 +188,7 @@ export async function POST(request: NextRequest) {
             startedAt: runStartedAt,
             finishedAt: new Date(),
             metadata: {
+              ...(runContext?.metadata ?? {}),
               toolCallCount: toolCalls?.length ?? 0,
               toolResultCount: Array.isArray(toolResults)
                 ? toolResults.length
@@ -201,8 +208,12 @@ export async function POST(request: NextRequest) {
             chatId: payload.id,
             userId: user.id,
             projectId: payload.projectId,
+            parentRunId: runContext?.parentRunId,
+            rootRunId: runContext?.rootRunId,
             triggerMessageId,
             model: payload.model,
+            agentKind: runContext?.agentKind,
+            agentName: runContext?.agentName,
             isReasoning: payload.isReasoning,
             webSearchEnabled: payload.webSearchEnabled,
             messageCount: payload.messages.length,
@@ -217,6 +228,7 @@ export async function POST(request: NextRequest) {
             startedAt: runStartedAt,
             finishedAt: now,
             metadata: {
+              ...(runContext?.metadata ?? {}),
               error: error instanceof Error ? error.message : String(error),
             },
           },

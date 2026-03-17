@@ -103,6 +103,7 @@ export async function saveAgentRun(
       set: {
         projectId: run.projectId ?? null,
         parentRunId: run.parentRunId ?? null,
+        rootRunId: run.rootRunId ?? null,
         triggerMessageId: run.triggerMessageId ?? null,
         agentKind: run.agentKind,
         agentName: run.agentName ?? null,

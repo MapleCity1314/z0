@@ -31,6 +31,14 @@ export type FileReadResult = {
   error?: string;
 };
 
+export type AgentRunContext = {
+  parentRunId?: string;
+  rootRunId?: string;
+  agentKind?: string;
+  agentName?: string;
+  metadata?: Record<string, unknown>;
+};
+
 export function parseRequestBody(body: unknown): ChatRequestPayload {
   const input = (body ?? {}) as {
     id?: string;
@@ -105,6 +113,52 @@ export function extractLatestUserQuery(messages: UIMessage[]): string {
   }
 
   return "";
+}
+
+export function extractLatestAgentRunContext(
+  messages: UIMessage[],
+): AgentRunContext | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i];
+    if (message.role !== "user") continue;
+
+    const metadata =
+      typeof message.metadata === "object" && message.metadata !== null
+        ? (message.metadata as Record<string, unknown>)
+        : null;
+    const context =
+      metadata &&
+      typeof metadata.agentContext === "object" &&
+      metadata.agentContext !== null &&
+      !Array.isArray(metadata.agentContext)
+        ? (metadata.agentContext as Record<string, unknown>)
+        : null;
+
+    if (!context) {
+      return null;
+    }
+
+    return {
+      parentRunId:
+        typeof context.parentRunId === "string"
+          ? context.parentRunId
+          : undefined,
+      rootRunId:
+        typeof context.rootRunId === "string" ? context.rootRunId : undefined,
+      agentKind:
+        typeof context.agentKind === "string" ? context.agentKind : undefined,
+      agentName:
+        typeof context.agentName === "string" ? context.agentName : undefined,
+      metadata:
+        typeof context.metadata === "object" &&
+        context.metadata !== null &&
+        !Array.isArray(context.metadata)
+          ? (context.metadata as Record<string, unknown>)
+          : undefined,
+    };
+  }
+
+  return null;
 }
 
 export function getAnthropicReasoningOptions(

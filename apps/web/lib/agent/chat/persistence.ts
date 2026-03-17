@@ -126,8 +126,12 @@ type AgentRunTelemetry = {
   chatId: string;
   userId: string;
   projectId: string | null;
+  parentRunId?: string;
+  rootRunId?: string;
   triggerMessageId?: string;
   model: string;
+  agentKind?: string;
+  agentName?: string;
   isReasoning: boolean;
   webSearchEnabled: boolean;
   messageCount: number;
@@ -182,10 +186,11 @@ export function buildAgentRunRecord(telemetry: AgentRunTelemetry): Omit<
     chatId: telemetry.chatId,
     userId: telemetry.userId,
     projectId: telemetry.projectId,
-    parentRunId: null,
+    parentRunId: telemetry.parentRunId ?? null,
+    rootRunId: telemetry.rootRunId ?? telemetry.parentRunId ?? telemetry.runId,
     triggerMessageId: telemetry.triggerMessageId ?? null,
-    agentKind: "chat",
-    agentName: "primary-chat",
+    agentKind: telemetry.agentKind ?? "chat",
+    agentName: telemetry.agentName ?? "primary-chat",
     model: telemetry.model,
     status: telemetry.status,
     finishReason: telemetry.finishReason ?? null,

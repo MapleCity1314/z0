@@ -3,6 +3,7 @@ import type { UIMessage } from "ai";
 import {
   addMessageMetadata,
   buildZ0MaxErrorHint,
+  extractLatestAgentRunContext,
   extractLatestUserQuery,
   getAnthropicReasoningOptions,
   parseRequestBody,
@@ -76,5 +77,32 @@ describe("agent chat request helpers", () => {
     expect(buildZ0MaxErrorHint("service unavailable")).toContain(
       "z0-max config hint",
     );
+  });
+
+  it("extracts agent run context from the latest user metadata", () => {
+    const messages: UIMessage[] = [
+      {
+        id: "m1",
+        role: "user",
+        parts: [{ type: "text", text: "delegate this" }],
+        metadata: {
+          agentContext: {
+            parentRunId: "run-parent",
+            rootRunId: "run-root",
+            agentKind: "subagent",
+            agentName: "research-worker",
+            metadata: { lane: "analysis" },
+          },
+        },
+      },
+    ];
+
+    expect(extractLatestAgentRunContext(messages)).toEqual({
+      parentRunId: "run-parent",
+      rootRunId: "run-root",
+      agentKind: "subagent",
+      agentName: "research-worker",
+      metadata: { lane: "analysis" },
+    });
   });
 });

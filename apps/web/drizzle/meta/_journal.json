@@ -36,6 +36,13 @@
       "when": 1773732172622,
       "tag": "0004_unknown_caretaker",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1773732920496,
+      "tag": "0005_solid_tana_nile",
+      "breakpoints": true
     }
   ]
 }

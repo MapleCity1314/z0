@@ -5,6 +5,7 @@ export * from "./agent/request";
 export * from "./agent/usage";
 export * from "./agent/prompt";
 export * from "./agent/telemetry";
+export * from "./agent/chat";
 export * from "./modules/admin";
 export * from "./modules/feedback";
 export * from "./modules/projects";

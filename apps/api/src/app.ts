@@ -7,7 +7,10 @@ import { registerHealthRoutes } from "./routes/health";
 import { registerProjectRoutes } from "./routes/projects";
 import { registerUserRoutes } from "./routes/users";
 import { registerVersionRoutes } from "./routes/versions";
+import { loadApiEnv } from "./env";
 import { createServices, type AppServices } from "./services";
+
+loadApiEnv();
 
 export function createApp(overrides: Partial<AppServices> = {}) {
   const defaults =

@@ -4,6 +4,20 @@ import {
   streamText,
   type UIMessage,
 } from "ai";
+import {
+  CHAT_SYSTEM_PROMPT,
+  addMessageMetadata,
+  buildZ0MaxErrorHint,
+  calculateCostUSD,
+  calculateCreditsFromTokens,
+  calculateUsageFromUIMessages,
+  extractLatestAgentRunContext,
+  extractLatestUserQuery,
+  getAnthropicReasoningOptions,
+  parseChatRequestBody,
+  validateChatRequest,
+  withTimeout,
+} from "@z0/backend";
 import { type NextRequest, NextResponse } from "next/server";
 import { getChatById, saveMessages } from "@/components/chat/actions";
 import {
@@ -17,22 +31,7 @@ import {
   runDeferredPersistence,
   updateChatProjectLinkFromToolResults,
 } from "@/lib/agent/chat/persistence";
-import {
-  addMessageMetadata,
-  buildZ0MaxErrorHint,
-  extractLatestAgentRunContext,
-  extractLatestUserQuery,
-  getAnthropicReasoningOptions,
-  parseRequestBody,
-  validateRequest,
-  withTimeout,
-} from "@/lib/agent/chat/request";
 import { buildAgentTools } from "@/lib/agent/chat/tools";
-import {
-  calculateCostUSD,
-  calculateCreditsFromTokens,
-  calculateUsageFromUIMessages,
-} from "@/lib/agent/usage";
 import { ChatSDKError } from "@/lib/error";
 import type { DBMessage } from "@/lib/schema";
 import { getCurrentUser } from "@/lib/session";
@@ -41,7 +40,6 @@ import {
   normalizeMessagePartsForStorage,
   normalizeStoredMessageParts,
 } from "@/lib/utils/message-parts";
-import { SYSTEM_PROMPT } from "./prompt";
 
 export const maxDuration = 30;
 
@@ -70,9 +68,9 @@ export async function POST(request: NextRequest) {
   const runId = crypto.randomUUID();
 
   try {
-    const payload = parseRequestBody(await request.json());
+    const payload = parseChatRequestBody(await request.json());
     requestedModel = payload.model;
-    validateRequest(payload);
+    validateChatRequest(payload);
 
     console.log("[Server] Received request", {
       chatId: payload.id,
@@ -122,7 +120,8 @@ export async function POST(request: NextRequest) {
       user.id,
     );
 
-    const systemPrompt = SYSTEM_PROMPT + formatMemoriesForContext(memories);
+    const systemPrompt =
+      CHAT_SYSTEM_PROMPT + formatMemoriesForContext(memories);
     const modelMessages = await convertToModelMessages(allMessages);
 
     const tools = buildAgentTools(payload.webSearchEnabled, payload.projectId);

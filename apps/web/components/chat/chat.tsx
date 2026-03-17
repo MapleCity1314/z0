@@ -4,7 +4,7 @@ import { DefaultChatTransport, type UIMessage, type FileUIPart } from "ai";
 import { unstable_serialize, useSWRConfig } from "swr";
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
-import { cn, fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
+import { cn, fetchWithErrorHandlers } from "@/lib/utils";
 import { ChatSDKError } from "@/lib/error";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -22,6 +22,11 @@ import { MessageList } from "./message-list";
 import { Welcome } from "./welcome";
 import { ChatInput } from "./chat-input";
 import FluidBackground from "../fluid-background";
+import {
+  buildOutgoingUserMessage,
+  getChatToolEffects,
+  isProjectGenerationActive,
+} from "@/lib/agent/chat/client-state";
 import { selectableModels, type SelectableModelName } from "@/lib/agent/model";
 import { useProjectStore } from "@/store/project";
 
@@ -127,7 +132,6 @@ export default function Chat({
     id,
     messages: initialMessages,
     experimental_throttle: 150,
-    generateId: generateUUID,
 
     transport: new DefaultChatTransport({
       api: "/api/chat",
@@ -242,128 +246,27 @@ export default function Chat({
   // 使用 ref 跟踪已处理的工具调用，避免重复处理
   const handledToolCallsRef = useRef<Set<string>>(new Set());
 
-  // 文件操作工具列表
-  const fileOperationTools = [
-    "createProjectFile",
-    "updateProjectFile",
-    "patchProjectFile",
-    "deleteProjectFile",
-  ];
-
   useEffect(() => {
-    let hasFileUpdate = false;
+    const effects = getChatToolEffects(messages, handledToolCallsRef.current);
+    handledToolCallsRef.current = effects.nextHandledToolCallIds;
 
-    // 遍历所有消息查找工具结果
-    for (const message of messages) {
-      if (message.role !== "assistant") continue;
-
-      for (const part of message.parts || []) {
-        const toolPart = part as any;
-        if (toolPart.type?.startsWith("tool-") && toolPart.toolCallId) {
-          const toolName =
-            toolPart.toolName || toolPart.type.replace("tool-", "");
-          const toolCallId = toolPart.toolCallId;
-
-          // 只处理已完成且成功的工具调用
-          if (
-            toolPart.state !== "output-available" ||
-            !toolPart.output?.success
-          ) {
-            continue;
-          }
-
-          // 避免重复处理
-          if (handledToolCallsRef.current.has(toolCallId)) {
-            continue;
-          }
-
-          // 检测 createProject 工具成功完成
-          if (toolName === "createProject" && toolPart.output?.projectId) {
-            handledToolCallsRef.current.add(toolCallId);
-            const newProjectId = toolPart.output.projectId;
-            console.log(
-              "[Chat] Detected createProject success, opening panel:",
-              newProjectId,
-            );
-
-            // 更新本地状态和 store
-            setSelectedProjectId(newProjectId);
-            setStoreProjectId(newProjectId);
-          }
-
-          // 检测文件操作工具成功完成
-          if (fileOperationTools.includes(toolName)) {
-            handledToolCallsRef.current.add(toolCallId);
-            console.log("[Chat] Detected file operation success:", toolName);
-            hasFileUpdate = true;
-          }
-        }
-      }
+    if (effects.projectIdToOpen) {
+      console.log(
+        "[Chat] Detected createProject success, opening panel:",
+        effects.projectIdToOpen,
+      );
+      setSelectedProjectId(effects.projectIdToOpen);
+      setStoreProjectId(effects.projectIdToOpen);
     }
 
-    // 如果有文件更新，触发 ProjectPanel 重新加载
-    if (hasFileUpdate) {
+    if (effects.shouldTriggerFileUpdate) {
       console.log("[Chat] Triggering file update for ProjectPanel");
       triggerFileUpdate();
     }
   }, [messages, setStoreProjectId, triggerFileUpdate]);
 
-  // 检测项目工具调用，触发 loading 状态
   useEffect(() => {
-    if (!selectedProjectId) {
-      setGenerating(false);
-      return;
-    }
-
-    // 项目类工具列表（生成代码类工具）
-    const projectCodeTools = [
-      "createProjectFile",
-      "updateProjectFile",
-      "patchProjectFile",
-      "deleteProjectFile",
-      "createProject",
-      "addDependency",
-      "removeDependency",
-      "installDependencies",
-      "runBuild",
-      "runLint",
-      "runFormat",
-      "runScript",
-    ];
-
-    // 检查最后一条消息是否包含项目工具调用
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.role === "assistant") {
-      const hasProjectToolCall = lastMessage.parts?.some((part: any) => {
-        if (part.type?.startsWith("tool-")) {
-          const toolName = part.toolName || part.type.replace("tool-", "");
-          return projectCodeTools.includes(toolName);
-        }
-        return false;
-      });
-
-      if (hasProjectToolCall) {
-        // 检查工具是否正在运行
-        const isToolRunning = lastMessage.parts?.some((part: any) => {
-          if (part.type?.startsWith("tool-")) {
-            const toolName = part.toolName || part.type.replace("tool-", "");
-            if (projectCodeTools.includes(toolName)) {
-              return (
-                part.state === "input-available" ||
-                part.state === "input-streaming"
-              );
-            }
-          }
-          return false;
-        });
-
-        setGenerating(isToolRunning || false);
-      } else {
-        setGenerating(false);
-      }
-    } else {
-      setGenerating(false);
-    }
+    setGenerating(isProjectGenerationActive(messages, selectedProjectId));
   }, [messages, selectedProjectId, setGenerating]);
 
   const showWelcome = messages.length === 0 && isNewChat;
@@ -391,25 +294,8 @@ export default function Chat({
     text: string;
     files: FileUIPart[];
   }) => {
-    // Build parts array: text + files
-    const parts: UIMessage["parts"] = [];
+    const uiMessage = buildOutgoingUserMessage(message);
 
-    if (message.text.trim()) {
-      parts.push({ type: "text", text: message.text });
-    }
-
-    if (message.files && message.files.length > 0) {
-      parts.push(...message.files);
-    }
-
-    const uiMessage: UIMessage = {
-      id: generateUUID(),
-      role: "user",
-      parts,
-    };
-
-    // 🔧 FIX: Mark pending URL update for new chats
-    // URL will be updated in useEffect when status becomes "streaming"
     if (showWelcome) {
       pendingUrlUpdateRef.current = true;
     }

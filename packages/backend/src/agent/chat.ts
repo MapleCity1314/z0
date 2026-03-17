@@ -18,6 +18,7 @@ import {
   calculateUsageFromUIMessages,
 } from "./usage";
 import type { ChatRequestPayload, ModelName } from "./request";
+import { createSkillTools, type AgentSkillMetadata } from "./skills";
 
 export class AgentChatOrchestrationError extends Error {
   constructor(
@@ -34,6 +35,10 @@ export type AgentChatDependencies = {
   getChatOwnerId: (chatId: string) => Promise<string | null>;
   processMessages: (messages: UIMessage[]) => Promise<UIMessage[]>;
   buildMemoryContext: (userId: string, query: string) => Promise<string>;
+  getAvailableSkills: (params: {
+    userId: string;
+    chatId: string;
+  }) => Promise<AgentSkillMetadata[]>;
   buildTools: (
     webSearchEnabled: boolean,
     projectId: string | null,
@@ -131,6 +136,10 @@ export async function createAgentChatResponse(params: {
     processedMessagesPromise,
     dependencies.buildMemoryContext(user.id, userQuery),
   ]);
+  const availableSkills = await dependencies.getAvailableSkills({
+    userId: user.id,
+    chatId: payload.id,
+  });
 
   const allMessages = addMessageMetadata(
     processedMessages,
@@ -140,10 +149,10 @@ export async function createAgentChatResponse(params: {
   );
 
   const modelMessages = await convertToModelMessages(allMessages);
-  const tools = dependencies.buildTools(
-    payload.webSearchEnabled,
-    payload.projectId,
-  );
+  const tools = {
+    ...dependencies.buildTools(payload.webSearchEnabled, payload.projectId),
+    ...createSkillTools(availableSkills),
+  };
   const providerOptions = getAnthropicReasoningOptions(
     payload.model,
     payload.isReasoning,
@@ -157,6 +166,7 @@ export async function createAgentChatResponse(params: {
       webSearchEnabled: payload.webSearchEnabled,
       projectId: payload.projectId,
       memoryContext,
+      skills: availableSkills,
     }),
     messages: modelMessages,
     providerOptions,

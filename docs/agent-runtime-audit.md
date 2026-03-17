@@ -22,6 +22,7 @@ Current boundaries:
   - request validation
   - model selection
   - prompt construction
+  - skill discovery and loading
   - tool catalog
   - orchestration
   - telemetry persistence
@@ -77,15 +78,15 @@ Current state is important:
 
 - `Skill`, `UserSkill`, `ChatSkill` are persisted and exposed in UI
 - `MCPServer`, `UserMCPServer`, `ChatMCPServer` are persisted and exposed in UI
-- neither skills nor MCP entries are currently mounted into the runtime as executable agent capabilities
-- today they are configuration records, not runtime capability providers
+- configured skills are now mounted into runtime as discoverable instruction packs through the `loadSkill` tool
+- MCP entries are still configuration records only and are not yet executable runtime providers
 
 This means the product currently has:
 
 - real built-in tools
 - real tool bridge execution
 - real skill/MCP settings storage
-- no actual runtime skill engine
+- real runtime skill discovery and `loadSkill`
 - no actual runtime MCP client/session layer
 
 ## Decisions
@@ -117,6 +118,22 @@ Reason:
 
 These belong to infrastructure/runtime services, but still fit better as internal capabilities than as skills or MCP. The right change is service hardening and cleaner boundaries, not a protocol switch.
 
+### Runtime skills now enabled
+
+Skills are now best used for:
+
+- reusable workflow instructions
+- domain-specific operating procedures
+- project-local or user-local playbooks
+- higher-level editing strategies that orchestrate internal tools
+
+The runtime mechanism is:
+
+- discover workspace skills from `.agents/skills`
+- discover chat-enabled skill directories from DB
+- inject skill summaries into the system prompt
+- expose `loadSkill` to load full `SKILL.md` content on demand
+
 ### Future skill candidates
 
 - `generateDiff`
@@ -126,7 +143,7 @@ These belong to infrastructure/runtime services, but still fit better as interna
 
 Reason:
 
-These are workflow-shaped capabilities. They are good candidates for reusable skill packs because they represent higher-level editing strategies rather than external systems. They should likely become structured "editing skills" that orchestrate lower-level internal tools.
+These are workflow-shaped capabilities. They are good candidates for reusable skill packs because they represent higher-level editing strategies rather than external systems. They should likely move behind promptable editing skills that orchestrate lower-level internal tools.
 
 ### Future MCP candidates
 
@@ -144,7 +161,7 @@ This audit drove three concrete changes:
 
 1. tool inventory is now single-sourced in backend
 2. system prompt is now generated from the actual enabled tool catalog instead of a stale handwritten block
-3. runtime prompt now explicitly states that configured skills/MCP are not available unless surfaced as tools
+3. configured skills now surface into runtime through discovery plus `loadSkill`
 
 ## Next recommended phases
 

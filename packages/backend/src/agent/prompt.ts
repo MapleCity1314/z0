@@ -3,6 +3,7 @@ import {
   type AgentToolCatalogEntry,
   type AgentToolGroup,
 } from "./tool-catalog";
+import { buildSkillsPrompt, type AgentSkillMetadata } from "./skills";
 
 const TOOL_GROUP_LABELS: Record<AgentToolGroup, string> = {
   artifacts: "Artifacts",
@@ -42,6 +43,7 @@ export function buildChatSystemPrompt(params: {
   webSearchEnabled: boolean;
   projectId: string | null;
   memoryContext?: string;
+  skills?: AgentSkillMetadata[];
 }) {
   const enabledTools = getEnabledAgentToolCatalog({
     webSearchEnabled: params.webSearchEnabled,
@@ -80,5 +82,5 @@ You are z0 Agent. You are a direct, high-agency product and coding assistant.
 
 <tooling>
 ${renderToolSection(enabledTools)}
-</tooling>${memoryBlock}`;
+</tooling>${buildSkillsPrompt(params.skills ?? [])}${memoryBlock}`;
 }

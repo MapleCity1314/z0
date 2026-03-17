@@ -3,7 +3,9 @@ import {
   buildToolCallRecords,
   createAgentChatResponse,
   createRemoteAgentTools,
+  discoverAgentSkills,
   extractFileAttachmentsFromParts,
+  getConfiguredSkillDirectories,
   getChatById,
   getModelFromServer,
   mapAgentChatError,
@@ -43,6 +45,17 @@ export function registerAgentRoutes(app: Hono) {
           },
           processMessages: async (messages) => messages,
           buildMemoryContext: async () => memoryContext,
+          getAvailableSkills: async ({ userId, chatId }) => {
+            const configuredSkillDirectories =
+              await getConfiguredSkillDirectories({
+                userId,
+                chatId,
+              });
+
+            return discoverAgentSkills({
+              configuredSkillDirectories,
+            });
+          },
           buildTools: () =>
             createRemoteAgentTools({
               actor: { userId: actor.userId, role: actor.role },

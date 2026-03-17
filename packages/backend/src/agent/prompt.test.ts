@@ -19,10 +19,20 @@ describe("buildChatSystemPrompt", () => {
       webSearchEnabled: true,
       projectId: "project-1",
       memoryContext: "[User Memory Context]\nPrefers TypeScript",
+      skills: [
+        {
+          name: "refactor-diff",
+          description: "Apply structured code refactors",
+          path: "/tmp/refactor-diff",
+          source: "configured",
+        },
+      ],
     });
 
     expect(prompt).toContain("<tool_group name=\"Web research\">");
     expect(prompt).toContain("<tool_group name=\"Project files\">");
+    expect(prompt).toContain("<skills>");
+    expect(prompt).toContain("refactor-diff");
     expect(prompt).toContain("<memory_context>");
     expect(prompt).toContain("Prefers TypeScript");
   });

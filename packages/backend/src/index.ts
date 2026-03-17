@@ -19,6 +19,7 @@ export {
 } from "./agent/request";
 export * from "./agent/usage";
 export * from "./agent/prompt";
+export * from "./agent/skills";
 export * from "./agent/telemetry";
 export * from "./agent/model";
 export * from "./agent/title";

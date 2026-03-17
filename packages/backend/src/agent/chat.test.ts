@@ -33,6 +33,7 @@ function makeDependencies(): AgentChatDependencies {
     getChatOwnerId: vi.fn(async () => null),
     processMessages: vi.fn(async (messages) => messages),
     buildMemoryContext: vi.fn(async () => ""),
+    getAvailableSkills: vi.fn(async () => []),
     buildTools: vi.fn(() => ({})),
     getModel: vi.fn(() => ({}) as any),
     updateChatProjectLinkFromToolResults: vi.fn(async () => undefined),
@@ -70,6 +71,10 @@ describe("createAgentChatResponse", () => {
     expect(response).toBeInstanceOf(Response);
     expect(dependencies.runDeferredPersistence).toHaveBeenCalled();
     expect(dependencies.processMessages).toHaveBeenCalled();
+    expect(dependencies.getAvailableSkills).toHaveBeenCalledWith({
+      userId: "user-1",
+      chatId: "chat-1",
+    });
   });
 });
 

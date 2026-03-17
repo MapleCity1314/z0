@@ -8,5 +8,5 @@ export {
   Z0_MODEL_MAP,
   type ModelName,
   type SelectableModelName,
-} from "@z0/backend";
-export { model as default } from "@z0/backend";
+} from "@z0/backend/agent/model";
+export { model as default } from "@z0/backend/agent/model";

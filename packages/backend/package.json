@@ -10,6 +10,10 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./agent/*": {
+      "types": "./src/agent/*.ts",
+      "default": "./src/agent/*.ts"
+    },
     "./db": {
       "types": "./src/db/index.ts",
       "default": "./src/db/index.ts"

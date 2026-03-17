@@ -1,10 +1,9 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowLeft, User, Globe, Lock, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { apiFetch } from "@/lib/api";
+import { loadAdminProjectDetail } from "@/lib/admin/loaders";
 import { cn } from "@/lib/utils";
 
 interface PageProps {
@@ -20,29 +19,7 @@ const statusColors: Record<string, string> = {
 
 export default async function ProjectDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const project = await apiFetch<{
-    id: string;
-    userId: string;
-    name: string;
-    description: string | null;
-    type: string;
-    status: string;
-    visibility: string;
-    files: Record<string, string>;
-    deploymentUrl: string | null;
-    deploymentProvider: string | null;
-    createdAt: string;
-    updatedAt: string;
-    owner: {
-      id: string;
-      name: string;
-      email: string;
-    } | null;
-  }>(`/v1/admin/projects/${id}`).catch(() => null);
-
-  if (!project) {
-    notFound();
-  }
+  const project = await loadAdminProjectDetail(id);
 
   const files = project.files;
   const fileCount = Object.keys(files).length;
@@ -77,7 +54,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         <div className="lg:col-span-1 space-y-6">
           <div className="rounded-xl border bg-card p-6 space-y-4">
             <h3 className="font-semibold">Project Info</h3>
-            
+
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-border">
                 <span className="text-muted-foreground">Type</span>
@@ -85,7 +62,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               </div>
               <div className="flex justify-between py-2 border-b border-border">
                 <span className="text-muted-foreground">Status</span>
-                <Badge variant="outline" className={cn(statusColors[project.status])}>
+                <Badge
+                  variant="outline"
+                  className={cn(statusColors[project.status])}
+                >
                   {project.status}
                 </Badge>
               </div>
@@ -95,11 +75,11 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               </div>
               <div className="flex justify-between py-2 border-b border-border">
                 <span className="text-muted-foreground">Created</span>
-                <span>{format(new Date(project.createdAt), "MMM d, yyyy")}</span>
+                <span>{format(project.createdAt, "MMM d, yyyy")}</span>
               </div>
               <div className="flex justify-between py-2">
                 <span className="text-muted-foreground">Updated</span>
-                <span>{format(new Date(project.updatedAt), "MMM d, yyyy")}</span>
+                <span>{format(project.updatedAt, "MMM d, yyyy")}</span>
               </div>
             </div>
           </div>
@@ -117,7 +97,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 </div>
                 <div>
                   <p className="font-medium">{project.owner.name}</p>
-                  <p className="text-xs text-muted-foreground">{project.owner.email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {project.owner.email}
+                  </p>
                 </div>
               </Link>
             ) : (

@@ -1,10 +1,9 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowLeft, User, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { apiFetch } from "@/lib/api";
+import { loadAdminChatDetail } from "@/lib/admin/loaders";
 import { cn } from "@/lib/utils";
 
 interface PageProps {
@@ -13,25 +12,7 @@ interface PageProps {
 
 export default async function ChatDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const chat = await apiFetch<{
-    id: string;
-    title: string;
-    createdAt: string;
-    userId: string;
-    projectId: string | null;
-    userName: string | null;
-    messages: Array<{
-      id: string;
-      role: string;
-      parts: unknown;
-      attachments: unknown;
-      createdAt: string;
-    }>;
-  }>(`/v1/admin/chats/${id}`).catch(() => null);
-
-  if (!chat) {
-    notFound();
-  }
+  const chat = await loadAdminChatDetail(id);
 
   return (
     <div className="space-y-6">
@@ -52,7 +33,7 @@ export default async function ChatDetailPage({ params }: PageProps) {
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
-              {format(new Date(chat.createdAt), "MMM d, yyyy HH:mm")}
+              {format(chat.createdAt, "MMM d, yyyy HH:mm")}
             </span>
             <Badge variant="secondary">{chat.messages.length} messages</Badge>
           </div>
@@ -75,7 +56,7 @@ export default async function ChatDetailPage({ params }: PageProps) {
                 key={msg.id}
                 className={cn(
                   "px-5 py-4",
-                  msg.role === "assistant" && "bg-muted/30"
+                  msg.role === "assistant" && "bg-muted/30",
                 )}
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -86,7 +67,7 @@ export default async function ChatDetailPage({ params }: PageProps) {
                     {msg.role}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
-                    {format(new Date(msg.createdAt), "HH:mm:ss")}
+                    {format(msg.createdAt, "HH:mm:ss")}
                   </span>
                 </div>
                 <div className="text-sm whitespace-pre-wrap">

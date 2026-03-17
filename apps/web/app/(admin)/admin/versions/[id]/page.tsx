@@ -1,11 +1,10 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowLeft, Star, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { VersionActions } from "@/components/admin/versions/version-actions";
-import { apiFetch } from "@/lib/api";
+import { loadAdminVersionDetail } from "@/lib/admin/loaders";
 import { cn } from "@/lib/utils";
 
 interface PageProps {
@@ -31,29 +30,7 @@ const typeColors: Record<string, string> = {
 
 export default async function VersionDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const version = await apiFetch<{
-    id: string;
-    version: string;
-    title: string;
-    description: string | null;
-    type: "major" | "minor" | "patch";
-    features: ChangelogItem[];
-    improvements: ChangelogItem[];
-    bugFixes: ChangelogItem[];
-    breaking: ChangelogItem[];
-    migration: string | null;
-    status: "draft" | "published" | "archived";
-    isLatest: boolean;
-    downloadUrl: string | null;
-    docsUrl: string | null;
-    createdAt: string;
-    updatedAt: string;
-    publishedAt: string | null;
-  }>(`/v1/admin/versions/${id}`).catch(() => null);
-
-  if (!version) {
-    notFound();
-  }
+  const version = await loadAdminVersionDetail(id);
 
   const features = version.features || [];
   const improvements = version.improvements || [];
@@ -81,7 +58,10 @@ export default async function VersionDetailPage({ params }: PageProps) {
             <Badge variant="outline" className={cn(typeColors[version.type])}>
               {version.type}
             </Badge>
-            <Badge variant="outline" className={cn(statusColors[version.status])}>
+            <Badge
+              variant="outline"
+              className={cn(statusColors[version.status])}
+            >
               {version.status}
             </Badge>
           </div>
@@ -106,22 +86,41 @@ export default async function VersionDetailPage({ params }: PageProps) {
             </div>
             <div className="p-5 space-y-6">
               {features.length > 0 && (
-                <ChangelogSection title="✨ Features" items={features} color="text-blue-500" />
+                <ChangelogSection
+                  title="✨ Features"
+                  items={features}
+                  color="text-blue-500"
+                />
               )}
               {improvements.length > 0 && (
-                <ChangelogSection title="🚀 Improvements" items={improvements} color="text-emerald-500" />
+                <ChangelogSection
+                  title="🚀 Improvements"
+                  items={improvements}
+                  color="text-emerald-500"
+                />
               )}
               {bugFixes.length > 0 && (
-                <ChangelogSection title="🐛 Bug Fixes" items={bugFixes} color="text-amber-500" />
+                <ChangelogSection
+                  title="🐛 Bug Fixes"
+                  items={bugFixes}
+                  color="text-amber-500"
+                />
               )}
               {breaking.length > 0 && (
-                <ChangelogSection title="⚠️ Breaking Changes" items={breaking} color="text-red-500" />
+                <ChangelogSection
+                  title="⚠️ Breaking Changes"
+                  items={breaking}
+                  color="text-red-500"
+                />
               )}
-              {features.length === 0 && improvements.length === 0 && bugFixes.length === 0 && breaking.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No changelog items yet
-                </p>
-              )}
+              {features.length === 0 &&
+                improvements.length === 0 &&
+                bugFixes.length === 0 &&
+                breaking.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No changelog items yet
+                  </p>
+                )}
             </div>
           </div>
 
@@ -144,17 +143,17 @@ export default async function VersionDetailPage({ params }: PageProps) {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-border">
                 <span className="text-muted-foreground">Created</span>
-                <span>{format(new Date(version.createdAt), "MMM d, yyyy")}</span>
+                <span>{format(version.createdAt, "MMM d, yyyy")}</span>
               </div>
               {version.publishedAt && (
                 <div className="flex justify-between py-2 border-b border-border">
                   <span className="text-muted-foreground">Published</span>
-                  <span>{format(new Date(version.publishedAt), "MMM d, yyyy")}</span>
+                  <span>{format(version.publishedAt, "MMM d, yyyy")}</span>
                 </div>
               )}
               <div className="flex justify-between py-2">
                 <span className="text-muted-foreground">Updated</span>
-                <span>{format(new Date(version.updatedAt), "MMM d, yyyy")}</span>
+                <span>{format(version.updatedAt, "MMM d, yyyy")}</span>
               </div>
             </div>
           </div>

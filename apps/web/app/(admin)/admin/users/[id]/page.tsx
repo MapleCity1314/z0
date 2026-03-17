@@ -1,10 +1,15 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatDistanceToNow, format } from "date-fns";
-import { ArrowLeft, MessageSquare, FolderKanban, MessageCircle, Brain } from "lucide-react";
+import {
+  ArrowLeft,
+  MessageSquare,
+  FolderKanban,
+  MessageCircle,
+  Brain,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { apiFetch } from "@/lib/api";
+import { loadAdminUserDetail } from "@/lib/admin/loaders";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -12,30 +17,33 @@ interface PageProps {
 
 export default async function UserDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const user = await apiFetch<{
-    id: string;
-    name: string;
-    email: string;
-    avatar: string | null;
-    createdAt: string;
-    updatedAt: string;
-    stats: {
-      chats: number;
-      projects: number;
-      feedback: number;
-      memories: number;
-    };
-  }>(`/v1/admin/users/${id}`).catch(() => null);
-
-  if (!user) {
-    notFound();
-  }
+  const user = await loadAdminUserDetail(id);
 
   const statItems = [
-    { label: "Chats", value: user.stats.chats, icon: MessageSquare, color: "text-blue-500" },
-    { label: "Projects", value: user.stats.projects, icon: FolderKanban, color: "text-amber-500" },
-    { label: "Feedback", value: user.stats.feedback, icon: MessageCircle, color: "text-emerald-500" },
-    { label: "Memories", value: user.stats.memories, icon: Brain, color: "text-purple-500" },
+    {
+      label: "Chats",
+      value: user.stats.chats,
+      icon: MessageSquare,
+      color: "text-blue-500",
+    },
+    {
+      label: "Projects",
+      value: user.stats.projects,
+      icon: FolderKanban,
+      color: "text-amber-500",
+    },
+    {
+      label: "Feedback",
+      value: user.stats.feedback,
+      icon: MessageCircle,
+      color: "text-emerald-500",
+    },
+    {
+      label: "Memories",
+      value: user.stats.memories,
+      icon: Brain,
+      color: "text-purple-500",
+    },
   ];
 
   return (
@@ -47,8 +55,12 @@ export default async function UserDetailPage({ params }: PageProps) {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">User Details</h1>
-          <p className="text-muted-foreground">View user information and activity</p>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            User Details
+          </h1>
+          <p className="text-muted-foreground">
+            View user information and activity
+          </p>
         </div>
       </div>
 
@@ -65,19 +77,23 @@ export default async function UserDetailPage({ params }: PageProps) {
               </Avatar>
               <h2 className="text-xl font-semibold">{user.name}</h2>
               <p className="text-sm text-muted-foreground">{user.email}</p>
-              
+
               <div className="mt-6 w-full space-y-3 text-sm">
                 <div className="flex justify-between py-2 border-b border-border">
                   <span className="text-muted-foreground">Joined</span>
-                  <span>{format(new Date(user.createdAt), "MMM d, yyyy")}</span>
+                  <span>{format(user.createdAt, "MMM d, yyyy")}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-border">
                   <span className="text-muted-foreground">Last Active</span>
-                  <span>{formatDistanceToNow(new Date(user.updatedAt), { addSuffix: true })}</span>
+                  <span>
+                    {formatDistanceToNow(user.updatedAt, { addSuffix: true })}
+                  </span>
                 </div>
                 <div className="flex justify-between py-2">
                   <span className="text-muted-foreground">User ID</span>
-                  <span className="font-mono text-xs">{user.id.slice(0, 8)}...</span>
+                  <span className="font-mono text-xs">
+                    {user.id.slice(0, 8)}...
+                  </span>
                 </div>
               </div>
             </div>
@@ -109,9 +125,7 @@ export default async function UserDetailPage({ params }: PageProps) {
             <h3 className="font-semibold mb-4">Quick Actions</h3>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" asChild>
-                <Link href={`/admin/chats?userId=${user.id}`}>
-                  View Chats
-                </Link>
+                <Link href={`/admin/chats?userId=${user.id}`}>View Chats</Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/projects?userId=${user.id}`}>

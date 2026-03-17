@@ -1,33 +1,12 @@
 import { ChatsTable } from "@/components/admin/chats/chats-table";
-import { apiFetch } from "@/lib/api";
+import { loadAdminChatsPage } from "@/lib/admin/loaders";
 
 interface PageProps {
   searchParams: Promise<{ page?: string; userId?: string }>;
 }
 
 export default async function ChatsPage({ searchParams }: PageProps) {
-  const params = await searchParams;
-  const page = Number(params.page) || 1;
-  const query = new URLSearchParams({
-    page: String(page),
-    limit: "20",
-    ...(params.userId ? { userId: params.userId } : {}),
-  });
-  const { items, total, limit } = await apiFetch<{
-    items: Array<{
-      id: string;
-      title: string;
-      createdAt: string;
-      userId: string;
-      projectId: string | null;
-      userName: string | null;
-      userEmail: string | null;
-    }>;
-    total: number;
-    limit: number;
-    page: number;
-  }>(`/v1/admin/chats?${query.toString()}`);
-  const totalPages = Math.ceil(total / limit);
+  const data = await loadAdminChatsPage(await searchParams);
 
   return (
     <div className="space-y-6">
@@ -37,13 +16,10 @@ export default async function ChatsPage({ searchParams }: PageProps) {
       </div>
 
       <ChatsTable
-        chats={items.map((item) => ({
-          ...item,
-          createdAt: new Date(item.createdAt),
-        }))}
-        page={page}
-        totalPages={totalPages}
-        total={total}
+        chats={data.chats}
+        page={data.page}
+        totalPages={data.totalPages}
+        total={data.total}
       />
     </div>
   );

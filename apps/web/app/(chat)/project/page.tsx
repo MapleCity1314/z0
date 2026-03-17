@@ -3,11 +3,10 @@ import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
-import { apiFetch } from "@/lib/api";
+import { loadUserProjectsPage } from "@/lib/app/loaders";
 import { getCurrentUser } from "@/lib/session";
 import { ProjectList } from "@/components/project/project-list";
 import { Button } from "@/components/ui/button";
-
 
 export default async function ProjectsPage() {
   const user = await getCurrentUser();
@@ -15,25 +14,7 @@ export default async function ProjectsPage() {
     redirect("/auth");
   }
 
-  const projects = await apiFetch<
-    Array<{
-      id: string;
-      userId: string;
-      name: string;
-      description: string | null;
-      type: "vue" | "react" | "nextjs" | "vanilla";
-      status: "draft" | "building" | "deployed" | "failed";
-      visibility: "private" | "public";
-      files: Record<string, string>;
-      tags: string[];
-      deploymentUrl: string | null;
-      deploymentProvider: string | null;
-      createdAt: string;
-      updatedAt: string;
-      publishedAt: string | null;
-      lastDeployedAt: string | null;
-    }>
-  >("/v1/projects");
+  const projects = await loadUserProjectsPage();
 
   return (
     <div className="relative h-full w-full bg-black overflow-hidden">
@@ -47,7 +28,9 @@ export default async function ProjectsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 flex-none">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-white tracking-tight">My Projects</h1>
+            <h1 className="text-2xl font-semibold text-white tracking-tight">
+              My Projects
+            </h1>
             <p className="text-sm text-zinc-400">
               Manage your deployments and development workspaces
             </p>
@@ -62,18 +45,7 @@ export default async function ProjectsPage() {
 
         {/* Scrollable Content */}
         <div className="flex-1 min-h-0 overflow-y-auto -mx-4 px-4 pb-8 scrollbar-dark">
-          <ProjectList
-            projects={projects.map((project) => ({
-              ...project,
-              buildConfig: null,
-              likes: 0,
-              views: 0,
-              createdAt: new Date(project.createdAt),
-              updatedAt: new Date(project.updatedAt),
-              publishedAt: project.publishedAt ? new Date(project.publishedAt) : null,
-              lastDeployedAt: project.lastDeployedAt ? new Date(project.lastDeployedAt) : null,
-            }))}
-          />
+          <ProjectList projects={projects} />
         </div>
       </div>
     </div>

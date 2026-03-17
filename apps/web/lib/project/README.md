@@ -10,7 +10,6 @@ This module contains project-specific runtime capabilities for z0 Agent.
 
 ## Main Files
 - `lib/project/web-container-builder.ts`: WebContainer manager and APIs
-- `lib/project/db/project-queries.ts`: project persistence queries
 - `lib/project/db/project-actions.ts`: auth-aware project actions
 - `lib/project/tools/*`: AI tools for project operations
 - `lib/project/templates/template-registry.ts`: template registry + stable version metadata

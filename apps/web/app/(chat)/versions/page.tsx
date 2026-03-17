@@ -1,14 +1,13 @@
 import { Suspense } from "react";
 import { VersionList } from "@/components/version/version-list";
 import type { Metadata } from "next";
+import { loadPublishedVersions } from "@/lib/app/loaders";
 import { pageMetadata } from "@/lib/metadata";
-import { getPublishedVersionsAction } from "../api/version/actions";
 
 export const metadata: Metadata = pageMetadata.versions();
 
 export default async function VersionsPage() {
-  const result = await getPublishedVersionsAction(20);
-  const versions = result.success ? result.data : [];
+  const versions = await loadPublishedVersions(20);
 
   return (
     <div className="h-full w-full overflow-auto bg-black">
@@ -16,9 +15,7 @@ export default async function VersionsPage() {
         {/* Header */}
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold text-white">Version History</h1>
-          <p className="text-sm text-zinc-400">
-            See what's new in Z0 Agent
-          </p>
+          <p className="text-sm text-zinc-400">See what's new in Z0 Agent</p>
         </div>
 
         {/* Version List */}

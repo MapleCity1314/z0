@@ -1,11 +1,10 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowLeft, User, Calendar, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FeedbackActions } from "@/components/admin/feedback/feedback-actions";
-import { apiFetch } from "@/lib/api";
+import { loadAdminFeedbackDetail } from "@/lib/admin/loaders";
 import { cn } from "@/lib/utils";
 
 interface PageProps {
@@ -36,33 +35,7 @@ const priorityColors: Record<string, string> = {
 
 export default async function FeedbackDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const feedback = await apiFetch<{
-    id: string;
-    type: string;
-    category: string | null;
-    title: string;
-    content: string;
-    status: string;
-    priority: string | null;
-    adminResponse: string | null;
-    respondedAt: string | null;
-    createdAt: string;
-    updatedAt: string;
-    submitter: {
-      id: string;
-      name: string;
-      email: string;
-    } | null;
-    responder: {
-      id: string;
-      name: string;
-      email: string;
-    } | null;
-  }>(`/v1/admin/feedback/${id}`).catch(() => null);
-
-  if (!feedback) {
-    notFound();
-  }
+  const feedback = await loadAdminFeedbackDetail(id);
 
   return (
     <div className="space-y-6">
@@ -80,10 +53,18 @@ export default async function FeedbackDetailPage({ params }: PageProps) {
             <Badge variant="outline" className={cn(typeColors[feedback.type])}>
               {feedback.type}
             </Badge>
-            <Badge variant="outline" className={cn(statusColors[feedback.status])}>
+            <Badge
+              variant="outline"
+              className={cn(statusColors[feedback.status])}
+            >
               {feedback.status}
             </Badge>
-            <span className={cn("text-sm font-medium capitalize", priorityColors[feedback.priority || "medium"])}>
+            <span
+              className={cn(
+                "text-sm font-medium capitalize",
+                priorityColors[feedback.priority || "medium"],
+              )}
+            >
               {feedback.priority || "medium"} priority
             </span>
           </div>
@@ -104,11 +85,14 @@ export default async function FeedbackDetailPage({ params }: PageProps) {
             <h3 className="font-semibold mb-4">Admin Response</h3>
             {feedback.adminResponse ? (
               <div>
-                <p className="text-sm whitespace-pre-wrap">{feedback.adminResponse}</p>
+                <p className="text-sm whitespace-pre-wrap">
+                  {feedback.adminResponse}
+                </p>
                 {feedback.responder && (
                   <p className="text-xs text-muted-foreground mt-4">
                     Responded by {feedback.responder.name} on{" "}
-                    {feedback.respondedAt && format(new Date(feedback.respondedAt), "MMM d, yyyy")}
+                    {feedback.respondedAt &&
+                      format(feedback.respondedAt, "MMM d, yyyy")}
                   </p>
                 )}
               </div>
@@ -118,7 +102,10 @@ export default async function FeedbackDetailPage({ params }: PageProps) {
           </div>
 
           {/* Actions */}
-          <FeedbackActions feedbackId={feedback.id} currentStatus={feedback.status} />
+          <FeedbackActions
+            feedbackId={feedback.id}
+            currentStatus={feedback.status}
+          />
         </div>
 
         {/* Sidebar */}
@@ -136,7 +123,9 @@ export default async function FeedbackDetailPage({ params }: PageProps) {
                 </div>
                 <div>
                   <p className="font-medium">{feedback.submitter.name}</p>
-                  <p className="text-xs text-muted-foreground">{feedback.submitter.email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {feedback.submitter.email}
+                  </p>
                 </div>
               </Link>
             ) : (
@@ -156,11 +145,11 @@ export default async function FeedbackDetailPage({ params }: PageProps) {
               )}
               <div className="flex justify-between py-2 border-b border-border">
                 <span className="text-muted-foreground">Created</span>
-                <span>{format(new Date(feedback.createdAt), "MMM d, yyyy")}</span>
+                <span>{format(feedback.createdAt, "MMM d, yyyy")}</span>
               </div>
               <div className="flex justify-between py-2">
                 <span className="text-muted-foreground">Updated</span>
-                <span>{format(new Date(feedback.updatedAt), "MMM d, yyyy")}</span>
+                <span>{format(feedback.updatedAt, "MMM d, yyyy")}</span>
               </div>
             </div>
           </div>

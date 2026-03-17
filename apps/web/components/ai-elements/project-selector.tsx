@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/popover";
 import type { Project } from "@/lib/schema";
 import { getUserProjectsAction } from "@/app/(chat)/api/projects/actions";
+import { useUserStore } from "@/store/user";
 
 interface ProjectSelectorProps {
   selectedProjectId?: string | null;
@@ -30,12 +31,19 @@ export function ProjectSelector({
   onProjectChange,
   children,
 }: ProjectSelectorProps) {
+  const user = useUserStore((state) => state.user);
   const [open, setOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadProjects() {
+      if (!user) {
+        setProjects([]);
+        setLoading(false);
+        return;
+      }
+
       const result = await getUserProjectsAction();
       if (result.success && result.data) {
         setProjects(result.data);
@@ -43,7 +51,7 @@ export function ProjectSelector({
       setLoading(false);
     }
     loadProjects();
-  }, []);
+  }, [user]);
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
@@ -152,10 +160,11 @@ export function ProjectBadge({
   selectedProjectId,
   onRemove,
 }: ProjectBadgeProps) {
+  const user = useUserStore((state) => state.user);
   const [project, setProject] = useState<Project | null>(null);
 
   useEffect(() => {
-    if (!selectedProjectId) {
+    if (!selectedProjectId || !user) {
       setProject(null);
       return;
     }
@@ -168,7 +177,7 @@ export function ProjectBadge({
       }
     }
     loadProject();
-  }, [selectedProjectId]);
+  }, [selectedProjectId, user]);
 
   if (!project) return null;
 
@@ -203,12 +212,19 @@ export function ProjectSelectorMenuItem({
   selectedProjectId,
   onProjectChange,
 }: ProjectSelectorMenuItemProps) {
+  const user = useUserStore((state) => state.user);
   const [open, setOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadProjects() {
+      if (!user) {
+        setProjects([]);
+        setLoading(false);
+        return;
+      }
+
       const result = await getUserProjectsAction();
       if (result.success && result.data) {
         setProjects(result.data);
@@ -216,7 +232,7 @@ export function ProjectSelectorMenuItem({
       setLoading(false);
     }
     loadProjects();
-  }, []);
+  }, [user]);
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 

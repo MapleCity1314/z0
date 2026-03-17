@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bolt, PencilLine, Plus, Server, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { isUnauthenticatedMessage } from "@/lib/auth-errors";
 import {
   addUserMcpServerAction,
   addUserSkillAction,
@@ -13,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { useUserStore } from "@/store/user";
 
 type UserMcpItem = {
   userMcpServerId: string;
@@ -33,6 +35,7 @@ type UserSkillItem = {
 };
 
 export default function IntegrationSettingsPage() {
+  const user = useUserStore((state) => state.user);
   const [loading, setLoading] = useState(true);
   const [mcpServers, setMcpServers] = useState<UserMcpItem[]>([]);
   const [skills, setSkills] = useState<UserSkillItem[]>([]);
@@ -50,12 +53,21 @@ export default function IntegrationSettingsPage() {
   >(null);
 
   const refreshSettings = async () => {
+    if (!user) {
+      setMcpServers([]);
+      setSkills([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const result = await getUserIntegrationSettingsAction();
     setLoading(false);
 
     if (!result.success || !result.data) {
-      toast.error(result.message);
+      if (!isUnauthenticatedMessage(result.message)) {
+        toast.error(result.message);
+      }
       return;
     }
 
@@ -83,7 +95,7 @@ export default function IntegrationSettingsPage() {
 
   useEffect(() => {
     void refreshSettings();
-  }, []);
+  }, [user]);
 
   const mcpDefaultCount = useMemo(
     () => mcpServers.filter((item) => item.useByDefault).length,
@@ -101,7 +113,9 @@ export default function IntegrationSettingsPage() {
 
     const result = await addUserMcpServerAction({ name, endpoint });
     if (!result.success) {
-      toast.error(result.message);
+      if (!isUnauthenticatedMessage(result.message)) {
+        toast.error(result.message);
+      }
       return;
     }
 
@@ -118,7 +132,9 @@ export default function IntegrationSettingsPage() {
 
     const result = await addUserSkillAction({ name, directory });
     if (!result.success) {
-      toast.error(result.message);
+      if (!isUnauthenticatedMessage(result.message)) {
+        toast.error(result.message);
+      }
       return;
     }
 
@@ -215,7 +231,9 @@ export default function IntegrationSettingsPage() {
                             });
                             setSavingMcpDefaultId(null);
                             if (!result.success) {
-                              toast.error(result.message);
+                              if (!isUnauthenticatedMessage(result.message)) {
+                                toast.error(result.message);
+                              }
                               return;
                             }
                             setMcpServers((prev) =>
@@ -301,7 +319,9 @@ export default function IntegrationSettingsPage() {
                             });
                             setSavingSkillDefaultId(null);
                             if (!result.success) {
-                              toast.error(result.message);
+                              if (!isUnauthenticatedMessage(result.message)) {
+                                toast.error(result.message);
+                              }
                               return;
                             }
                             setSkills((prev) =>

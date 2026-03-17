@@ -24,6 +24,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { selectableModels, type SelectableModelName } from "@/lib/agent/model";
+import { isUnauthenticatedMessage } from "@/lib/auth-errors";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -34,6 +35,7 @@ import {
   setChatMcpServerStateAction,
   setChatSkillStateAction,
 } from "@/app/(chat)/api/integrations/actions";
+import { useUserStore } from "@/store/user";
 import {
   ModelSelector,
   ModelSelectorContent,
@@ -348,8 +350,18 @@ export function ChatInput({
   const [skillName, setSkillName] = useState("");
   const [skillDirectory, setSkillDirectory] = useState("");
   const [hidePlaceholderForGhost, setHidePlaceholderForGhost] = useState(false);
+  const user = useUserStore((state) => state.user);
 
   const refreshChatIntegrations = async () => {
+    if (!user) {
+      setMcpServers([]);
+      setSkills([]);
+      setSystemMcpMarket([]);
+      setSystemSkillMarket([]);
+      setIntegrationsLoading(false);
+      return;
+    }
+
     setIntegrationsLoading(true);
     const [chatResult, marketResult] = await Promise.all([
       getChatIntegrationsAction(chatId),
@@ -358,7 +370,9 @@ export function ChatInput({
     setIntegrationsLoading(false);
 
     if (!chatResult.success || !chatResult.data) {
-      toast.error(chatResult.message);
+      if (!isUnauthenticatedMessage(chatResult.message)) {
+        toast.error(chatResult.message);
+      }
       return;
     }
 
@@ -413,7 +427,7 @@ export function ChatInput({
     setSkillName("");
     setSkillDirectory("");
     void refreshChatIntegrations();
-  }, [chatId]);
+  }, [chatId, user]);
 
   const enabledMcpCount = useMemo(
     () => mcpServers.filter((server) => server.useInCurrentChat).length,
@@ -435,7 +449,9 @@ export function ChatInput({
     void (async () => {
       const result = await addChatMcpServerAction({ chatId, name, endpoint });
       if (!result.success) {
-        toast.error(result.message);
+        if (!isUnauthenticatedMessage(result.message)) {
+          toast.error(result.message);
+        }
         return;
       }
       setMcpName("");
@@ -452,7 +468,9 @@ export function ChatInput({
     void (async () => {
       const result = await addChatSkillAction({ chatId, name, directory });
       if (!result.success) {
-        toast.error(result.message);
+        if (!isUnauthenticatedMessage(result.message)) {
+          toast.error(result.message);
+        }
         return;
       }
       setSkillName("");
@@ -717,7 +735,9 @@ export function ChatInput({
             endpoint: marketItem.endpoint,
           });
           if (!result.success) {
-            toast.error(result.message);
+            if (!isUnauthenticatedMessage(result.message)) {
+              toast.error(result.message);
+            }
             return;
           }
           toast.success(`已添加 MCP：${marketItem.name}`);
@@ -731,7 +751,9 @@ export function ChatInput({
             useByDefault: nextServer.useByDefault,
           });
           if (!result.success) {
-            toast.error(result.message);
+            if (!isUnauthenticatedMessage(result.message)) {
+              toast.error(result.message);
+            }
             return;
           }
           setMcpServers((prev) =>
@@ -762,7 +784,9 @@ export function ChatInput({
             directory: marketItem.directory,
           });
           if (!result.success) {
-            toast.error(result.message);
+            if (!isUnauthenticatedMessage(result.message)) {
+              toast.error(result.message);
+            }
             return;
           }
           toast.success(`已添加 Skill：${marketItem.name}`);
@@ -776,7 +800,9 @@ export function ChatInput({
             useByDefault: nextSkill.useByDefault,
           });
           if (!result.success) {
-            toast.error(result.message);
+            if (!isUnauthenticatedMessage(result.message)) {
+              toast.error(result.message);
+            }
             return;
           }
           setSkills((prev) =>

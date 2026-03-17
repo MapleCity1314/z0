@@ -5,12 +5,12 @@ import type { AppServices } from "../services";
 
 export function registerUserRoutes(app: Hono, services: AppServices) {
   app.get("/v1/users/me", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     return jsonResult(c, await services.usersService.getProfile(actor.userId));
   });
 
   app.patch("/v1/users/me", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     const body = await c.req.json();
     return jsonResult(
       c,

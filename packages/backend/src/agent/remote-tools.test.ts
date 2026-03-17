@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRemoteAgentTools } from "./remote-tools";
+import { verifyInternalAuthHeaders } from "../auth/internal";
 
 describe("createRemoteAgentTools", () => {
   const originalFetch = global.fetch;
@@ -56,17 +57,25 @@ describe("createRemoteAgentTools", () => {
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
-          "x-agent-bridge-token": "bridge-token",
-          "x-user-id": "user-1",
-          "x-user-role": "admin",
+          "x-internal-actor-id": "user-1",
+          "x-internal-actor-role": "admin",
+          "x-internal-auth-purpose": "agent-bridge",
         }),
       }),
     );
 
     const requestInit = vi.mocked(global.fetch).mock.calls[0]?.[1];
+    const signedHeaders = new Headers(
+      requestInit?.headers as Record<string, string>,
+    );
+    expect(verifyInternalAuthHeaders(signedHeaders, "agent-bridge")).toEqual({
+      userId: "user-1",
+      role: "admin",
+    });
     expect(JSON.parse(String(requestInit?.body))).toMatchObject({
       chatId: "chat-1",
       projectId: "project-1",
+      webSearchEnabled: true,
       toolCallId: "tool-1",
       input: { title: "Demo" },
     });

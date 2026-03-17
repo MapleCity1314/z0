@@ -21,7 +21,7 @@ import { requireActor } from "../actor";
 
 export function registerAgentRoutes(app: Hono) {
   app.post("/v1/agent/chat", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     let requestedModel: string | undefined;
 
     try {

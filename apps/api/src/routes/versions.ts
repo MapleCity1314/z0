@@ -21,12 +21,12 @@ export function registerVersionRoutes(app: Hono, services: AppServices) {
   });
 
   app.get("/v1/admin/versions", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     return jsonResult(c, await services.versionsService.listAll());
   });
 
   app.get("/v1/admin/versions/:id", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     return jsonResult(
       c,
       await services.versionsService.getById(c.req.param("id")),
@@ -34,7 +34,7 @@ export function registerVersionRoutes(app: Hono, services: AppServices) {
   });
 
   app.post("/v1/admin/versions", async (c) => {
-    const actor = requireAdmin(c);
+    const actor = await requireAdmin(c);
     const body = await c.req.json();
     return jsonResult(
       c,
@@ -58,7 +58,7 @@ export function registerVersionRoutes(app: Hono, services: AppServices) {
   });
 
   app.post("/v1/admin/versions/:id/publish", async (c) => {
-    const actor = requireAdmin(c);
+    const actor = await requireAdmin(c);
     return jsonResult(
       c,
       await services.versionsService.publish(c.req.param("id"), actor.userId),
@@ -66,7 +66,7 @@ export function registerVersionRoutes(app: Hono, services: AppServices) {
   });
 
   app.patch("/v1/admin/versions/:id", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     const body = await c.req.json();
     return jsonResult(
       c,
@@ -75,7 +75,7 @@ export function registerVersionRoutes(app: Hono, services: AppServices) {
   });
 
   app.post("/v1/admin/versions/:id/archive", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     return jsonResult(
       c,
       await services.versionsService.archive(c.req.param("id")),
@@ -83,7 +83,7 @@ export function registerVersionRoutes(app: Hono, services: AppServices) {
   });
 
   app.delete("/v1/admin/versions/:id", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     return jsonResult(
       c,
       await services.versionsService.remove(c.req.param("id")),

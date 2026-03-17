@@ -1,10 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { createInternalAuthHeaders } from "@z0/backend";
 
 const buildAgentTools = vi.hoisted(() => vi.fn());
+const db = vi.hoisted(() => ({
+  select: vi.fn(() => ({
+    from: vi.fn(() => ({
+      where: vi.fn(() => ({
+        limit: vi.fn(async () => []),
+      })),
+    })),
+  })),
+}));
 
 vi.mock("@/lib/agent/chat/tools", () => ({
   buildAgentTools,
+}));
+
+vi.mock("@/lib/db", () => ({
+  db,
 }));
 
 describe("agent tool bridge route", () => {
@@ -42,14 +56,16 @@ describe("agent tool bridge route", () => {
     const request = new NextRequest("http://localhost/api/agent/tools/demoTool", {
       method: "POST",
       body: JSON.stringify({
-        chatId: "chat-1",
-        projectId: "project-1",
+        webSearchEnabled: true,
         toolCallId: "tool-1",
         input: { foo: "bar" },
       }),
       headers: {
         "content-type": "application/json",
-        "x-agent-bridge-token": "bridge-token",
+        ...createInternalAuthHeaders({
+          actor: { userId: "user-1", role: "user" },
+          purpose: "agent-bridge",
+        }),
       },
     });
 
@@ -59,14 +75,13 @@ describe("agent tool bridge route", () => {
     const payload = await response.json();
 
     expect(response.status).toBe(200);
-    expect(buildAgentTools).toHaveBeenCalledWith(true, "project-1");
+    expect(buildAgentTools).toHaveBeenCalledWith(true, null);
     expect(payload.data).toMatchObject({
       input: { foo: "bar" },
       context: {
         toolCallId: "tool-1",
         messages: {
-          chatId: "chat-1",
-          projectId: "project-1",
+          projectId: null,
         },
       },
     });

@@ -1,5 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { createInternalAuthHeaders } from "../auth/internal";
 
 const passthroughInputSchema = z.object({}).passthrough();
 
@@ -74,18 +75,6 @@ const TOOL_CATALOG: ToolCatalogEntry[] = [
   { name: "searchReplace", description: "Run a structured search and replace on project files.", requiresProject: true },
 ];
 
-export function getAgentBridgeToken() {
-  if (process.env.AGENT_BRIDGE_TOKEN) {
-    return process.env.AGENT_BRIDGE_TOKEN;
-  }
-
-  if (process.env.NODE_ENV !== "production") {
-    return "local-dev-agent-bridge-token";
-  }
-
-  throw new Error("AGENT_BRIDGE_TOKEN environment variable is not set");
-}
-
 function getWebBaseUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 }
@@ -97,7 +86,6 @@ export function createRemoteAgentTools(params: {
   chatId: string;
 }) {
   const webBaseUrl = getWebBaseUrl();
-  const token = getAgentBridgeToken();
 
   const entries = TOOL_CATALOG.filter((entry) => {
     if (entry.requiresWebSearch && !params.webSearchEnabled) {
@@ -115,19 +103,25 @@ export function createRemoteAgentTools(params: {
       description: entry.description,
       inputSchema: passthroughInputSchema,
       execute: async (input, context) => {
+        const internalHeaders = createInternalAuthHeaders({
+          actor: {
+            userId: params.actor.userId,
+            role: params.actor.role ?? "user",
+          },
+          purpose: "agent-bridge",
+        });
         const response = await fetch(
           `${webBaseUrl}/api/agent/tools/${encodeURIComponent(entry.name)}`,
           {
             method: "POST",
             headers: {
               "content-type": "application/json",
-              "x-agent-bridge-token": token,
-              "x-user-id": params.actor.userId,
-              ...(params.actor.role ? { "x-user-role": params.actor.role } : {}),
+              ...internalHeaders,
             },
             body: JSON.stringify({
               chatId: params.chatId,
               projectId: params.projectId,
+              webSearchEnabled: params.webSearchEnabled,
               toolCallId: context.toolCallId,
               input,
               context: {

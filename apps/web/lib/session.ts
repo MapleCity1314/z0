@@ -1,34 +1,23 @@
 import { headers } from "next/headers";
+import { verifyInternalAuthHeaders } from "@z0/backend";
 import { auth } from "./auth";
-
-function getAgentBridgeToken() {
-  if (process.env.AGENT_BRIDGE_TOKEN) {
-    return process.env.AGENT_BRIDGE_TOKEN;
-  }
-
-  if (process.env.NODE_ENV !== "production") {
-    return "local-dev-agent-bridge-token";
-  }
-
-  return null;
-}
 
 async function getInternalActorFromHeaders() {
   const requestHeaders = await headers();
-  const token = getAgentBridgeToken();
-  const providedToken = requestHeaders.get("x-agent-bridge-token");
-  const userId = requestHeaders.get("x-user-id");
+  const actor =
+    verifyInternalAuthHeaders(requestHeaders, "agent-bridge") ??
+    verifyInternalAuthHeaders(requestHeaders, "web-api");
 
-  if (!token || providedToken !== token || !userId) {
+  if (!actor) {
     return null;
   }
 
   return {
-    id: userId,
-    name: requestHeaders.get("x-user-name") ?? "",
-    email: requestHeaders.get("x-user-email") ?? "",
+    id: actor.userId,
+    name: "",
+    email: "",
     avatar: null,
-    role: requestHeaders.get("x-user-role") ?? "user",
+    role: actor.role ?? "user",
   };
 }
 

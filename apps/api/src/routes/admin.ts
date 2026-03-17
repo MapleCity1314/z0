@@ -4,17 +4,17 @@ import type { AppServices } from "../services";
 
 export function registerAdminRoutes(app: Hono, services: AppServices) {
   app.get("/v1/admin/dashboard", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     return c.json({ data: await services.adminService.getDashboardStats() });
   });
 
   app.get("/v1/admin/dashboard/activity", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     return c.json({ data: await services.adminService.getDashboardActivity() });
   });
 
   app.get("/v1/admin/users", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     return c.json({
       data: await services.adminService.listUsers(
         Number(c.req.query("page") ?? "1"),
@@ -24,7 +24,7 @@ export function registerAdminRoutes(app: Hono, services: AppServices) {
   });
 
   app.get("/v1/admin/users/:id", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     const userDetail = await services.adminService.getUserDetail(
       c.req.param("id"),
     );
@@ -38,7 +38,7 @@ export function registerAdminRoutes(app: Hono, services: AppServices) {
   });
 
   app.get("/v1/admin/projects", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     return c.json({
       data: await services.adminService.listProjects({
         page: Number(c.req.query("page") ?? "1"),
@@ -51,7 +51,7 @@ export function registerAdminRoutes(app: Hono, services: AppServices) {
   });
 
   app.get("/v1/admin/projects/:id", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     const projectDetail = await services.adminService.getProjectDetail(
       c.req.param("id"),
     );
@@ -65,7 +65,7 @@ export function registerAdminRoutes(app: Hono, services: AppServices) {
   });
 
   app.get("/v1/admin/chats", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     return c.json({
       data: await services.adminService.listChats({
         page: Number(c.req.query("page") ?? "1"),
@@ -76,7 +76,7 @@ export function registerAdminRoutes(app: Hono, services: AppServices) {
   });
 
   app.get("/v1/admin/chats/:id", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     const chatDetail = await services.adminService.getChatDetail(
       c.req.param("id"),
     );

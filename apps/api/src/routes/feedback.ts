@@ -5,12 +5,12 @@ import type { AppServices } from "../services";
 
 export function registerFeedbackRoutes(app: Hono, services: AppServices) {
   app.get("/v1/feedback", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     return jsonResult(c, await services.feedbackService.getMine(actor.userId));
   });
 
   app.post("/v1/feedback", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     const body = await c.req.json();
     return jsonResult(
       c,
@@ -29,7 +29,7 @@ export function registerFeedbackRoutes(app: Hono, services: AppServices) {
   });
 
   app.get("/v1/feedback/:id", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     return jsonResult(
       c,
       await services.feedbackService.getOne(actor.userId, c.req.param("id")),
@@ -37,7 +37,7 @@ export function registerFeedbackRoutes(app: Hono, services: AppServices) {
   });
 
   app.delete("/v1/feedback/:id", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     return jsonResult(
       c,
       await services.feedbackService.remove(actor.userId, c.req.param("id")),
@@ -45,7 +45,7 @@ export function registerFeedbackRoutes(app: Hono, services: AppServices) {
   });
 
   app.get("/v1/admin/feedback", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     return jsonResult(
       c,
       await services.feedbackService.listAll({
@@ -57,12 +57,12 @@ export function registerFeedbackRoutes(app: Hono, services: AppServices) {
   });
 
   app.get("/v1/admin/feedback/stats", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     return c.json({ data: await services.adminService.getFeedbackStats() });
   });
 
   app.get("/v1/admin/feedback/:id", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     const feedbackDetail = await services.adminService.getFeedbackDetail(
       c.req.param("id"),
     );
@@ -78,7 +78,7 @@ export function registerFeedbackRoutes(app: Hono, services: AppServices) {
   });
 
   app.patch("/v1/admin/feedback/:id/status", async (c) => {
-    requireAdmin(c);
+    await requireAdmin(c);
     const body = await c.req.json();
     return jsonResult(
       c,
@@ -90,7 +90,7 @@ export function registerFeedbackRoutes(app: Hono, services: AppServices) {
   });
 
   app.post("/v1/admin/feedback/:id/respond", async (c) => {
-    const actor = requireAdmin(c);
+    const actor = await requireAdmin(c);
     const body = await c.req.json();
     return jsonResult(
       c,

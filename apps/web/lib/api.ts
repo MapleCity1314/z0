@@ -1,4 +1,5 @@
-import { getCurrentUser } from "./session";
+import { headers } from "next/headers";
+import { createInternalAuthHeaders } from "@z0/backend";
 
 type ApiError = {
   code?: string;
@@ -27,17 +28,23 @@ export async function apiFetch<T>(
   init?: RequestInit,
   options?: ApiFetchOptions,
 ): Promise<T> {
-  const currentUser = options?.actor ? null : await getCurrentUser();
-  const actor = options?.actor
-    ? { id: options.actor.userId, role: options.actor.role ?? null }
-    : currentUser;
+  const internalHeaders = options?.actor
+    ? createInternalAuthHeaders({
+        actor: {
+          userId: options.actor.userId,
+          role: options.actor.role ?? "user",
+        },
+        purpose: "web-api",
+      })
+    : {};
+  const cookie = options?.actor ? null : (await headers()).get("cookie");
   const response = await fetch(`${getApiBaseUrl()}${path}`, {
     ...init,
     headers: {
       "content-type": "application/json",
       ...(init?.headers ?? {}),
-      ...(actor?.id ? { "x-user-id": actor.id } : {}),
-      ...(actor?.role ? { "x-user-role": actor.role } : {}),
+      ...(cookie ? { cookie } : {}),
+      ...internalHeaders,
     },
     cache: init?.cache ?? "no-store",
   });

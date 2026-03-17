@@ -47,8 +47,27 @@ export function createApp(overrides: Partial<AppServices> = {}) {
   };
 
   const app = new Hono();
+  const allowedOrigins = [
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.BETTER_AUTH_URL,
+    process.env.API_BASE_URL,
+  ].filter((value): value is string => Boolean(value));
 
-  app.use("/*", cors());
+  app.use(
+    "/*",
+    cors({
+      origin: (origin) => {
+        if (!origin) {
+          return "";
+        }
+
+        return allowedOrigins.includes(origin) ? origin : "";
+      },
+      allowHeaders: ["content-type"],
+      allowMethods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+      credentials: true,
+    }),
+  );
 
   registerHealthRoutes(app);
   registerAgentRoutes(app);

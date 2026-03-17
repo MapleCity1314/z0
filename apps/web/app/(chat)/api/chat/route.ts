@@ -1,4 +1,5 @@
 import {
+  createInternalAuthHeaders,
   mapAgentChatError,
   parseChatRequestBody,
   validateChatRequest,
@@ -92,8 +93,16 @@ export async function POST(request: NextRequest) {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "x-user-id": user.id,
-          ...(user.role ? { "x-user-role": user.role } : {}),
+          ...createInternalAuthHeaders({
+            actor: {
+              userId: user.id,
+              role: user.role,
+            },
+            purpose: "web-api",
+          }),
+          ...(request.headers.get("cookie")
+            ? { cookie: request.headers.get("cookie") as string }
+            : {}),
         },
         body: JSON.stringify({
           ...payload,

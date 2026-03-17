@@ -1,26 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { and, eq } from "drizzle-orm";
+import { verifyInternalAuthHeaders } from "@z0/backend";
 import { buildAgentTools } from "@/lib/agent/chat/tools";
-
-function getAgentBridgeToken() {
-  if (process.env.AGENT_BRIDGE_TOKEN) {
-    return process.env.AGENT_BRIDGE_TOKEN;
-  }
-
-  if (process.env.NODE_ENV !== "production") {
-    return "local-dev-agent-bridge-token";
-  }
-
-  return null;
-}
+import { db } from "@/lib/db";
+import { chat, project } from "@/lib/schema";
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ toolName: string }> },
 ) {
-  const expectedToken = getAgentBridgeToken();
-  const providedToken = request.headers.get("x-agent-bridge-token");
+  const actor = verifyInternalAuthHeaders(request.headers, "agent-bridge");
 
-  if (!expectedToken || providedToken !== expectedToken) {
+  if (!actor) {
     return NextResponse.json({ error: { message: "Forbidden" } }, { status: 403 });
   }
 
@@ -28,11 +19,47 @@ export async function POST(
   const body = (await request.json()) as {
     chatId?: string;
     projectId?: string | null;
+    webSearchEnabled?: boolean;
     toolCallId?: string;
     input?: unknown;
   };
 
-  const tools = buildAgentTools(true, body.projectId ?? null) as Record<
+  if (body.chatId) {
+    const [chatRecord] = await db
+      .select({ id: chat.id })
+      .from(chat)
+      .where(and(eq(chat.id, body.chatId), eq(chat.userId, actor.userId)))
+      .limit(1);
+
+    if (!chatRecord) {
+      return NextResponse.json(
+        { error: { message: "Chat not found or access denied" } },
+        { status: 403 },
+      );
+    }
+  }
+
+  if (body.projectId) {
+    const [projectRecord] = await db
+      .select({ id: project.id })
+      .from(project)
+      .where(
+        and(eq(project.id, body.projectId), eq(project.userId, actor.userId)),
+      )
+      .limit(1);
+
+    if (!projectRecord) {
+      return NextResponse.json(
+        { error: { message: "Project not found or access denied" } },
+        { status: 403 },
+      );
+    }
+  }
+
+  const tools = buildAgentTools(
+    body.webSearchEnabled ?? false,
+    body.projectId ?? null,
+  ) as Record<
     string,
     { execute?: (input: unknown, context: unknown) => Promise<unknown> }
   >;

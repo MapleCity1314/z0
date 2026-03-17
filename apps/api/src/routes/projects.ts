@@ -5,7 +5,7 @@ import type { AppServices } from "../services";
 
 export function registerProjectRoutes(app: Hono, services: AppServices) {
   app.get("/v1/projects", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     return jsonResult(
       c,
       await services.projectsService.listByUser(actor.userId),
@@ -18,7 +18,7 @@ export function registerProjectRoutes(app: Hono, services: AppServices) {
   });
 
   app.post("/v1/projects", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     const body = await c.req.json();
     return jsonResult(
       c,
@@ -34,7 +34,7 @@ export function registerProjectRoutes(app: Hono, services: AppServices) {
   });
 
   app.get("/v1/projects/:id", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     return jsonResult(
       c,
       await services.projectsService.getById(actor.userId, c.req.param("id")),
@@ -42,7 +42,7 @@ export function registerProjectRoutes(app: Hono, services: AppServices) {
   });
 
   app.patch("/v1/projects/:id/files", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     const body = await c.req.json();
     return jsonResult(
       c,
@@ -55,7 +55,7 @@ export function registerProjectRoutes(app: Hono, services: AppServices) {
   });
 
   app.patch("/v1/projects/:id/metadata", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     const body = await c.req.json();
     return jsonResult(
       c,
@@ -70,7 +70,7 @@ export function registerProjectRoutes(app: Hono, services: AppServices) {
   });
 
   app.post("/v1/projects/:id/deploy", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     const body = await c.req.json();
     return jsonResult(
       c,
@@ -84,7 +84,7 @@ export function registerProjectRoutes(app: Hono, services: AppServices) {
   });
 
   app.post("/v1/projects/:id/publish", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     return jsonResult(
       c,
       await services.projectsService.publish(actor.userId, c.req.param("id")),
@@ -92,7 +92,7 @@ export function registerProjectRoutes(app: Hono, services: AppServices) {
   });
 
   app.post("/v1/projects/:id/unpublish", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     return jsonResult(
       c,
       await services.projectsService.unpublish(actor.userId, c.req.param("id")),
@@ -100,7 +100,7 @@ export function registerProjectRoutes(app: Hono, services: AppServices) {
   });
 
   app.delete("/v1/projects/:id", async (c) => {
-    const actor = requireActor(c);
+    const actor = await requireActor(c);
     return jsonResult(
       c,
       await services.projectsService.remove(actor.userId, c.req.param("id")),

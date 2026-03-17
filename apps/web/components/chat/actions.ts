@@ -2,7 +2,12 @@
 
 import { ChatSDKError } from "@/lib/error";
 import { kimi } from "@/lib/agent/model";
-import { type Chat, type DBMessage } from "@/lib/schema";
+import {
+  type AgentRun,
+  type Chat,
+  type DBMessage,
+  type ToolCall,
+} from "@/lib/schema";
 import { generateText, type UIMessage } from "ai";
 import * as queries from "@/lib/db/queries";
 import { extractTextFromImage } from "@/lib/agent/ocr";
@@ -185,6 +190,52 @@ export async function saveMessages({
       success: false,
       message:
         error instanceof Error ? error.message : "Failed to save messages",
+    };
+  }
+}
+
+export async function saveAgentRun({
+  run,
+}: {
+  run: Omit<AgentRun, "createdAt" | "updatedAt"> & {
+    createdAt?: Date;
+    updatedAt?: Date;
+  };
+}): Promise<ActionResult<AgentRun>> {
+  try {
+    const data = await queries.saveAgentRun(run);
+
+    return {
+      success: true,
+      message: "Agent run saved successfully",
+      data,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to save agent run",
+    };
+  }
+}
+
+export async function saveToolCalls({
+  calls,
+}: {
+  calls: ToolCall[];
+}): Promise<ActionResult> {
+  try {
+    await queries.saveToolCalls(calls);
+
+    return {
+      success: true,
+      message: "Tool calls saved successfully",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to save tool calls",
     };
   }
 }

@@ -1,13 +1,29 @@
 import { desc, eq, and, sql } from "drizzle-orm";
 import { db } from "./index";
-import { chat, message, user, artifact, type Chat, type DBMessage, type User, type Artifact } from "../schema";
+import {
+  agentRun,
+  artifact,
+  chat,
+  message,
+  toolCall,
+  user,
+  type AgentRun,
+  type Artifact,
+  type Chat,
+  type DBMessage,
+  type ToolCall,
+  type User,
+} from "../schema";
 
 export async function getChatById(id: string): Promise<Chat | undefined> {
   const [result] = await db.select().from(chat).where(eq(chat.id, id)).limit(1);
   return result;
 }
 
-export async function getChatsByUserId(userId: string, limit = 20): Promise<Chat[]> {
+export async function getChatsByUserId(
+  userId: string,
+  limit = 20,
+): Promise<Chat[]> {
   return await db
     .select()
     .from(chat)
@@ -16,7 +32,9 @@ export async function getChatsByUserId(userId: string, limit = 20): Promise<Chat
     .limit(limit);
 }
 
-export async function getMessagesByChatId(chatId: string): Promise<DBMessage[]> {
+export async function getMessagesByChatId(
+  chatId: string,
+): Promise<DBMessage[]> {
   return await db
     .select()
     .from(message)
@@ -26,14 +44,17 @@ export async function getMessagesByChatId(chatId: string): Promise<DBMessage[]> 
 
 export async function saveMessages(messages: DBMessage[]): Promise<void> {
   if (messages.length === 0) {
-    console.log('[saveMessages] ⚠️ No messages to save');
+    console.log("[saveMessages] ⚠️ No messages to save");
     return;
   }
-  
+
   try {
-    console.log('[saveMessages] 💾 Saving', messages.length, 'message(s)...');
-    console.log('[saveMessages] 📋 Message data:', JSON.stringify(messages, null, 2));
-    
+    console.log("[saveMessages] 💾 Saving", messages.length, "message(s)...");
+    console.log(
+      "[saveMessages] 📋 Message data:",
+      JSON.stringify(messages, null, 2),
+    );
+
     for (const item of messages) {
       await db
         .insert(message)
@@ -48,18 +69,90 @@ export async function saveMessages(messages: DBMessage[]): Promise<void> {
           },
         });
     }
-    
-    console.log('[saveMessages] ✅ Messages saved successfully');
+
+    console.log("[saveMessages] ✅ Messages saved successfully");
   } catch (error) {
-    console.error('[saveMessages] ❌ Database error:', error);
-    console.error('[saveMessages] 📋 Error details:', {
-      name: error instanceof Error ? error.name : 'Unknown',
+    console.error("[saveMessages] ❌ Database error:", error);
+    console.error("[saveMessages] 📋 Error details:", {
+      name: error instanceof Error ? error.name : "Unknown",
       message: error instanceof Error ? error.message : String(error),
       code: (error as any)?.code,
       detail: (error as any)?.detail,
       constraint: (error as any)?.constraint,
     });
     throw error;
+  }
+}
+
+export async function saveAgentRun(
+  run: Omit<AgentRun, "createdAt" | "updatedAt"> & {
+    createdAt?: Date;
+    updatedAt?: Date;
+  },
+): Promise<AgentRun> {
+  const now = new Date();
+  const [savedRun] = await db
+    .insert(agentRun)
+    .values({
+      ...run,
+      createdAt: run.createdAt ?? now,
+      updatedAt: run.updatedAt ?? now,
+    })
+    .onConflictDoUpdate({
+      target: agentRun.id,
+      set: {
+        projectId: run.projectId ?? null,
+        parentRunId: run.parentRunId ?? null,
+        triggerMessageId: run.triggerMessageId ?? null,
+        agentKind: run.agentKind,
+        agentName: run.agentName ?? null,
+        model: run.model,
+        status: run.status,
+        finishReason: run.finishReason ?? null,
+        webSearchEnabled: run.webSearchEnabled,
+        isReasoning: run.isReasoning,
+        messageCount: run.messageCount,
+        promptTokens: run.promptTokens,
+        completionTokens: run.completionTokens,
+        totalTokens: run.totalTokens,
+        credits: run.credits,
+        cost: run.cost ?? null,
+        metadata: sql`excluded.metadata`,
+        startedAt: run.startedAt,
+        finishedAt: run.finishedAt ?? null,
+        updatedAt: run.updatedAt ?? now,
+      },
+    })
+    .returning();
+
+  return savedRun;
+}
+
+export async function saveToolCalls(calls: ToolCall[]): Promise<void> {
+  if (calls.length === 0) {
+    return;
+  }
+
+  for (const item of calls) {
+    await db
+      .insert(toolCall)
+      .values(item)
+      .onConflictDoUpdate({
+        target: [toolCall.runId, toolCall.toolCallId],
+        set: {
+          chatId: item.chatId,
+          messageId: item.messageId ?? null,
+          toolName: item.toolName,
+          state: item.state,
+          input: sql`excluded.input`,
+          output: sql`excluded.output`,
+          errorText: item.errorText ?? null,
+          metadata: sql`excluded.metadata`,
+          startedAt: item.startedAt,
+          finishedAt: item.finishedAt ?? null,
+          updatedAt: item.updatedAt,
+        },
+      });
   }
 }
 
@@ -71,14 +164,14 @@ export async function createChat(chatData: {
   createdAt: Date;
 }): Promise<Chat> {
   try {
-    console.log('[createChat] 🔧 Inserting chat into database:', chatData);
+    console.log("[createChat] 🔧 Inserting chat into database:", chatData);
     const [newChat] = await db.insert(chat).values(chatData).returning();
-    console.log('[createChat] ✅ Database insert successful:', newChat);
+    console.log("[createChat] ✅ Database insert successful:", newChat);
     return newChat;
   } catch (error) {
-    console.error('[createChat] ❌ Database error:', error);
-    console.error('[createChat] 📋 Error details:', {
-      name: error instanceof Error ? error.name : 'Unknown',
+    console.error("[createChat] ❌ Database error:", error);
+    console.error("[createChat] 📋 Error details:", {
+      name: error instanceof Error ? error.name : "Unknown",
       message: error instanceof Error ? error.message : String(error),
       code: (error as any)?.code,
       detail: (error as any)?.detail,
@@ -93,7 +186,10 @@ export async function getUserById(id: string): Promise<User | null> {
   return result || null;
 }
 
-export async function updateChatProjectId(chatId: string, projectId: string): Promise<Chat | undefined> {
+export async function updateChatProjectId(
+  chatId: string,
+  projectId: string,
+): Promise<Chat | undefined> {
   const [updated] = await db
     .update(chat)
     .set({ projectId })
@@ -115,7 +211,9 @@ export async function deleteChat(chatId: string): Promise<void> {
    Artifact Queries
 ---------------------------------*/
 
-export async function getArtifactsByChatId(chatId: string): Promise<Artifact[]> {
+export async function getArtifactsByChatId(
+  chatId: string,
+): Promise<Artifact[]> {
   return await db
     .select()
     .from(artifact)
@@ -123,7 +221,10 @@ export async function getArtifactsByChatId(chatId: string): Promise<Artifact[]> 
     .orderBy(artifact.createdAt);
 }
 
-export async function getArtifactByIndex(chatId: string, index: string): Promise<Artifact | undefined> {
+export async function getArtifactByIndex(
+  chatId: string,
+  index: string,
+): Promise<Artifact | undefined> {
   const [result] = await db
     .select()
     .from(artifact)
@@ -132,8 +233,14 @@ export async function getArtifactByIndex(chatId: string, index: string): Promise
   return result;
 }
 
-export async function getArtifactById(id: string): Promise<Artifact | undefined> {
-  const [result] = await db.select().from(artifact).where(eq(artifact.id, id)).limit(1);
+export async function getArtifactById(
+  id: string,
+): Promise<Artifact | undefined> {
+  const [result] = await db
+    .select()
+    .from(artifact)
+    .where(eq(artifact.id, id))
+    .limit(1);
   return result;
 }
 
@@ -160,7 +267,7 @@ export async function createArtifact(data: {
 
 export async function updateArtifactCode(
   id: string,
-  code: string
+  code: string,
 ): Promise<Artifact | undefined> {
   const [updated] = await db
     .update(artifact)

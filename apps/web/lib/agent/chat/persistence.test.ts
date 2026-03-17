@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const actions = vi.hoisted(() => ({
   generateTitleFromUserMessage: vi.fn(),
   getMessagesByChatId: vi.fn(),
+  saveAgentRun: vi.fn(),
   saveChat: vi.fn(),
   saveMessages: vi.fn(),
+  saveToolCalls: vi.fn(),
 }));
 
 const memory = vi.hoisted(() => ({
@@ -93,5 +95,120 @@ describe("agent chat persistence helpers", () => {
       "user-1",
       "remember this",
     );
+  });
+
+  it("builds structured agent run and tool call records", async () => {
+    const { buildAgentRunRecord, buildToolCallRecords } = await import(
+      "@/lib/agent/chat/persistence"
+    );
+
+    const startedAt = new Date("2026-03-17T10:00:00.000Z");
+    const finishedAt = new Date("2026-03-17T10:00:02.000Z");
+
+    expect(
+      buildAgentRunRecord({
+        runId: "run-1",
+        chatId: "chat-1",
+        userId: "user-1",
+        projectId: "project-1",
+        triggerMessageId: "message-1",
+        model: "z0-pro",
+        isReasoning: true,
+        webSearchEnabled: true,
+        messageCount: 2,
+        status: "completed",
+        finishReason: "stop",
+        promptTokens: 10,
+        completionTokens: 20,
+        totalTokens: 30,
+        credits: 1,
+        cost: 0.123456,
+        startedAt,
+        finishedAt,
+        metadata: { toolCallCount: 1 },
+      }),
+    ).toMatchObject({
+      id: "run-1",
+      chatId: "chat-1",
+      userId: "user-1",
+      status: "completed",
+      finishReason: "stop",
+      cost: "0.123456",
+      metadata: { toolCallCount: 1 },
+    });
+
+    const toolCalls = buildToolCallRecords({
+      runId: "run-1",
+      chatId: "chat-1",
+      toolCalls: [
+        {
+          toolCallId: "tool-1",
+          toolName: "createProject",
+          input: { name: "demo" },
+        },
+      ],
+      toolResults: [
+        {
+          toolCallId: "tool-1",
+          toolName: "createProject",
+          result: { success: true, projectId: "project-1" },
+        },
+      ],
+      startedAt,
+      finishedAt,
+    });
+
+    expect(toolCalls).toHaveLength(1);
+    expect(toolCalls[0]).toMatchObject({
+      runId: "run-1",
+      chatId: "chat-1",
+      toolCallId: "tool-1",
+      toolName: "createProject",
+      state: "output-available",
+      input: { name: "demo" },
+      output: { success: true, projectId: "project-1" },
+    });
+  });
+
+  it("persists agent telemetry through action boundaries", async () => {
+    actions.saveAgentRun.mockResolvedValue({
+      success: true,
+      message: "ok",
+    });
+    actions.saveToolCalls.mockResolvedValue({
+      success: true,
+      message: "ok",
+    });
+
+    const { persistAgentTelemetry } = await import(
+      "@/lib/agent/chat/persistence"
+    );
+
+    await persistAgentTelemetry({
+      telemetry: {
+        runId: "run-1",
+        chatId: "chat-1",
+        userId: "user-1",
+        projectId: null,
+        model: "z0-mini",
+        isReasoning: false,
+        webSearchEnabled: false,
+        messageCount: 1,
+        status: "completed",
+        finishReason: "stop",
+        promptTokens: 1,
+        completionTokens: 2,
+        totalTokens: 3,
+        credits: 1,
+        cost: 0.001,
+        startedAt: new Date("2026-03-17T10:00:00.000Z"),
+        finishedAt: new Date("2026-03-17T10:00:01.000Z"),
+      },
+      toolCalls: [],
+      toolResults: [],
+    });
+
+    expect(actions.saveAgentRun).toHaveBeenCalledOnce();
+    expect(actions.saveToolCalls).toHaveBeenCalledWith({ calls: [] });
   });
 });

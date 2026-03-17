@@ -1,9 +1,11 @@
 import type { InferSelectModel } from "drizzle-orm";
 import {
   boolean,
+  decimal,
   index,
   integer,
   json,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -164,6 +166,82 @@ export const message = pgTable(
 );
 
 export type DBMessage = InferSelectModel<typeof message>;
+
+export const agentRun = pgTable(
+  "AgentRun",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    chatId: text("chatId")
+      .notNull()
+      .references(() => chat.id, { onDelete: "cascade" }),
+    userId: uuid("userId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    projectId: uuid("projectId").references(() => project.id, {
+      onDelete: "set null",
+    }),
+    parentRunId: uuid("parentRunId"),
+    triggerMessageId: text("triggerMessageId"),
+    agentKind: varchar("agentKind", { length: 32 }).notNull().default("chat"),
+    agentName: varchar("agentName", { length: 128 }),
+    model: varchar("model", { length: 64 }).notNull(),
+    status: varchar("status", { length: 32 }).notNull().default("running"),
+    finishReason: varchar("finishReason", { length: 64 }),
+    webSearchEnabled: boolean("webSearchEnabled").notNull().default(false),
+    isReasoning: boolean("isReasoning").notNull().default(false),
+    messageCount: integer("messageCount").notNull().default(0),
+    promptTokens: integer("promptTokens").notNull().default(0),
+    completionTokens: integer("completionTokens").notNull().default(0),
+    totalTokens: integer("totalTokens").notNull().default(0),
+    credits: integer("credits").notNull().default(0),
+    cost: decimal("cost", { precision: 10, scale: 6 }),
+    metadata: jsonb("metadata").notNull().default("{}"),
+    startedAt: timestamp("startedAt").notNull(),
+    finishedAt: timestamp("finishedAt"),
+    createdAt: timestamp("createdAt").notNull(),
+    updatedAt: timestamp("updatedAt").notNull(),
+  },
+  (table) => [
+    index("idx_agent_run_chat_started").on(table.chatId, table.startedAt),
+    index("idx_agent_run_user_started").on(table.userId, table.startedAt),
+    index("idx_agent_run_status").on(table.status),
+  ],
+);
+
+export type AgentRun = InferSelectModel<typeof agentRun>;
+
+export const toolCall = pgTable(
+  "ToolCall",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    runId: uuid("runId")
+      .notNull()
+      .references(() => agentRun.id, { onDelete: "cascade" }),
+    chatId: text("chatId")
+      .notNull()
+      .references(() => chat.id, { onDelete: "cascade" }),
+    messageId: text("messageId"),
+    toolCallId: text("toolCallId").notNull(),
+    toolName: varchar("toolName", { length: 128 }).notNull(),
+    state: varchar("state", { length: 32 }).notNull(),
+    input: jsonb("input"),
+    output: jsonb("output"),
+    errorText: text("errorText"),
+    metadata: jsonb("metadata").notNull().default("{}"),
+    startedAt: timestamp("startedAt").notNull(),
+    finishedAt: timestamp("finishedAt"),
+    createdAt: timestamp("createdAt").notNull(),
+    updatedAt: timestamp("updatedAt").notNull(),
+  },
+  (table) => [
+    uniqueIndex("uniq_tool_call_run_call").on(table.runId, table.toolCallId),
+    index("idx_tool_call_run").on(table.runId),
+    index("idx_tool_call_chat").on(table.chatId),
+    index("idx_tool_call_name").on(table.toolName),
+  ],
+);
+
+export type ToolCall = InferSelectModel<typeof toolCall>;
 
 export const feedback = pgTable(
   "Feedback",

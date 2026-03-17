@@ -13,6 +13,7 @@ import {
 import { getModelFromServer } from "@/lib/agent/model";
 import { processAllMessageFiles } from "@/lib/agent/chat/attachments";
 import {
+  persistAgentTelemetry,
   runDeferredPersistence,
   updateChatProjectLinkFromToolResults,
 } from "@/lib/agent/chat/persistence";
@@ -63,6 +64,8 @@ async function fetchMemoriesForPrompt(userId: string, query: string) {
 
 export async function POST(request: NextRequest) {
   let requestedModel: string | undefined;
+  const runStartedAt = new Date();
+  const runId = crypto.randomUUID();
 
   try {
     const payload = parseRequestBody(await request.json());
@@ -99,6 +102,9 @@ export async function POST(request: NextRequest) {
     }
 
     const userQuery = extractLatestUserQuery(payload.messages);
+    const triggerMessageId = [...payload.messages]
+      .reverse()
+      .find((message: UIMessage) => message.role === "user")?.id;
     const memoriesPromise = fetchMemoriesForPrompt(user.id, userQuery);
 
     const [processedMessages, memories] = await Promise.all([
@@ -154,9 +160,74 @@ export async function POST(request: NextRequest) {
           credits,
           costUSD,
         });
+
+        await persistAgentTelemetry({
+          telemetry: {
+            runId,
+            chatId: payload.id,
+            userId: user.id,
+            projectId: payload.projectId,
+            triggerMessageId,
+            model: payload.model,
+            isReasoning: payload.isReasoning,
+            webSearchEnabled: payload.webSearchEnabled,
+            messageCount: payload.messages.length,
+            status: "completed",
+            finishReason,
+            promptTokens: aiUsage.promptTokens,
+            completionTokens: aiUsage.completionTokens,
+            totalTokens: aiUsage.totalTokens,
+            credits,
+            cost: costUSD.totalUSD,
+            startedAt: runStartedAt,
+            finishedAt: new Date(),
+            metadata: {
+              toolCallCount: toolCalls?.length ?? 0,
+              toolResultCount: Array.isArray(toolResults)
+                ? toolResults.length
+                : 0,
+            },
+          },
+          toolCalls,
+          toolResults,
+        });
       },
       onError: (error) => {
         console.error("[Server] Stream error:", error);
+        const now = new Date();
+        persistAgentTelemetry({
+          telemetry: {
+            runId,
+            chatId: payload.id,
+            userId: user.id,
+            projectId: payload.projectId,
+            triggerMessageId,
+            model: payload.model,
+            isReasoning: payload.isReasoning,
+            webSearchEnabled: payload.webSearchEnabled,
+            messageCount: payload.messages.length,
+            status: "failed",
+            finishReason:
+              error instanceof Error ? error.message.slice(0, 64) : "error",
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0,
+            credits: 0,
+            cost: 0,
+            startedAt: runStartedAt,
+            finishedAt: now,
+            metadata: {
+              error: error instanceof Error ? error.message : String(error),
+            },
+          },
+          toolCalls: [],
+          toolResults: [],
+        }).catch((persistError) => {
+          console.error(
+            "[Server] Failed to persist agent error run:",
+            persistError,
+          );
+        });
       },
     });
 

@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { account, session, user, verification } from "@z0/db/schema";
 import { getDb } from "../db/client";
 
 function createPlaceholderPassword() {
@@ -15,22 +16,10 @@ export function createAuth() {
     database: drizzleAdapter(db, {
       provider: "pg",
       schema: {
-        user: {
-          modelName: "User",
-          fields: {
-            image: "avatar",
-            emailVerified: "emailVerified",
-          },
-        },
-        session: {
-          modelName: "Session",
-        },
-        account: {
-          modelName: "Account",
-        },
-        verification: {
-          modelName: "Verification",
-        },
+        user,
+        session,
+        account,
+        verification,
       },
     }),
     advanced: {
@@ -45,6 +34,10 @@ export function createAuth() {
       },
     },
     user: {
+      fields: {
+        image: "avatar",
+        emailVerified: "emailVerified",
+      },
       additionalFields: {
         role: {
           type: "string",

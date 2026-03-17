@@ -46,7 +46,7 @@ export function parseChatRequestBody(body: unknown): ChatRequestPayload {
   return {
     id: input.id ?? "",
     messages: input.messages ?? [],
-    model: (input.model as ModelName) ?? "z0-mini",
+    model: (input.model as ModelName) ?? "z0-pro",
     isReasoning: input.isReasoning ?? input.enableThinking ?? false,
     webSearchEnabled: input.webSearchEnabled ?? false,
     projectId: input.projectId ?? null,

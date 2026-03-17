@@ -50,7 +50,7 @@ export default function Chat({
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [thinkingEnabled, setThinkingEnabled] = useState(false);
   const [selectedModel, setSelectedModel] =
-    useState<SelectableModelName>("z0-mini");
+    useState<SelectableModelName>("z0-pro");
   const [studioModeEnabled, setStudioModeEnabled] = useState(
     Boolean(initialProjectId),
   );

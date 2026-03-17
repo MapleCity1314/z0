@@ -10,10 +10,10 @@ describe("agent tool catalog", () => {
     expect(AGENT_TOOL_CATALOG).toHaveLength(61);
     expect(summarizeAgentToolCatalog()).toMatchObject({
       total: 61,
-      keepInternal: 33,
+      keepInternal: 51,
       refactorInternal: 6,
       futureSkill: 4,
-      futureMcp: 18,
+      futureMcp: 0,
       fast: 14,
       moderate: 18,
       expensive: 12,

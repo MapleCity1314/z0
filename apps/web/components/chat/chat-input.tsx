@@ -34,6 +34,7 @@ import {
   getSystemIntegrationMarketAction,
   setChatMcpServerStateAction,
   setChatSkillStateAction,
+  warmChatMcpServersAction,
 } from "@/app/(chat)/api/integrations/actions";
 import { useUserStore } from "@/store/user";
 import {
@@ -350,6 +351,10 @@ export function ChatInput({
   const [skillName, setSkillName] = useState("");
   const [skillDirectory, setSkillDirectory] = useState("");
   const [hidePlaceholderForGhost, setHidePlaceholderForGhost] = useState(false);
+  const [mcpWarmState, setMcpWarmState] = useState<
+    "idle" | "booting" | "ready" | "error"
+  >("idle");
+  const [mcpWarmSummary, setMcpWarmSummary] = useState("");
   const user = useUserStore((state) => state.user);
 
   const refreshChatIntegrations = async () => {
@@ -437,9 +442,82 @@ export function ChatInput({
     () => skills.filter((skill) => skill.useInCurrentChat).length,
     [skills],
   );
+  const mcpWarmTargets = useMemo(() => {
+    const targets = mcpServers.filter((server) =>
+      showWelcome ? server.useByDefault : server.useInCurrentChat,
+    );
+
+    return targets.map((server) => ({
+      id: server.systemServerId,
+      name: server.name,
+      endpoint: server.endpoint,
+    }));
+  }, [mcpServers, showWelcome]);
+  const mcpWarmSignature = useMemo(
+    () =>
+      mcpWarmTargets
+        .map((server) => `${server.id}:${server.endpoint}`)
+        .sort()
+        .join("|"),
+    [mcpWarmTargets],
+  );
 
   const toggleRowClassName =
     "flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800";
+
+  useEffect(() => {
+    if (!user) {
+      setMcpWarmState("idle");
+      setMcpWarmSummary("");
+      return;
+    }
+
+    if (mcpWarmTargets.length === 0) {
+      setMcpWarmState("idle");
+      setMcpWarmSummary("");
+      return;
+    }
+
+    let cancelled = false;
+    setMcpWarmState("booting");
+    setMcpWarmSummary(
+      `Booting ${mcpWarmTargets.length} MCP server${mcpWarmTargets.length > 1 ? "s" : ""}...`,
+    );
+
+    void (async () => {
+      const result = await warmChatMcpServersAction({
+        chatId,
+        servers: mcpWarmTargets,
+      });
+
+      if (cancelled) {
+        return;
+      }
+
+      if (!result.success || !result.data) {
+        setMcpWarmState("error");
+        setMcpWarmSummary("MCP boot failed");
+        return;
+      }
+
+      if (result.data.failed > 0) {
+        setMcpWarmState("error");
+        setMcpWarmSummary(
+          `${result.data.ready}/${result.data.total} MCP ready`,
+        );
+        return;
+      }
+
+      setMcpWarmState("ready");
+      setMcpWarmSummary(
+        `${result.data.ready}/${result.data.total} MCP ready`,
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chatId, user, mcpWarmSignature]);
 
   const addMcpServer = () => {
     const name = mcpName.trim();
@@ -597,6 +675,13 @@ export function ChatInput({
                         <span className="inline-flex items-center gap-2">
                           <span className="text-muted-foreground text-xs">
                             {enabledMcpCount} active
+                            {mcpWarmState === "booting"
+                              ? " · booting"
+                              : mcpWarmState === "ready"
+                                ? " · ready"
+                                : mcpWarmState === "error"
+                                  ? " · degraded"
+                                  : ""}
                           </span>
                           <PencilLine className="size-4" />
                         </span>
@@ -727,6 +812,8 @@ export function ChatInput({
         onAddMcpServer={addMcpServer}
         loading={integrationsLoading}
         servers={mcpServers}
+        warmState={mcpWarmState}
+        warmSummary={mcpWarmSummary}
         marketServers={systemMcpMarket}
         onQuickAddFromMarket={async (marketItem) => {
           const result = await addChatMcpServerAction({

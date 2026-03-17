@@ -34,7 +34,7 @@ function makeDependencies(): AgentChatDependencies {
     processMessages: vi.fn(async (messages) => messages),
     buildMemoryContext: vi.fn(async () => ""),
     getAvailableSkills: vi.fn(async () => []),
-    buildTools: vi.fn(() => ({})),
+    buildTools: vi.fn(async () => ({ tools: {} })),
     getModel: vi.fn(() => ({}) as any),
     updateChatProjectLinkFromToolResults: vi.fn(async () => undefined),
     persistTelemetry: vi.fn(async () => undefined),

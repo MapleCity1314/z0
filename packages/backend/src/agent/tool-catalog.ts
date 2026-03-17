@@ -167,7 +167,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "research",
     performance: "moderate",
     requiresWebSearch: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "tavilyExtract",
@@ -175,7 +175,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "research",
     performance: "moderate",
     requiresWebSearch: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "tavilyCrawl",
@@ -183,7 +183,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "research",
     performance: "expensive",
     requiresWebSearch: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "tavilyMap",
@@ -191,7 +191,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "research",
     performance: "expensive",
     requiresWebSearch: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "readProjectFiles",
@@ -367,7 +367,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "project-dom",
     performance: "expensive",
     requiresProject: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "queryElement",
@@ -375,7 +375,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "project-dom",
     performance: "moderate",
     requiresProject: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "queryElements",
@@ -383,7 +383,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "project-dom",
     performance: "moderate",
     requiresProject: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "captureScreenshot",
@@ -391,7 +391,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "project-dom",
     performance: "expensive",
     requiresProject: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "captureElementScreenshot",
@@ -399,7 +399,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "project-dom",
     performance: "expensive",
     requiresProject: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "evaluateClientScript",
@@ -407,7 +407,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "project-dom",
     performance: "expensive",
     requiresProject: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "readClientState",
@@ -415,7 +415,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "project-dom",
     performance: "moderate",
     requiresProject: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "simulateClick",
@@ -423,7 +423,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "project-dom",
     performance: "stateful",
     requiresProject: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "simulateInput",
@@ -431,7 +431,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "project-dom",
     performance: "stateful",
     requiresProject: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "getConsoleLogs",
@@ -439,7 +439,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "project-observability",
     performance: "moderate",
     requiresProject: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "clearConsoleLogs",
@@ -447,7 +447,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "project-observability",
     performance: "stateful",
     requiresProject: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "getNetworkRequests",
@@ -455,7 +455,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "project-observability",
     performance: "moderate",
     requiresProject: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "clearNetworkRequests",
@@ -463,7 +463,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "project-observability",
     performance: "stateful",
     requiresProject: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "getPerformanceMetrics",
@@ -471,7 +471,7 @@ export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
     group: "project-observability",
     performance: "moderate",
     requiresProject: true,
-    decision: "future-mcp",
+    decision: "keep-internal",
   },
   {
     name: "generateDiff",

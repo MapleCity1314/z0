@@ -159,10 +159,11 @@ export default function IntegrationSettingsPage() {
       </section>
 
       <section className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
-        <h2 className="font-medium text-sm">z0 Internal Market (Reserved)</h2>
+        <h2 className="font-medium text-sm">Application-level MCP and Skills</h2>
         <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-          Reserved extension points for internal MCP, Plugins, and Skills market
-          sources. Existing schema already supports source typing and metadata.
+          MCP servers configured here are stored at the account level. When a
+          chat enables one of them from the composer, its remote tools are
+          loaded into the Agent runtime for that conversation.
         </p>
       </section>
 
@@ -350,9 +351,9 @@ export default function IntegrationSettingsPage() {
           Notes
         </h2>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Chat input dialogs edit per-chat links while this page edits your
-          persistent defaults. Both paths write to the same normalized data
-          model for future market integrations.
+          Chat input dialogs control per-chat activation. This page controls
+          your persistent defaults for new chats. Both paths write to the same
+          MCP and Skill registry.
         </p>
       </section>
     </div>

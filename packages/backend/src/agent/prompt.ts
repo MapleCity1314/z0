@@ -3,6 +3,7 @@ import {
   type AgentToolCatalogEntry,
   type AgentToolGroup,
 } from "./tool-catalog";
+import type { AgentMcpToolMetadata } from "./mcp";
 import { buildSkillsPrompt, type AgentSkillMetadata } from "./skills";
 
 const TOOL_GROUP_LABELS: Record<AgentToolGroup, string> = {
@@ -76,6 +77,7 @@ export function buildChatSystemPrompt(params: {
   projectId: string | null;
   memoryContext?: string;
   skills?: AgentSkillMetadata[];
+  mcpTools?: AgentMcpToolMetadata[];
 }) {
   const enabledTools = getEnabledAgentToolCatalog({
     webSearchEnabled: params.webSearchEnabled,
@@ -85,6 +87,15 @@ export function buildChatSystemPrompt(params: {
   const memoryBlock = params.memoryContext?.trim()
     ? `\n<memory_context>\n${params.memoryContext.trim()}\n</memory_context>`
     : "";
+  const mcpBlock =
+    params.mcpTools && params.mcpTools.length > 0
+      ? `\n<mcp_tools>\nThese external MCP tools are active for this chat. Use them when their server-specific capability is the best fit.\n${params.mcpTools
+          .map(
+            (tool) =>
+              `- ${tool.name} (server: ${tool.serverName}, original: ${tool.originalName})${tool.description ? `: ${tool.description}` : ""}`,
+          )
+          .join("\n")}\n</mcp_tools>`
+      : "";
 
   return `<role>
 You are z0 Agent. You are a direct, high-agency product and coding assistant.
@@ -116,5 +127,5 @@ ${renderToolSelectionPolicy(enabledTools)}
 
 <tooling>
 ${renderToolSection(enabledTools)}
-</tooling>${buildSkillsPrompt(params.skills ?? [])}${memoryBlock}`;
+</tooling>${mcpBlock}${buildSkillsPrompt(params.skills ?? [])}${memoryBlock}`;
 }

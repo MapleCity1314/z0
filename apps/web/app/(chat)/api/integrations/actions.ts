@@ -1,5 +1,9 @@
 "use server";
 
+import {
+  warmPooledMcpServers,
+  type AgentMcpServerMetadata,
+} from "@z0/backend";
 import { getCurrentUser } from "@/lib/session";
 import {
   addMcpServerForChat,
@@ -310,5 +314,51 @@ export async function setUserSkillDefaultAction(params: {
           ? error.message
           : "Failed to update skill default",
     } as const;
+  }
+}
+
+export async function warmChatMcpServersAction(params: {
+  chatId: string;
+  servers: Array<Pick<AgentMcpServerMetadata, "id" | "name" | "endpoint">>;
+}): Promise<
+  ActionResult<{
+    total: number;
+    ready: number;
+    failed: number;
+    results: Awaited<ReturnType<typeof warmPooledMcpServers>>;
+  }>
+> {
+  try {
+    await requireUser();
+
+    const results = await warmPooledMcpServers({
+      chatId: params.chatId,
+      servers: params.servers.map((server) => ({
+        id: server.id,
+        name: server.name,
+        endpoint: server.endpoint,
+        sourceType: "external",
+      })),
+    });
+
+    const ready = results.filter((result) => result.success).length;
+    const failed = results.length - ready;
+
+    return {
+      success: true,
+      message: "MCP servers warmed",
+      data: {
+        total: results.length,
+        ready,
+        failed,
+        results,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to warm MCP servers",
+    };
   }
 }

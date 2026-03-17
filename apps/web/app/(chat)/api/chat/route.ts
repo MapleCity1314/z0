@@ -21,6 +21,64 @@ export const maxDuration = 30;
 
 const MEMORY_TIMEOUT_MS = 1200;
 
+function maskHeaderValue(value: string) {
+  if (value.length <= 8) {
+    return "*".repeat(value.length);
+  }
+
+  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+}
+
+function summarizeHeaders(headers: HeadersInit) {
+  return Object.fromEntries(
+    Array.from(new Headers(headers).entries()).map(([key, value]) => [
+      key,
+      key === "authorization" ||
+      key === "x-api-key" ||
+      key === "x-internal-auth-sig"
+        ? maskHeaderValue(value)
+        : value,
+    ]),
+  );
+}
+
+function logResponsePreview(
+  stream: ReadableStream<Uint8Array> | null,
+  label: string,
+) {
+  if (!stream) {
+    return stream;
+  }
+
+  const [previewStream, passthroughStream] = stream.tee();
+
+  void (async () => {
+    const reader = previewStream.getReader();
+    const decoder = new TextDecoder();
+    let preview = "";
+
+    try {
+      while (preview.length < 1200) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        preview += decoder.decode(value, { stream: true });
+      }
+    } catch (error) {
+      console.error(`${label} preview failed`, error);
+      return;
+    } finally {
+      reader.releaseLock();
+    }
+
+    console.log(label, preview.slice(0, 1200));
+  })();
+
+  return passthroughStream;
+}
+
 async function fetchMemoriesForPrompt(userId: string, query: string) {
   try {
     const memoryPromise =
@@ -87,41 +145,58 @@ export async function POST(request: NextRequest) {
       userQuery,
     }).catch(() => undefined);
 
-    const response = await fetch(
-      `${process.env.API_BASE_URL ?? "http://localhost:3001"}/v1/agent/chat`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          ...createInternalAuthHeaders({
-            actor: {
-              userId: user.id,
-              role: user.role,
-            },
-            purpose: "web-api",
-          }),
-          ...(request.headers.get("cookie")
-            ? { cookie: request.headers.get("cookie") as string }
-            : {}),
+    const apiUrl = `${process.env.API_BASE_URL ?? "http://localhost:3001"}/v1/agent/chat`;
+    const apiHeaders = {
+      "content-type": "application/json",
+      ...createInternalAuthHeaders({
+        actor: {
+          userId: user.id,
+          role: user.role,
         },
-        body: JSON.stringify({
-          ...payload,
-          messages: processedMessages,
-          memoryContext,
-        }),
-        cache: "no-store",
-      },
-    );
+        purpose: "web-api",
+      }),
+      ...(request.headers.get("cookie")
+        ? { cookie: request.headers.get("cookie") as string }
+        : {}),
+    };
+
+    console.log("[Server] Forwarding chat request to API", {
+      apiUrl,
+      headers: summarizeHeaders(apiHeaders),
+      model: payload.model,
+      webSearchEnabled: payload.webSearchEnabled,
+      isReasoning: payload.isReasoning,
+    });
+
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: apiHeaders,
+      body: JSON.stringify({
+        ...payload,
+        messages: processedMessages,
+        memoryContext,
+      }),
+      cache: "no-store",
+    });
+
+    console.log("[Server] API chat response received", {
+      status: response.status,
+      statusText: response.statusText,
+      headers: summarizeHeaders(response.headers),
+    });
 
     if (!response.ok) {
       const errorPayload = await response.json();
       return NextResponse.json(errorPayload, { status: response.status });
     }
 
-    return new Response(response.body, {
+    return new Response(
+      logResponsePreview(response.body, "[Server] API chat response preview"),
+      {
       status: response.status,
       headers: response.headers,
-    });
+      },
+    );
   } catch (error) {
     console.error("[Server] API error:", error);
     const mappedError = mapAgentChatError(error, requestedModel);

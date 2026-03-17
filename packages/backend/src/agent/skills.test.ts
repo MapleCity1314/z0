@@ -108,6 +108,10 @@ describe("agent skills", () => {
   });
 
   it("includes the built-in backend skill directory by default", () => {
-    expect(getDefaultSkillDirectories().some((directory) => directory.endsWith("packages/backend/skills"))).toBe(true);
+    expect(
+      getDefaultSkillDirectories().some((directory) =>
+        directory.replace(/\\/g, "/").endsWith("packages/backend/skills"),
+      ),
+    ).toBe(true);
   });
 });

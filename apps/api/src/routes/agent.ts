@@ -5,6 +5,8 @@ import {
   createRemoteAgentTools,
   discoverAgentSkills,
   extractFileAttachmentsFromParts,
+  getConfiguredMcpServers,
+  getOrCreatePooledMcpToolRuntime,
   getConfiguredSkillDirectories,
   getChatById,
   getModelFromServer,
@@ -56,13 +58,32 @@ export function registerAgentRoutes(app: Hono) {
               configuredSkillDirectories,
             });
           },
-          buildTools: () =>
-            createRemoteAgentTools({
+          buildTools: async () => {
+            const remoteTools = createRemoteAgentTools({
               actor: { userId: actor.userId, role: actor.role },
               webSearchEnabled: payload.webSearchEnabled,
               projectId: payload.projectId,
               chatId: payload.id,
-            }),
+            });
+            const mcpServers = await getConfiguredMcpServers({
+              userId: actor.userId,
+              chatId: payload.id,
+            });
+            const mcpRuntime = await getOrCreatePooledMcpToolRuntime({
+              chatId: payload.id,
+              servers: mcpServers,
+              reservedToolNames: Object.keys(remoteTools),
+            });
+
+            return {
+              tools: {
+                ...remoteTools,
+                ...mcpRuntime.tools,
+              },
+              mcpTools: mcpRuntime.mcpTools,
+              close: mcpRuntime.close,
+            };
+          },
           getModel: getModelFromServer,
           updateChatProjectLinkFromToolResults,
           persistTelemetry: async ({ telemetry, toolCalls, toolResults }) => {

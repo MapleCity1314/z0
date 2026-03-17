@@ -18,7 +18,14 @@ import {
   calculateUsageFromUIMessages,
 } from "./usage";
 import type { ChatRequestPayload, ModelName } from "./request";
+import type { AgentMcpToolMetadata } from "./mcp";
 import { createSkillTools, type AgentSkillMetadata } from "./skills";
+
+export type AgentBuiltTools = {
+  tools: NonNullable<Parameters<typeof streamText>[0]["tools"]>;
+  close?: () => Promise<void>;
+  mcpTools?: AgentMcpToolMetadata[];
+};
 
 export class AgentChatOrchestrationError extends Error {
   constructor(
@@ -42,7 +49,7 @@ export type AgentChatDependencies = {
   buildTools: (
     webSearchEnabled: boolean,
     projectId: string | null,
-  ) => NonNullable<Parameters<typeof streamText>[0]["tools"]>;
+  ) => Promise<AgentBuiltTools>;
   getModel: (
     model: ModelName,
     options: { isReasoning: boolean },
@@ -149,8 +156,12 @@ export async function createAgentChatResponse(params: {
   );
 
   const modelMessages = await convertToModelMessages(allMessages);
+  const builtTools = await dependencies.buildTools(
+    payload.webSearchEnabled,
+    payload.projectId,
+  );
   const tools = {
-    ...dependencies.buildTools(payload.webSearchEnabled, payload.projectId),
+    ...builtTools.tools,
     ...createSkillTools(availableSkills),
   };
   const providerOptions = getAnthropicReasoningOptions(
@@ -158,75 +169,39 @@ export async function createAgentChatResponse(params: {
     payload.isReasoning,
   );
 
-  const result = streamText({
-    model: dependencies.getModel(payload.model, {
-      isReasoning: payload.isReasoning,
-    }),
-    system: buildChatSystemPrompt({
-      webSearchEnabled: payload.webSearchEnabled,
-      projectId: payload.projectId,
-      memoryContext,
-      skills: availableSkills,
-    }),
-    messages: modelMessages,
-    providerOptions,
-    temperature: 0.7,
-    stopWhen: stepCountIs(20),
-    tools,
-    toolChoice: "auto",
-    onFinish: async ({ finishReason, toolCalls, toolResults }) => {
-      await dependencies.updateChatProjectLinkFromToolResults(
-        payload.id,
-        toolResults,
-      );
+  let result;
+  try {
+    result = streamText({
+      model: dependencies.getModel(payload.model, {
+        isReasoning: payload.isReasoning,
+      }),
+      system: buildChatSystemPrompt({
+        webSearchEnabled: payload.webSearchEnabled,
+        projectId: payload.projectId,
+        memoryContext,
+        skills: availableSkills,
+        mcpTools: builtTools.mcpTools,
+      }),
+      messages: modelMessages,
+      providerOptions,
+      temperature: 0.7,
+      stopWhen: stepCountIs(20),
+      tools,
+      toolChoice: "auto",
+      onFinish: async ({ finishReason, toolCalls, toolResults }) => {
+        await dependencies.updateChatProjectLinkFromToolResults(
+          payload.id,
+          toolResults,
+        );
 
-      const aiUsage = calculateUsageFromUIMessages(allMessages);
-      const credits = calculateCreditsFromTokens(
-        aiUsage.promptTokens,
-        aiUsage.completionTokens,
-      );
-      const costUSD = calculateCostUSD(aiUsage);
+        const aiUsage = calculateUsageFromUIMessages(allMessages);
+        const credits = calculateCreditsFromTokens(
+          aiUsage.promptTokens,
+          aiUsage.completionTokens,
+        );
+        const costUSD = calculateCostUSD(aiUsage);
 
-      await dependencies.persistTelemetry({
-        telemetry: {
-          runId,
-          chatId: payload.id,
-          userId: user.id,
-          projectId: payload.projectId,
-          parentRunId: runContext?.parentRunId,
-          rootRunId: runContext?.rootRunId,
-          triggerMessageId,
-          model: payload.model,
-          agentKind: runContext?.agentKind,
-          agentName: runContext?.agentName,
-          isReasoning: payload.isReasoning,
-          webSearchEnabled: payload.webSearchEnabled,
-          messageCount: payload.messages.length,
-          status: "completed",
-          finishReason,
-          promptTokens: aiUsage.promptTokens,
-          completionTokens: aiUsage.completionTokens,
-          totalTokens: aiUsage.totalTokens,
-          credits,
-          cost: costUSD.totalUSD,
-          startedAt: runStartedAt,
-          finishedAt: new Date(),
-          metadata: {
-            ...(runContext?.metadata ?? {}),
-            toolCallCount: toolCalls?.length ?? 0,
-            toolResultCount: Array.isArray(toolResults)
-              ? toolResults.length
-              : 0,
-          },
-        },
-        toolCalls,
-        toolResults,
-      });
-    },
-    onError: (error) => {
-      const now = new Date();
-      dependencies
-        .persistTelemetry({
+        await dependencies.persistTelemetry({
           telemetry: {
             runId,
             chatId: payload.id,
@@ -241,27 +216,74 @@ export async function createAgentChatResponse(params: {
             isReasoning: payload.isReasoning,
             webSearchEnabled: payload.webSearchEnabled,
             messageCount: payload.messages.length,
-            status: "failed",
-            finishReason:
-              error instanceof Error ? error.message.slice(0, 64) : "error",
-            promptTokens: 0,
-            completionTokens: 0,
-            totalTokens: 0,
-            credits: 0,
-            cost: 0,
+            status: "completed",
+            finishReason,
+            promptTokens: aiUsage.promptTokens,
+            completionTokens: aiUsage.completionTokens,
+            totalTokens: aiUsage.totalTokens,
+            credits,
+            cost: costUSD.totalUSD,
             startedAt: runStartedAt,
-            finishedAt: now,
+            finishedAt: new Date(),
             metadata: {
               ...(runContext?.metadata ?? {}),
-              error: error instanceof Error ? error.message : String(error),
+              toolCallCount: toolCalls?.length ?? 0,
+              toolResultCount: Array.isArray(toolResults)
+                ? toolResults.length
+                : 0,
             },
           },
-          toolCalls: [],
-          toolResults: [],
-        })
-        .catch(() => undefined);
-    },
-  });
+          toolCalls,
+          toolResults,
+        });
+
+        await builtTools.close?.().catch(() => undefined);
+      },
+      onError: (error) => {
+        const now = new Date();
+        dependencies
+          .persistTelemetry({
+            telemetry: {
+              runId,
+              chatId: payload.id,
+              userId: user.id,
+              projectId: payload.projectId,
+              parentRunId: runContext?.parentRunId,
+              rootRunId: runContext?.rootRunId,
+              triggerMessageId,
+              model: payload.model,
+              agentKind: runContext?.agentKind,
+              agentName: runContext?.agentName,
+              isReasoning: payload.isReasoning,
+              webSearchEnabled: payload.webSearchEnabled,
+              messageCount: payload.messages.length,
+              status: "failed",
+              finishReason:
+                error instanceof Error ? error.message.slice(0, 64) : "error",
+              promptTokens: 0,
+              completionTokens: 0,
+              totalTokens: 0,
+              credits: 0,
+              cost: 0,
+              startedAt: runStartedAt,
+              finishedAt: now,
+              metadata: {
+                ...(runContext?.metadata ?? {}),
+                error: error instanceof Error ? error.message : String(error),
+              },
+            },
+            toolCalls: [],
+            toolResults: [],
+          })
+          .catch(() => undefined);
+
+        builtTools.close?.().catch(() => undefined);
+      },
+    });
+  } catch (error) {
+    await builtTools.close?.().catch(() => undefined);
+    throw error;
+  }
 
   dependencies
     .runDeferredPersistence({

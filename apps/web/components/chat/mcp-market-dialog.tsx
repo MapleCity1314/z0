@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from "react";
 import {
+  Box,
+  Globe,
+  Link as LinkIcon,
+  Plus,
   Search,
   Server,
-  Plus,
-  Store,
   Settings2,
-  Globe,
-  Box,
-  Link as LinkIcon,
+  Store,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,18 +37,19 @@ type McpServerDialogProps = {
   onAddMcpServer: () => void;
   loading: boolean;
   servers: ConversationMcpServer[];
+  warmState?: "idle" | "booting" | "ready" | "error";
+  warmSummary?: string;
   marketServers: SystemMcpMarketItem[];
   onQuickAddFromMarket: (item: SystemMcpMarketItem) => Promise<void>;
   onServersChange: (nextServer: ConversationMcpServer) => Promise<void>;
 };
 
-// 市场来源的映射配置，用于展示更好看的标签
 const sourceConfig = {
-  all: { label: "全部", icon: Box },
-  system: { label: "官方系统", icon: Server },
-  market: { label: "社区市场", icon: Store },
-  external: { label: "外部自定义", icon: Globe },
-};
+  all: { label: "All", icon: Box },
+  system: { label: "System", icon: Server },
+  market: { label: "Market", icon: Store },
+  external: { label: "External", icon: Globe },
+} as const;
 
 export function McpServerDialog({
   open,
@@ -60,6 +61,8 @@ export function McpServerDialog({
   onAddMcpServer,
   loading,
   servers,
+  warmState = "idle",
+  warmSummary = "",
   marketServers,
   onQuickAddFromMarket,
   onServersChange,
@@ -68,11 +71,11 @@ export function McpServerDialog({
   const [marketSource, setMarketSource] = useState<
     "all" | "system" | "market" | "external"
   >("all");
-  // 用于移动端的 Tab 切换状态
   const [mobileTab, setMobileTab] = useState<"current" | "market">("market");
 
   const filteredMarketServers = useMemo(() => {
     const query = marketQuery.trim().toLowerCase();
+
     return marketServers.filter((item) => {
       const sourceMatched =
         marketSource === "all" ? true : item.sourceType === marketSource;
@@ -81,6 +84,7 @@ export function McpServerDialog({
           ? true
           : item.name.toLowerCase().includes(query) ||
             item.endpoint.toLowerCase().includes(query);
+
       return sourceMatched && queryMatched;
     });
   }, [marketQuery, marketServers, marketSource]);
@@ -92,12 +96,14 @@ export function McpServerDialog({
       external: [],
       other: [],
     };
+
     for (const item of filteredMarketServers) {
       if (item.sourceType === "system") groups.system.push(item);
       else if (item.sourceType === "market") groups.market.push(item);
       else if (item.sourceType === "external") groups.external.push(item);
       else groups.other.push(item);
     }
+
     return groups;
   }, [filteredMarketServers]);
 
@@ -111,19 +117,33 @@ export function McpServerDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[90vh] w-[96vw] max-w-[96vw] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 p-0 shadow-2xl sm:h-[86vh] sm:!max-w-[96vw] xl:!max-w-[1440px]">
-        {/* 头部区域 */}
-        <DialogHeader className="shrink-0 border-b border-zinc-800 px-6 py-5 bg-zinc-950/50 backdrop-blur-xl">
+        <DialogHeader className="shrink-0 border-zinc-800 border-b bg-zinc-950/50 px-6 py-5 backdrop-blur-xl">
           <DialogTitle className="flex items-center gap-2 text-white text-xl">
             <Store className="h-6 w-6 text-blue-400" />
-            MCP 扩展市场
+            MCP Servers
           </DialogTitle>
           <DialogDescription className="mt-2 text-zinc-400">
-            左侧是当前对话配置，右侧是系统市场。点击“一键添加”会同时加入当前对话和你的用户配置。
+            The left side controls MCP servers linked to this chat. The right
+            side shows the shared MCP registry. Quick add links a server to the
+            current chat and your account at the same time.
           </DialogDescription>
+          {warmState !== "idle" && warmSummary ? (
+            <p
+              className={cn(
+                "mt-2 text-xs",
+                warmState === "booting"
+                  ? "text-amber-300"
+                  : warmState === "ready"
+                    ? "text-emerald-300"
+                    : "text-rose-300",
+              )}
+            >
+              {warmSummary}
+            </p>
+          ) : null}
         </DialogHeader>
 
-        {/* 移动端专属 Tab 切换 (PC端隐藏) */}
-        <div className="flex shrink-0 border-b border-zinc-800 p-2 lg:hidden">
+        <div className="flex shrink-0 border-zinc-800 border-b p-2 lg:hidden">
           <div className="flex w-full rounded-lg bg-zinc-900/50 p-1">
             <button
               className={cn(
@@ -134,7 +154,7 @@ export function McpServerDialog({
               )}
               onClick={() => setMobileTab("current")}
             >
-              当前对话配置 ({servers.length})
+              Current chat ({servers.length})
             </button>
             <button
               className={cn(
@@ -145,31 +165,28 @@ export function McpServerDialog({
               )}
               onClick={() => setMobileTab("market")}
             >
-              MCP 市场
+              MCP market
             </button>
           </div>
         </div>
 
-        {/* 主体内容区域 - PC双栏，移动端根据Tab显隐 */}
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-          {/* 左侧：当前配置栏 */}
           <div
             className={cn(
-              "flex min-h-0 flex-1 flex-col gap-4 border-r border-zinc-800 bg-zinc-950/30 p-4 lg:p-5",
+              "flex min-h-0 flex-1 flex-col gap-4 border-zinc-800 border-r bg-zinc-950/30 p-4 lg:p-5",
               mobileTab === "current" ? "flex" : "hidden lg:flex",
             )}
           >
-            {/* 添加外部 MCP */}
             <div className="shrink-0 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
               <h3 className="mb-3 flex items-center gap-2 font-medium text-sm text-zinc-200">
                 <Globe className="h-4 w-4 text-zinc-400" />
-                添加外部 MCP
+                Add external MCP
               </h3>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <Input
                   value={mcpName}
                   onChange={(event) => onMcpNameChange(event.target.value)}
-                  placeholder="服务器名称 (如: Local Dev)"
+                  placeholder="Server name"
                   className="border-zinc-700 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-blue-500"
                 />
                 <Input
@@ -184,32 +201,31 @@ export function McpServerDialog({
                   className="shrink-0 bg-zinc-100 text-zinc-900 hover:bg-zinc-300 sm:w-auto"
                 >
                   <Plus className="mr-1 h-4 w-4" />
-                  添加
+                  Add
                 </Button>
               </div>
             </div>
 
-            {/* 当前关联列表 */}
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/20">
-              <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-900/40 px-4 py-3">
+              <div className="flex shrink-0 items-center justify-between border-zinc-800 border-b bg-zinc-900/40 px-4 py-3">
                 <h3 className="flex items-center gap-2 font-medium text-sm text-zinc-200">
                   <Settings2 className="h-4 w-4 text-zinc-400" />
-                  当前对话已关联
+                  Linked to this chat
                 </h3>
                 <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
-                  {servers.length} 项
+                  {servers.length} items
                 </span>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-2">
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
                 {loading ? (
                   <div className="flex h-32 items-center justify-center text-sm text-zinc-500">
-                    <span className="animate-pulse">加载中...</span>
+                    <span className="animate-pulse">Loading...</span>
                   </div>
                 ) : servers.length === 0 ? (
                   <div className="flex h-32 flex-col items-center justify-center gap-2 text-sm text-zinc-500">
                     <LinkIcon className="h-8 w-8 text-zinc-700" />
-                    <p>当前对话还没有关联任何 MCP</p>
+                    <p>No MCP servers are linked to this chat yet.</p>
                   </div>
                 ) : (
                   servers.map((server) => (
@@ -218,11 +234,9 @@ export function McpServerDialog({
                       className="group flex flex-col gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-3 transition-colors hover:border-zinc-700 hover:bg-zinc-800/50 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="truncate font-medium text-sm text-zinc-100">
-                            {server.name}
-                          </p>
-                        </div>
+                        <p className="truncate font-medium text-sm text-zinc-100">
+                          {server.name}
+                        </p>
                         <p className="mt-1 truncate text-xs text-zinc-400">
                           {server.endpoint}
                         </p>
@@ -239,7 +253,7 @@ export function McpServerDialog({
                               })
                             }
                           />
-                          当前对话
+                          Current chat
                         </label>
                         <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-300 hover:text-white">
                           <Switch
@@ -251,7 +265,7 @@ export function McpServerDialog({
                               })
                             }
                           />
-                          新对话默认
+                          Default for new chats
                         </label>
                       </div>
                     </div>
@@ -261,21 +275,19 @@ export function McpServerDialog({
             </div>
           </div>
 
-          {/* 右侧：MCP 市场栏 */}
           <div
             className={cn(
-              "flex min-h-0 flex-1 lg:flex-[1.2] flex-col gap-4 p-4 lg:p-5",
+              "flex min-h-0 flex-1 flex-col gap-4 p-4 lg:flex-[1.2] lg:p-5",
               mobileTab === "market" ? "flex" : "hidden lg:flex",
             )}
           >
-            {/* 搜索与过滤 */}
             <div className="shrink-0 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium text-sm text-zinc-200">
-                  系统 MCP 市场
+                  Shared MCP registry
                 </h3>
                 <span className="text-xs text-zinc-500">
-                  找到 {filteredMarketServers.length} / {marketServers.length}
+                  {filteredMarketServers.length} / {marketServers.length}
                 </span>
               </div>
 
@@ -285,15 +297,15 @@ export function McpServerDialog({
                   <Input
                     value={marketQuery}
                     onChange={(event) => setMarketQuery(event.target.value)}
-                    placeholder="搜索名称或地址..."
+                    placeholder="Search by name or endpoint..."
                     className="border-zinc-800 bg-zinc-900/50 pl-9 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-blue-500"
                   />
                 </div>
 
-                {/* 来源过滤器 */}
                 <div className="flex shrink-0 flex-wrap items-center gap-1.5">
                   {sourceOptions.map((source) => {
                     const ConfigIcon = sourceConfig[source].icon;
+
                     return (
                       <button
                         key={source}
@@ -315,27 +327,28 @@ export function McpServerDialog({
               </div>
             </div>
 
-            {/* 市场列表 */}
             <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900/20 p-3 shadow-inner">
               {loading ? (
                 <div className="flex h-full items-center justify-center text-sm text-zinc-500">
-                  <span className="animate-pulse">加载中...</span>
+                  <span className="animate-pulse">Loading...</span>
                 </div>
               ) : filteredMarketServers.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center gap-3 text-zinc-500">
                   <Search className="h-8 w-8 text-zinc-700" />
-                  <p className="text-sm">没有匹配的 MCP</p>
+                  <p className="text-sm">No matching MCP servers.</p>
                 </div>
               ) : (
                 <div className="space-y-6 pb-2">
                   {(["system", "market", "external", "other"] as const).map(
                     (groupKey) => {
                       const groupItems = groupedMarketServers[groupKey];
-                      if (!groupItems || groupItems.length === 0) return null;
+                      if (!groupItems || groupItems.length === 0) {
+                        return null;
+                      }
 
                       const groupLabel =
                         sourceConfig[groupKey as keyof typeof sourceConfig]
-                          ?.label || "其他";
+                          ?.label || "Other";
 
                       return (
                         <div key={groupKey} className="space-y-3">
@@ -373,7 +386,7 @@ export function McpServerDialog({
                                   }
                                 >
                                   <Plus className="mr-1 h-3.5 w-3.5" />
-                                  一键添加
+                                  Quick add
                                 </Button>
                               </div>
                             ))}

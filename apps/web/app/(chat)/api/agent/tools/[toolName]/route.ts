@@ -83,6 +83,13 @@ export async function POST(
 
     return NextResponse.json({ data });
   } catch (error) {
+    console.error("[AgentTool] Execution failed", {
+      toolName,
+      chatId: body.chatId ?? null,
+      projectId: body.projectId ?? null,
+      message: error instanceof Error ? error.message : String(error),
+    });
+
     return NextResponse.json(
       {
         error: {

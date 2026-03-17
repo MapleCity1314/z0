@@ -1,3 +1,4 @@
+import { getEnabledAgentToolCatalog } from "@z0/backend/agent/tool-catalog";
 import {
   createArtifactTool,
   createZipTool,
@@ -20,18 +21,11 @@ export function buildAgentTools(
   webSearchEnabled: boolean,
   projectId: string | null,
 ) {
-  const projectTools = getProjectTools(projectId);
-  const commonTools = getCommonTools();
-
-  return guardToolSet({
-    ...(webSearchEnabled
-      ? {
-          tavilySearch: tavilySearchTool,
-          tavilyExtract: tavilyExtractTool,
-          tavilyCrawl: tavilyCrawlTool,
-          tavilyMap: tavilyMapTool,
-        }
-      : {}),
+  const toolImplementations = {
+    tavilySearch: tavilySearchTool,
+    tavilyExtract: tavilyExtractTool,
+    tavilyCrawl: tavilyCrawlTool,
+    tavilyMap: tavilyMapTool,
     createArtifact: createArtifactTool,
     readArtifact: readArtifactTool,
     updateArtifact: updateArtifactTool,
@@ -40,7 +34,26 @@ export function buildAgentTools(
     saveMultipleFiles: saveMultipleFilesTool,
     createZip: createZipTool,
     listPackages: listPackagesTool,
-    ...(projectTools ?? {}),
-    ...commonTools,
+    ...(getProjectTools(projectId) ?? {}),
+    ...getCommonTools(),
+  } as Record<string, unknown>;
+
+  const enabledToolEntries = getEnabledAgentToolCatalog({
+    webSearchEnabled,
+    projectId,
   });
+
+  return guardToolSet(
+    Object.fromEntries(
+      enabledToolEntries.map((entry) => {
+        const tool = toolImplementations[entry.name];
+
+        if (!tool) {
+          throw new Error(`Missing tool implementation for ${entry.name}`);
+        }
+
+        return [entry.name, tool];
+      }),
+    ),
+  );
 }

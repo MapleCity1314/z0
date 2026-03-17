@@ -11,7 +11,7 @@ import {
   getAnthropicReasoningOptions,
   buildZ0MaxErrorHint,
 } from "./request";
-import { CHAT_SYSTEM_PROMPT } from "./prompt";
+import { buildChatSystemPrompt } from "./prompt";
 import {
   calculateCostUSD,
   calculateCreditsFromTokens,
@@ -153,7 +153,11 @@ export async function createAgentChatResponse(params: {
     model: dependencies.getModel(payload.model, {
       isReasoning: payload.isReasoning,
     }),
-    system: CHAT_SYSTEM_PROMPT + memoryContext,
+    system: buildChatSystemPrompt({
+      webSearchEnabled: payload.webSearchEnabled,
+      projectId: payload.projectId,
+      memoryContext,
+    }),
     messages: modelMessages,
     providerOptions,
     temperature: 0.7,

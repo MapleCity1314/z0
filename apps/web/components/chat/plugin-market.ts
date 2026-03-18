@@ -8,6 +8,7 @@ export function toSystemPluginMarketItems(
     pluginId: plugin.id,
     name: plugin.name,
     status: plugin.status,
+    runtimeStatus: plugin.runtimeStatus,
     description: plugin.description,
     highlights: plugin.highlights,
     tools: plugin.tools,

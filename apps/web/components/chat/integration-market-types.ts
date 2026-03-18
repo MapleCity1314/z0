@@ -1,4 +1,7 @@
-import type { AgentPluginStatus } from "@z0/shared-types";
+import type {
+  AgentPluginRuntimeStatus,
+  AgentPluginStatus,
+} from "@z0/shared-types";
 
 export type ConversationMcpServer = {
   userMcpServerId: string;
@@ -38,6 +41,7 @@ export type SystemPluginMarketItem = {
   pluginId: string;
   name: string;
   status: AgentPluginStatus;
+  runtimeStatus: AgentPluginRuntimeStatus;
   description: string;
   highlights: string[];
   tools: string[];

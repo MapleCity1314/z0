@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
+import { ZodError } from "zod";
 import {
   createToolBridgeErrorResponse,
   createToolBridgeSuccessResponse,
@@ -17,11 +18,39 @@ export async function POST(
   const actor = verifyInternalAuthHeaders(request.headers, "agent-bridge");
 
   if (!actor) {
-    return NextResponse.json({ error: { message: "Forbidden" } }, { status: 403 });
+    return NextResponse.json(
+      createToolBridgeErrorResponse({
+        code: "forbidden:tool_bridge",
+        message: "Forbidden",
+        status: 403,
+      }),
+      { status: 403 },
+    );
   }
 
   const { toolName } = await context.params;
-  const body = parseToolBridgeRequestBody(await request.json());
+  let body;
+
+  try {
+    body = parseToolBridgeRequestBody(await request.json());
+  } catch (error) {
+    const message =
+      error instanceof ZodError
+        ? "Invalid tool bridge request payload"
+        : error instanceof Error
+          ? error.message
+          : "Invalid tool bridge request payload";
+
+    return NextResponse.json(
+      createToolBridgeErrorResponse({
+        code: "bad_request:tool_bridge",
+        message,
+        status: 400,
+        toolName,
+      }),
+      { status: 400 },
+    );
+  }
 
   if (body.chatId) {
     const [chatRecord] = await db
@@ -32,7 +61,12 @@ export async function POST(
 
     if (!chatRecord) {
       return NextResponse.json(
-        createToolBridgeErrorResponse("Chat not found or access denied"),
+        createToolBridgeErrorResponse({
+          code: "forbidden:tool_bridge",
+          message: "Chat not found or access denied",
+          status: 403,
+          toolName,
+        }),
         { status: 403 },
       );
     }
@@ -49,7 +83,12 @@ export async function POST(
 
     if (!projectRecord) {
       return NextResponse.json(
-        createToolBridgeErrorResponse("Project not found or access denied"),
+        createToolBridgeErrorResponse({
+          code: "forbidden:tool_bridge",
+          message: "Project not found or access denied",
+          status: 403,
+          toolName,
+        }),
         { status: 403 },
       );
     }
@@ -66,7 +105,12 @@ export async function POST(
 
   if (!targetTool || typeof targetTool.execute !== "function") {
     return NextResponse.json(
-      createToolBridgeErrorResponse(`Unknown agent tool: ${toolName}`),
+      createToolBridgeErrorResponse({
+        code: "not_found:tool_bridge",
+        message: `Unknown agent tool: ${toolName}`,
+        status: 404,
+        toolName,
+      }),
       { status: 404 },
     );
   }
@@ -90,9 +134,14 @@ export async function POST(
     });
 
     return NextResponse.json(
-      createToolBridgeErrorResponse(
-        error instanceof Error ? error.message : "Tool execution failed",
-      ),
+      createToolBridgeErrorResponse({
+        code: "failed:tool_bridge",
+        message:
+          error instanceof Error ? error.message : "Tool execution failed",
+        status: 500,
+        retryable: true,
+        toolName,
+      }),
       { status: 500 },
     );
   }

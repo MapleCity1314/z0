@@ -96,6 +96,32 @@ async function fetchMemoriesForPrompt(userId: string, query: string) {
   }
 }
 
+async function readForwardedChatError(response: Response) {
+  const fallbackCause =
+    response.statusText.trim().length > 0
+      ? `Agent API returned ${response.status} ${response.statusText}`
+      : `Agent API returned ${response.status}`;
+
+  try {
+    const payload = await response.json();
+
+    if (typeof payload === "object" && payload !== null) {
+      return payload;
+    }
+  } catch (error) {
+    console.warn("[Server] API chat error payload was not valid JSON", {
+      status: response.status,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  return {
+    code: "bad_request:api",
+    message: "Failed to process chat request",
+    cause: fallbackCause,
+  };
+}
+
 export async function POST(request: NextRequest) {
   let requestedModel: string | undefined;
 
@@ -186,7 +212,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorPayload = await response.json();
+      const errorPayload = await readForwardedChatError(response);
       return NextResponse.json(errorPayload, { status: response.status });
     }
 

@@ -68,9 +68,23 @@ const parseToolBridgeRequestBody = vi.hoisted(() =>
   }),
 );
 const createToolBridgeErrorResponse = vi.hoisted(() =>
-  vi.fn((message: string) => ({
-    error: { message },
-  })),
+  vi.fn(
+    ({
+      code,
+      message,
+      status,
+      retryable,
+      toolName,
+    }: {
+      code: string;
+      message: string;
+      status: number;
+      retryable?: boolean;
+      toolName?: string;
+    }) => ({
+      error: { code, message, status, retryable, toolName },
+    }),
+  ),
 );
 const createToolBridgeSuccessResponse = vi.hoisted(() =>
   vi.fn((data: unknown) => ({
@@ -113,6 +127,15 @@ describe("agent tool bridge route", () => {
     });
 
     expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "forbidden:tool_bridge",
+        message: "Forbidden",
+        status: 403,
+        retryable: undefined,
+        toolName: undefined,
+      },
+    });
   });
 
   it("executes the requested tool through the registry", async () => {
@@ -184,7 +207,45 @@ describe("agent tool bridge route", () => {
     expect(response.status).toBe(404);
     expect(payload).toEqual({
       error: {
+        code: "not_found:tool_bridge",
         message: "Unknown agent tool: missing",
+        status: 404,
+        retryable: undefined,
+        toolName: "missing",
+      },
+    });
+  });
+
+  it("returns a bad request bridge error when the payload is invalid", async () => {
+    parseToolBridgeRequestBody.mockImplementationOnce(() => {
+      throw new Error("invalid request");
+    });
+
+    const { POST } = await import("./route");
+    const request = new NextRequest("http://localhost/api/agent/tools/demoTool", {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: {
+        "content-type": "application/json",
+        ...createInternalAuthHeaders({
+          actor: { userId: "user-1", role: "user" },
+          purpose: "agent-bridge",
+        }),
+      },
+    });
+
+    const response = await POST(request, {
+      params: Promise.resolve({ toolName: "demoTool" }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "bad_request:tool_bridge",
+        message: "invalid request",
+        status: 400,
+        retryable: undefined,
+        toolName: "demoTool",
       },
     });
   });

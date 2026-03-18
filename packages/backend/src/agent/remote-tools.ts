@@ -5,9 +5,22 @@ import { getEnabledAgentToolCatalog } from "./tool-catalog";
 import {
   createToolBridgeErrorResponse,
   parseToolBridgeResponse,
+  type ToolBridgeErrorCode,
 } from "./tool-bridge";
 
 const passthroughInputSchema = z.object({}).passthrough();
+
+export class RemoteToolExecutionError extends Error {
+  constructor(
+    public readonly code: ToolBridgeErrorCode,
+    public readonly status: number,
+    message: string,
+    public readonly toolName: string,
+    public readonly retryable = false,
+  ) {
+    super(message);
+  }
+}
 
 function getWebBaseUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -61,16 +74,34 @@ export function createRemoteAgentTools(params: {
 
         const payload = parseToolBridgeResponse(
           await response.json().catch(() =>
-            createToolBridgeErrorResponse(
-              `${entry.name} returned an invalid bridge response`,
-            ),
+            createToolBridgeErrorResponse({
+              code: "invalid_response:tool_bridge",
+              message: `${entry.name} returned an invalid bridge response`,
+              status: 502,
+              retryable: true,
+              toolName: entry.name,
+            }),
           ),
         );
 
         if (!response.ok || "error" in payload) {
-          throw new Error(
-            ("error" in payload ? payload.error.message : undefined) ??
-              `${entry.name} failed with ${response.status}`,
+          const errorPayload =
+            "error" in payload
+              ? payload.error
+              : {
+                  code: "failed:tool_bridge" as const,
+                  message: `${entry.name} failed with ${response.status}`,
+                  status: response.status,
+                  retryable: response.status >= 500,
+                  toolName: entry.name,
+                };
+
+          throw new RemoteToolExecutionError(
+            errorPayload.code,
+            errorPayload.status,
+            errorPayload.message,
+            errorPayload.toolName ?? entry.name,
+            errorPayload.retryable ?? errorPayload.status >= 500,
           );
         }
 

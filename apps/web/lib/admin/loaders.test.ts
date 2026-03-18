@@ -1,12 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const apiFetch = vi.fn();
+const getCurrentUser = vi.fn();
 const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
 
 vi.mock("@/lib/api", () => ({
   apiFetch,
+}));
+
+vi.mock("@/lib/session", () => ({
+  getCurrentUser,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -16,9 +21,13 @@ vi.mock("next/navigation", () => ({
 describe("admin loaders", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getCurrentUser.mockResolvedValue({
+      id: "admin-1",
+      role: "admin",
+    });
   });
 
-  it("builds project list queries and maps date fields", async () => {
+  it("builds project list queries, passes actor context, and maps date fields", async () => {
     apiFetch.mockResolvedValueOnce({
       items: [
         {
@@ -48,13 +57,20 @@ describe("admin loaders", () => {
 
     expect(apiFetch).toHaveBeenCalledWith(
       "/v1/admin/projects?page=2&limit=20&type=react&status=draft",
+      undefined,
+      {
+        actor: {
+          userId: "admin-1",
+          role: "admin",
+        },
+      },
     );
     expect(result.totalPages).toBe(2);
     expect(result.projects[0].createdAt).toBeInstanceOf(Date);
     expect(result.projects[0].updatedAt).toBeInstanceOf(Date);
   });
 
-  it("loads feedback list and stats with normalized dates", async () => {
+  it("loads feedback list and stats with actor context and normalized dates", async () => {
     apiFetch
       .mockResolvedValueOnce([
         {
@@ -89,10 +105,46 @@ describe("admin loaders", () => {
     expect(apiFetch).toHaveBeenNthCalledWith(
       1,
       "/v1/admin/feedback?status=pending",
+      undefined,
+      {
+        actor: {
+          userId: "admin-1",
+          role: "admin",
+        },
+      },
     );
-    expect(apiFetch).toHaveBeenNthCalledWith(2, "/v1/admin/feedback/stats");
+    expect(apiFetch).toHaveBeenNthCalledWith(
+      2,
+      "/v1/admin/feedback/stats",
+      undefined,
+      {
+        actor: {
+          userId: "admin-1",
+          role: "admin",
+        },
+      },
+    );
     expect(result.feedback[0].createdAt).toBeInstanceOf(Date);
     expect(result.stats.byStatus[0].count).toBe(1);
+  });
+
+  it("falls back to legacy apiFetch auth when no current actor is available", async () => {
+    getCurrentUser.mockResolvedValueOnce(null);
+    apiFetch.mockResolvedValueOnce({
+      items: [],
+      total: 0,
+      limit: 20,
+      page: 1,
+    });
+
+    const { loadAdminUsersPage } = await import("./loaders");
+    await loadAdminUsersPage({});
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/v1/admin/users?page=1&limit=20",
+      undefined,
+      undefined,
+    );
   });
 
   it("converts missing admin detail responses into notFound()", async () => {

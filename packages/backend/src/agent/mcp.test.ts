@@ -48,10 +48,16 @@ describe("createConfiguredMcpToolRuntime", () => {
     expect(runtime.serverStatuses).toEqual([
       expect.objectContaining({
         id: "server-1",
+        name: "Browser Ops",
+        endpoint: "https://example.com/mcp",
+        sourceType: "external",
         availability: "available",
         toolCount: 1,
       }),
     ]);
+    expect(runtime.tools.mcp_browser_ops_echo.description).toContain(
+      "MCP server: Browser Ops",
+    );
 
     const result = await runtime.tools.mcp_browser_ops_echo.execute?.(
       { value: "demo" },
@@ -99,11 +105,17 @@ describe("createConfiguredMcpToolRuntime", () => {
     expect(runtime.serverStatuses).toEqual([
       expect.objectContaining({
         id: "server-1",
+        name: "Offline",
+        endpoint: "https://offline.example.com/mcp",
+        sourceType: "external",
         availability: "unavailable",
         error: "offline",
       }),
       expect.objectContaining({
         id: "server-2",
+        name: "Live",
+        endpoint: "https://live.example.com/mcp",
+        sourceType: "external",
         availability: "available",
         toolCount: 1,
       }),
@@ -152,12 +164,18 @@ describe("createConfiguredMcpToolRuntime", () => {
     expect(results).toEqual([
       expect.objectContaining({
         id: "server-1",
+        name: "Offline",
+        endpoint: "https://offline.example.com/mcp",
+        sourceType: "external",
         availability: "unavailable",
         success: false,
         toolCount: 0,
       }),
       expect.objectContaining({
         id: "server-2",
+        name: "Live",
+        endpoint: "https://live.example.com/mcp",
+        sourceType: "external",
         availability: "available",
         success: true,
         toolCount: 2,
@@ -197,6 +215,9 @@ describe("createConfiguredMcpToolRuntime", () => {
     expect(runtime.serverStatuses).toEqual([
       expect.objectContaining({
         id: "server-1",
+        name: "Browser Ops",
+        endpoint: "https://example.com/mcp",
+        sourceType: "external",
         availability: "available",
       }),
     ]);

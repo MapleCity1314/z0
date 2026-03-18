@@ -33,12 +33,54 @@ describe("app loaders", () => {
     ]);
 
     const { loadUserProjectsPage } = await import("./loaders");
-    const result = await loadUserProjectsPage();
+    const result = await loadUserProjectsPage({
+      id: "u1",
+      role: "user",
+    });
 
-    expect(apiFetch).toHaveBeenCalledWith("/v1/projects");
+    expect(apiFetch).toHaveBeenCalledWith("/v1/projects", undefined, {
+      actor: {
+        userId: "u1",
+        role: "user",
+      },
+    });
     expect(result[0].createdAt).toBeInstanceOf(Date);
     expect(result[0].likes).toBe(0);
     expect(result[0].views).toBe(0);
+  });
+
+  it("defaults the loader actor role to user for project requests", async () => {
+    apiFetch.mockResolvedValueOnce([
+      {
+        id: "p1",
+        userId: "u1",
+        name: "Alpha",
+        description: null,
+        type: "react",
+        status: "draft",
+        visibility: "private",
+        files: {},
+        tags: [],
+        deploymentUrl: null,
+        deploymentProvider: null,
+        createdAt: "2026-03-01T00:00:00.000Z",
+        updatedAt: "2026-03-02T00:00:00.000Z",
+        publishedAt: null,
+        lastDeployedAt: null,
+      },
+    ]);
+
+    const { loadUserProjectsPage } = await import("./loaders");
+    await loadUserProjectsPage({
+      id: "u1",
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith("/v1/projects", undefined, {
+      actor: {
+        userId: "u1",
+        role: "user",
+      },
+    });
   });
 
   it("maps published versions to date-aware records", async () => {

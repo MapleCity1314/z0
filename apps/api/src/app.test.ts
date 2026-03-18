@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Hono } from "hono";
 import { ok, fail } from "@z0/backend";
 import type {
+  AgentCapabilityBoundarySnapshot,
   AdminDashboardActivityDto,
   AdminDashboardStatsDto,
   AdminFeedbackStatsDto,
@@ -22,6 +23,8 @@ const adminHeaders = {
 type ApiErrorResponse = {
   error: ApiErrorPayload;
 };
+
+type ApiSuccessResponse<T> = ApiSuccessPayload<T>;
 
 function createServices() {
   return {
@@ -100,8 +103,11 @@ describe("createApp", () => {
 
   it("returns 401 when actor headers are missing", async () => {
     const response = await app.request("/v1/projects");
+    const payload = (await response.json()) as ApiErrorResponse;
 
     expect(response.status).toBe(401);
+    expect(payload.error.message).toBe("Unauthorized");
+    expect(payload.error.code).toBe("unauthorized");
   });
 
   it("protects the agent chat route with actor headers", async () => {
@@ -117,15 +123,18 @@ describe("createApp", () => {
       }),
       headers: { "content-type": "application/json" },
     });
+    const payload = (await response.json()) as ApiErrorResponse;
 
     expect(response.status).toBe(401);
+    expect(payload.error.message).toBe("Unauthorized");
   });
 
   it("returns the agent capability boundary snapshot for authenticated actors", async () => {
     const response = await app.request("/v1/agent/capabilities", {
       headers: actorHeaders,
     });
-    const payload = (await response.json()) as any;
+    const payload =
+      (await response.json()) as ApiSuccessResponse<AgentCapabilityBoundarySnapshot>;
 
     expect(response.status).toBe(200);
     expect(payload.data.contractVersion).toBe(
@@ -269,8 +278,26 @@ describe("createApp", () => {
     const response = await app.request("/v1/admin/dashboard", {
       headers: actorHeaders,
     });
+    const payload = (await response.json()) as ApiErrorResponse;
 
     expect(response.status).toBe(403);
+    expect(payload.error.code).toBe("forbidden");
+    expect(payload.error.message).toBe("Forbidden");
+  });
+
+  it("returns the standard internal error payload for unexpected failures", async () => {
+    services.projectsService.listByUser.mockRejectedValueOnce(new Error("boom"));
+
+    const response = await app.request("/v1/projects", {
+      headers: actorHeaders,
+    });
+    const payload = (await response.json()) as ApiErrorResponse;
+
+    expect(response.status).toBe(500);
+    expect(payload.error).toEqual({
+      code: "internal_error",
+      message: "Internal server error",
+    });
   });
 
   it("returns dashboard and activity payloads for admins", async () => {

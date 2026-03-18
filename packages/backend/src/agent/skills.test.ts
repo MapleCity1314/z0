@@ -145,6 +145,28 @@ describe("agent skills", () => {
     expect(buildSkillsPrompt([skill])).toContain("patch-skill");
   });
 
+  it("returns a structured error when a requested skill is missing", async () => {
+    const workspaceRoot = createTempRoot();
+    writeSkill(workspaceRoot, "patch-skill", "Patch files carefully");
+
+    const [skill] = await discoverAgentSkills({
+      workspaceSkillDirectories: [workspaceRoot],
+    });
+
+    const tools = createSkillTools([skill]);
+    const loadSkillTool = tools.loadSkill;
+
+    if (!loadSkillTool?.execute) {
+      throw new Error("loadSkill tool was not created");
+    }
+
+    await expect(
+      loadSkillTool.execute({ name: "missing-skill" }, {} as never),
+    ).resolves.toEqual({
+      error: "Skill 'missing-skill' not found",
+    });
+  });
+
   it("includes the built-in backend skill directory by default", () => {
     expect(
       getDefaultSkillDirectories().some((directory) =>

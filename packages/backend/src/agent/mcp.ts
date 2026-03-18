@@ -10,6 +10,16 @@ export type AgentMcpServerMetadata = {
   sourceType: string;
 };
 
+export type AgentMcpServerRuntimeStatus = {
+  id: string;
+  name: string;
+  endpoint: string;
+  sourceType: string;
+  availability: "available" | "unavailable";
+  toolCount: number;
+  error?: string;
+};
+
 export type AgentMcpToolMetadata = {
   name: string;
   serverName: string;
@@ -21,16 +31,12 @@ export type AgentMcpToolMetadata = {
 export type AgentMcpRuntime = {
   tools: ToolSet;
   mcpTools: AgentMcpToolMetadata[];
+  serverStatuses: AgentMcpServerRuntimeStatus[];
   close: () => Promise<void>;
 };
 
-export type AgentMcpWarmResult = {
-  id: string;
-  name: string;
-  endpoint: string;
+export type AgentMcpWarmResult = AgentMcpServerRuntimeStatus & {
   success: boolean;
-  toolCount: number;
-  error?: string;
 };
 
 const MCP_RUNTIME_IDLE_TTL_MS = 15 * 60 * 1000;
@@ -150,7 +156,7 @@ async function createRuntimeWithWarmResults(params: {
   const usedNames = new Set(params.reservedToolNames ?? []);
   const toolSets: ToolSet[] = [];
   const metadata: AgentMcpToolMetadata[] = [];
-  const warmResults: AgentMcpWarmResult[] = [];
+  const serverStatuses: AgentMcpServerRuntimeStatus[] = [];
 
   for (const server of params.servers) {
     try {
@@ -167,19 +173,21 @@ async function createRuntimeWithWarmResults(params: {
       clients.push(client);
       toolSets.push(merged.tools);
       metadata.push(...merged.mcpTools);
-      warmResults.push({
+      serverStatuses.push({
         id: server.id,
         name: server.name,
         endpoint: server.endpoint,
-        success: true,
+        sourceType: server.sourceType,
+        availability: "available",
         toolCount: Object.keys(serverTools).length,
       });
     } catch (error) {
-      warmResults.push({
+      serverStatuses.push({
         id: server.id,
         name: server.name,
         endpoint: server.endpoint,
-        success: false,
+        sourceType: server.sourceType,
+        availability: "unavailable",
         toolCount: 0,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -190,14 +198,30 @@ async function createRuntimeWithWarmResults(params: {
     runtime: {
       tools: Object.assign({}, ...toolSets) satisfies ToolSet,
       mcpTools: metadata,
+      serverStatuses,
       close: async () => {
         await Promise.all(
           clients.map((client) => client.close().catch(() => undefined)),
         );
       },
     } satisfies AgentMcpRuntime,
-    warmResults,
+    warmResults: serverStatuses.map((status) => ({
+      ...status,
+      success: status.availability === "available",
+    })),
   };
+}
+
+async function resolvePooledEntry(
+  key: string,
+  entryPromise: Promise<PooledMcpRuntimeEntry>,
+) {
+  try {
+    return await entryPromise;
+  } catch (error) {
+    pooledMcpRuntimes.delete(key);
+    throw error;
+  }
 }
 
 export async function getConfiguredMcpServers(params: {
@@ -266,7 +290,7 @@ export async function getOrCreatePooledMcpToolRuntime(params: {
   const existing = pooledMcpRuntimes.get(key);
 
   if (existing) {
-    const entry = await existing;
+    const entry = await resolvePooledEntry(key, existing);
     entry.lastAccessedAt = Date.now();
     return {
       ...entry.runtime,
@@ -312,7 +336,7 @@ export async function warmPooledMcpServers(params: {
   const existing = pooledMcpRuntimes.get(key);
 
   if (existing) {
-    const entry = await existing;
+    const entry = await resolvePooledEntry(key, existing);
     entry.lastAccessedAt = Date.now();
     return entry.warmResults;
   }

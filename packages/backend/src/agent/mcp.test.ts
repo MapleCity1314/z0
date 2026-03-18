@@ -45,6 +45,13 @@ describe("createConfiguredMcpToolRuntime", () => {
         serverName: "Browser Ops",
       }),
     ]);
+    expect(runtime.serverStatuses).toEqual([
+      expect.objectContaining({
+        id: "server-1",
+        availability: "available",
+        toolCount: 1,
+      }),
+    ]);
 
     const result = await runtime.tools.mcp_browser_ops_echo.execute?.(
       { value: "demo" },
@@ -89,6 +96,18 @@ describe("createConfiguredMcpToolRuntime", () => {
     });
 
     expect(Object.keys(runtime.tools)).toEqual(["mcp_live_ping"]);
+    expect(runtime.serverStatuses).toEqual([
+      expect.objectContaining({
+        id: "server-1",
+        availability: "unavailable",
+        error: "offline",
+      }),
+      expect.objectContaining({
+        id: "server-2",
+        availability: "available",
+        toolCount: 1,
+      }),
+    ]);
     await runtime.close();
   });
 
@@ -133,11 +152,13 @@ describe("createConfiguredMcpToolRuntime", () => {
     expect(results).toEqual([
       expect.objectContaining({
         id: "server-1",
+        availability: "unavailable",
         success: false,
         toolCount: 0,
       }),
       expect.objectContaining({
         id: "server-2",
+        availability: "available",
         success: true,
         toolCount: 2,
       }),
@@ -173,5 +194,11 @@ describe("createConfiguredMcpToolRuntime", () => {
 
     expect(vi.mocked(createMCPClient)).toHaveBeenCalledTimes(1);
     expect(Object.keys(runtime.tools)).toEqual(["mcp_browser_ops_echo"]);
+    expect(runtime.serverStatuses).toEqual([
+      expect.objectContaining({
+        id: "server-1",
+        availability: "available",
+      }),
+    ]);
   });
 });

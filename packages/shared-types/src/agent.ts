@@ -25,7 +25,7 @@ export type AgentCapabilitySurface =
   | "workflow"
   | "subagent-role";
 
-export type AgentPluginStatus = "planned" | "active";
+export type AgentPluginStatus = "planned" | "experimental" | "active";
 
 export type AgentToolMigrationStage =
   | "stable-core"
@@ -48,6 +48,7 @@ export interface AgentPluginManifest {
   name: string;
   status: AgentPluginStatus;
   description: string;
+  highlights: string[];
   tools?: string[];
   skills?: string[];
   mcpServers?: string[];
@@ -55,6 +56,21 @@ export interface AgentPluginManifest {
   workflows?: string[];
   subagentRoles?: string[];
   dependencies?: AgentPluginId[];
+}
+
+export interface AgentPluginInventoryItem {
+  id: AgentPluginId;
+  name: string;
+  description: string;
+  status: AgentPluginStatus;
+  highlights: string[];
+  dependencies: AgentPluginId[];
+  tools: string[];
+  skills: string[];
+  mcpServers: string[];
+  uiPanels: string[];
+  workflows: string[];
+  subagentRoles: string[];
 }
 
 export interface AgentToolOwnershipRecord {
@@ -76,9 +92,10 @@ export interface AgentPluginMigrationNote {
 }
 
 export interface AgentCapabilityBoundarySnapshot {
-  contractVersion: "2026-03-core-plugin-boundary-v1";
+  contractVersion: "2026-03-core-plugin-boundary-v2";
   coreCapabilities: AgentCoreCapabilityDescriptor[];
   pluginManifests: AgentPluginManifest[];
+  pluginInventory: AgentPluginInventoryItem[];
   toolOwnership: AgentToolOwnershipRecord[];
   migrationNotes: AgentPluginMigrationNote[];
 }

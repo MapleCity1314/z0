@@ -1,3 +1,5 @@
+import type { AgentPluginStatus } from "@z0/shared-types";
+
 export type ConversationMcpServer = {
   userMcpServerId: string;
   systemServerId: string;
@@ -30,4 +32,19 @@ export type SystemSkillMarketItem = {
   name: string;
   directory: string;
   sourceType: string;
+};
+
+export type SystemPluginMarketItem = {
+  pluginId: string;
+  name: string;
+  status: AgentPluginStatus;
+  description: string;
+  highlights: string[];
+  tools: string[];
+  skills: string[];
+  mcpServers: string[];
+  uiPanels: string[];
+  workflows: string[];
+  subagentRoles: string[];
+  dependencies: string[];
 };

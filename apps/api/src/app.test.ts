@@ -138,13 +138,25 @@ describe("createApp", () => {
 
     expect(response.status).toBe(200);
     expect(payload.data.contractVersion).toBe(
-      "2026-03-core-plugin-boundary-v1",
+      "2026-03-core-plugin-boundary-v2",
     );
     expect(payload.data.pluginManifests).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "@z0/plugin-project" }),
         expect.objectContaining({ id: "@z0/plugin-search" }),
         expect.objectContaining({ id: "@z0/plugin-subagents" }),
+      ]),
+    );
+    expect(payload.data.pluginInventory).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "@z0/plugin-project",
+          highlights: expect.arrayContaining([
+            "Project lifecycle and workspace management",
+          ]),
+          tools: ["project:*"],
+          workflows: ["modify-run-inspect-iterate"],
+        }),
       ]),
     );
   });

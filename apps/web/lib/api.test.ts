@@ -17,7 +17,7 @@ describe("apiFetch", () => {
     vi.clearAllMocks();
   });
 
-  it("throws the plain-text response message when the api does not return json", async () => {
+  it("normalizes plain-text 401 responses into an auth error", async () => {
     headersMock.mockResolvedValue({
       get: vi.fn(() => null),
     });
@@ -36,7 +36,11 @@ describe("apiFetch", () => {
 
     const { apiFetch } = await import("./api");
 
-    await expect(apiFetch("/v1/projects")).rejects.toThrow("Unauthorized");
+    await expect(apiFetch("/v1/projects")).rejects.toMatchObject({
+      name: "ApiClientError",
+      status: 401,
+      message: "Authentication required",
+    });
   });
 
   it("returns typed data for successful json responses", async () => {
@@ -63,7 +67,7 @@ describe("apiFetch", () => {
     });
   });
 
-  it("throws the API error message from json payloads", async () => {
+  it("normalizes 403 responses into a safe access-denied message", async () => {
     headersMock.mockResolvedValue({
       get: vi.fn(() => "session=abc"),
     });
@@ -90,9 +94,79 @@ describe("apiFetch", () => {
 
     const { apiFetch } = await import("./api");
 
-    await expect(apiFetch("/v1/projects/prj-1")).rejects.toThrow(
-      "Project access denied",
+    await expect(apiFetch("/v1/projects/prj-1")).rejects.toMatchObject({
+      name: "ApiClientError",
+      status: 403,
+      message: "You do not have access to this resource.",
+    });
+  });
+
+  it("preserves validation messages for 422 responses", async () => {
+    headersMock.mockResolvedValue({
+      get: vi.fn(() => null),
+    });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              code: "validation_error",
+              message: "Version is required",
+            },
+          }),
+          {
+            status: 422,
+            headers: {
+              "content-type": "application/json",
+            },
+          },
+        ),
+      ),
     );
+
+    const { apiFetch } = await import("./api");
+
+    await expect(apiFetch("/v1/admin/versions")).rejects.toMatchObject({
+      name: "ApiClientError",
+      status: 422,
+      code: "validation_error",
+      message: "Version is required",
+    });
+  });
+
+  it("hides raw 500 messages behind a generic fallback", async () => {
+    headersMock.mockResolvedValue({
+      get: vi.fn(() => null),
+    });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              message: "database connection exploded",
+            },
+          }),
+          {
+            status: 500,
+            headers: {
+              "content-type": "application/json",
+            },
+          },
+        ),
+      ),
+    );
+
+    const { apiFetch } = await import("./api");
+
+    await expect(apiFetch("/v1/admin/dashboard")).rejects.toMatchObject({
+      name: "ApiClientError",
+      status: 500,
+      message: "Something went wrong. Please try again later.",
+    });
   });
 
   it("uses internal auth headers instead of cookies when an actor is provided", async () => {

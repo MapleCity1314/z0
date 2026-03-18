@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   publishVersionAction,
@@ -24,13 +25,19 @@ export function VersionActions({
 
   const handlePublish = () => {
     startTransition(async () => {
-      await publishVersionAction(versionId);
+      const result = await publishVersionAction(versionId);
+      if (!result.success) {
+        toast.error(result.message);
+      }
     });
   };
 
   const handleArchive = () => {
     startTransition(async () => {
-      await archiveVersionAction(versionId);
+      const result = await archiveVersionAction(versionId);
+      if (!result.success) {
+        toast.error(result.message);
+      }
     });
   };
 
@@ -38,7 +45,10 @@ export function VersionActions({
     if (!confirm("Are you sure you want to delete this version?")) return;
 
     startTransition(async () => {
-      await deleteVersionAction(versionId);
+      const result = await deleteVersionAction(versionId);
+      if (result && !result.success) {
+        toast.error(result.message);
+      }
     });
   };
 

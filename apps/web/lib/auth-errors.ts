@@ -1,9 +1,15 @@
-export function isUnauthenticatedMessage(message?: string | null) {
-  if (!message) {
+import { isApiErrorStatus } from "@/lib/api";
+
+export function isUnauthenticatedMessage(errorOrMessage?: unknown) {
+  if (isApiErrorStatus(errorOrMessage, 401)) {
+    return true;
+  }
+
+  if (typeof errorOrMessage !== "string") {
     return false;
   }
 
-  const normalized = message.trim().toLowerCase();
+  const normalized = errorOrMessage.trim().toLowerCase();
 
   return (
     normalized === "unauthorized" ||

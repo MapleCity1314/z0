@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ApiClientError } from "./api";
 import { isUnauthenticatedMessage } from "./auth-errors";
 
 describe("isUnauthenticatedMessage", () => {
@@ -11,5 +12,16 @@ describe("isUnauthenticatedMessage", () => {
   it("ignores unrelated errors", () => {
     expect(isUnauthenticatedMessage("Failed to load project")).toBe(false);
     expect(isUnauthenticatedMessage(undefined)).toBe(false);
+  });
+
+  it("matches 401 api client errors", () => {
+    expect(
+      isUnauthenticatedMessage(
+        new ApiClientError({
+          status: 401,
+          message: "Authentication required",
+        }),
+      ),
+    ).toBe(true);
   });
 });

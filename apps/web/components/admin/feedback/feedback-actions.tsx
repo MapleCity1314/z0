@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -37,12 +38,18 @@ export function FeedbackActions({
   const [response, setResponse] = useState("");
 
   const handleStatusChange = (newStatus: string) => {
+    const previousStatus = status;
     setStatus(newStatus);
     startTransition(async () => {
-      await updateFeedbackStatusAction(
+      const result = await updateFeedbackStatusAction(
         feedbackId,
-        newStatus as "pending" | "reviewing" | "planned" | "completed" | "rejected"
+        newStatus as "pending" | "reviewing" | "planned" | "completed" | "rejected",
       );
+
+      if (!result.success) {
+        setStatus(previousStatus);
+        toast.error(result.message);
+      }
     });
   };
 
@@ -50,7 +57,12 @@ export function FeedbackActions({
     if (!response.trim()) return;
 
     startTransition(async () => {
-      await addFeedbackResponseAction(feedbackId, response);
+      const result = await addFeedbackResponseAction(feedbackId, response);
+      if (!result.success) {
+        toast.error(result.message);
+        return;
+      }
+
       setResponse("");
     });
   };

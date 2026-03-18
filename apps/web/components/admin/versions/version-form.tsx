@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,12 +39,16 @@ export function VersionForm({ initialData }: VersionFormProps) {
     e.preventDefault();
 
     startTransition(async () => {
-      await createVersionAction({
+      const result = await createVersionAction({
         version: formData.version,
         title: formData.title,
         description: formData.description || undefined,
         type: formData.type as "major" | "minor" | "patch",
       });
+
+      if (result && !result.success) {
+        toast.error(result.message);
+      }
     });
   };
 

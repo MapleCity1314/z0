@@ -7,7 +7,7 @@ import {
   type ProjectRecord,
 } from "@z0/backend";
 import { z } from "zod";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getApiErrorMessage } from "@/lib/api";
 import { requireAuth } from "@/lib/session";
 
 const projectStatusFilterSchema = z.enum([
@@ -49,11 +49,11 @@ type ProjectInfo = {
   updatedAt: Date;
 };
 
-function toErrorMessage(error: unknown) {
+function toErrorMessage(error: unknown, fallback: string) {
   if (error instanceof z.ZodError) {
     return "Invalid project input";
   }
-  return error instanceof Error ? error.message : "Unknown project error";
+  return getApiErrorMessage(error, fallback);
 }
 
 async function getActor() {
@@ -129,7 +129,10 @@ export async function createProjectAction(
       },
     };
   } catch (error) {
-    return { success: false, error: toErrorMessage(error) };
+    return {
+      success: false,
+      error: toErrorMessage(error, "Failed to create project."),
+    };
   }
 }
 
@@ -181,7 +184,10 @@ export async function listProjectsAction(params?: {
       },
     };
   } catch (error) {
-    return { success: false, error: toErrorMessage(error) };
+    return {
+      success: false,
+      error: toErrorMessage(error, "Failed to list projects."),
+    };
   }
 }
 
@@ -192,7 +198,10 @@ export async function getProjectInfoAction(
     const project = await fetchOwnedProject(z.string().uuid().parse(projectId));
     return { success: true, data: toProjectInfo(project) };
   } catch (error) {
-    return { success: false, error: toErrorMessage(error) };
+    return {
+      success: false,
+      error: toErrorMessage(error, "Failed to load project."),
+    };
   }
 }
 
@@ -231,7 +240,10 @@ export async function updateProjectInfoAction(
       },
     };
   } catch (error) {
-    return { success: false, error: toErrorMessage(error) };
+    return {
+      success: false,
+      error: toErrorMessage(error, "Failed to update project metadata."),
+    };
   }
 }
 
@@ -249,7 +261,10 @@ export async function verifyProjectOwnership(
     );
     return { success: true, data: { userId: actor.userId } };
   } catch (error) {
-    return { success: false, error: toErrorMessage(error) };
+    return {
+      success: false,
+      error: toErrorMessage(error, "Failed to verify project ownership."),
+    };
   }
 }
 
@@ -281,7 +296,10 @@ export async function updateProjectFilesAction(
       },
     };
   } catch (error) {
-    return { success: false, error: toErrorMessage(error) };
+    return {
+      success: false,
+      error: toErrorMessage(error, "Failed to update project files."),
+    };
   }
 }
 
@@ -319,6 +337,9 @@ export async function deleteProjectFileAction(
       },
     };
   } catch (error) {
-    return { success: false, error: toErrorMessage(error) };
+    return {
+      success: false,
+      error: toErrorMessage(error, "Failed to delete the project file."),
+    };
   }
 }

@@ -1,6 +1,10 @@
 import { cache } from "react";
-import { notFound } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { notFound, redirect } from "next/navigation";
+import {
+  apiFetch,
+  getApiErrorMessage,
+  isApiErrorStatus,
+} from "@/lib/api";
 import { getCurrentUser } from "@/lib/session";
 import type {
   AdminChatDetailResponse,
@@ -56,59 +60,83 @@ async function getLoaderActorOptions() {
   };
 }
 
-export async function loadAdminDashboard() {
-  const actorOptions = await getLoaderActorOptions();
-  const [stats, activity] = await Promise.all([
-    apiFetch<AdminDashboardResponse>(
-      "/v1/admin/dashboard",
-      undefined,
-      actorOptions,
-    ),
-    apiFetch<AdminDashboardActivityResponse>(
-      "/v1/admin/dashboard/activity",
-      undefined,
-      actorOptions,
-    ),
-  ]);
+function handleAdminLoaderError(
+  error: unknown,
+  fallback: string,
+  options?: { allowNotFound?: boolean },
+): never {
+  if (isApiErrorStatus(error, 401, 403)) {
+    redirect("/auth");
+  }
 
-  return {
-    stats,
-    activity: {
-      recentUsers: activity.recentUsers.map((item) => ({
-        ...item,
-        createdAt: toDate(item.createdAt),
-      })),
-      recentChats: activity.recentChats.map((item) => ({
-        ...item,
-        createdAt: toDate(item.createdAt),
-      })),
-      recentFeedback: activity.recentFeedback.map((item) => ({
-        ...item,
-        createdAt: toDate(item.createdAt),
-      })),
-    },
-  };
+  if (options?.allowNotFound && isApiErrorStatus(error, 404)) {
+    notFound();
+  }
+
+  throw new Error(getApiErrorMessage(error, fallback));
+}
+
+export async function loadAdminDashboard() {
+  try {
+    const actorOptions = await getLoaderActorOptions();
+    const [stats, activity] = await Promise.all([
+      apiFetch<AdminDashboardResponse>(
+        "/v1/admin/dashboard",
+        undefined,
+        actorOptions,
+      ),
+      apiFetch<AdminDashboardActivityResponse>(
+        "/v1/admin/dashboard/activity",
+        undefined,
+        actorOptions,
+      ),
+    ]);
+
+    return {
+      stats,
+      activity: {
+        recentUsers: activity.recentUsers.map((item) => ({
+          ...item,
+          createdAt: toDate(item.createdAt),
+        })),
+        recentChats: activity.recentChats.map((item) => ({
+          ...item,
+          createdAt: toDate(item.createdAt),
+        })),
+        recentFeedback: activity.recentFeedback.map((item) => ({
+          ...item,
+          createdAt: toDate(item.createdAt),
+        })),
+      },
+    };
+  } catch (error) {
+    handleAdminLoaderError(error, "Failed to load the admin dashboard.");
+  }
 }
 
 export async function loadAdminUsersPage(searchParams: { page?: string }) {
-  const page = toPositivePage(searchParams.page);
-  const actorOptions = await getLoaderActorOptions();
-  const response = await apiFetch<AdminUsersPageResponse>(
-    `/v1/admin/users?${buildQuery({ page, limit: 20 })}`,
-    undefined,
-    actorOptions,
-  );
+  try {
+    const page = toPositivePage(searchParams.page);
+    const actorOptions = await getLoaderActorOptions();
+    const response = await apiFetch<AdminUsersPageResponse>(
+      `/v1/admin/users?${buildQuery({ page, limit: 20 })}`,
+      undefined,
+      actorOptions,
+    );
 
-  return {
-    page,
-    total: response.total,
-    totalPages: Math.ceil(response.total / response.limit),
-    users: response.items.map((item) => ({
-      ...item,
-      createdAt: toDate(item.createdAt),
-      updatedAt: toDate(item.updatedAt),
-    })),
-  };
+    return {
+      page,
+      total: response.total,
+      totalPages: Math.ceil(response.total / response.limit),
+      users: response.items.map((item) => ({
+        ...item,
+        createdAt: toDate(item.createdAt),
+        updatedAt: toDate(item.updatedAt),
+      })),
+    };
+  } catch (error) {
+    handleAdminLoaderError(error, "Failed to load admin users.");
+  }
 }
 
 export const loadAdminUserDetail = cache(async (id: string) => {
@@ -124,8 +152,10 @@ export const loadAdminUserDetail = cache(async (id: string) => {
       createdAt: toDate(user.createdAt),
       updatedAt: toDate(user.updatedAt),
     };
-  } catch {
-    notFound();
+  } catch (error) {
+    handleAdminLoaderError(error, "Failed to load the admin user.", {
+      allowNotFound: true,
+    });
   }
 });
 
@@ -133,27 +163,31 @@ export async function loadAdminChatsPage(searchParams: {
   page?: string;
   userId?: string;
 }) {
-  const page = toPositivePage(searchParams.page);
-  const actorOptions = await getLoaderActorOptions();
-  const response = await apiFetch<AdminChatsPageResponse>(
-    `/v1/admin/chats?${buildQuery({
-      page,
-      limit: 20,
-      userId: searchParams.userId,
-    })}`,
-    undefined,
-    actorOptions,
-  );
+  try {
+    const page = toPositivePage(searchParams.page);
+    const actorOptions = await getLoaderActorOptions();
+    const response = await apiFetch<AdminChatsPageResponse>(
+      `/v1/admin/chats?${buildQuery({
+        page,
+        limit: 20,
+        userId: searchParams.userId,
+      })}`,
+      undefined,
+      actorOptions,
+    );
 
-  return {
-    page,
-    total: response.total,
-    totalPages: Math.ceil(response.total / response.limit),
-    chats: response.items.map((item) => ({
-      ...item,
-      createdAt: toDate(item.createdAt),
-    })),
-  };
+    return {
+      page,
+      total: response.total,
+      totalPages: Math.ceil(response.total / response.limit),
+      chats: response.items.map((item) => ({
+        ...item,
+        createdAt: toDate(item.createdAt),
+      })),
+    };
+  } catch (error) {
+    handleAdminLoaderError(error, "Failed to load admin chats.");
+  }
 }
 
 export const loadAdminChatDetail = cache(async (id: string) => {
@@ -172,8 +206,10 @@ export const loadAdminChatDetail = cache(async (id: string) => {
         createdAt: toDate(message.createdAt),
       })),
     };
-  } catch {
-    notFound();
+  } catch (error) {
+    handleAdminLoaderError(error, "Failed to load the admin chat.", {
+      allowNotFound: true,
+    });
   }
 });
 
@@ -183,30 +219,34 @@ export async function loadAdminProjectsPage(searchParams: {
   status?: string;
   visibility?: string;
 }) {
-  const page = toPositivePage(searchParams.page);
-  const actorOptions = await getLoaderActorOptions();
-  const response = await apiFetch<AdminProjectsPageResponse>(
-    `/v1/admin/projects?${buildQuery({
-      page,
-      limit: 20,
-      type: searchParams.type,
-      status: searchParams.status,
-      visibility: searchParams.visibility,
-    })}`,
-    undefined,
-    actorOptions,
-  );
+  try {
+    const page = toPositivePage(searchParams.page);
+    const actorOptions = await getLoaderActorOptions();
+    const response = await apiFetch<AdminProjectsPageResponse>(
+      `/v1/admin/projects?${buildQuery({
+        page,
+        limit: 20,
+        type: searchParams.type,
+        status: searchParams.status,
+        visibility: searchParams.visibility,
+      })}`,
+      undefined,
+      actorOptions,
+    );
 
-  return {
-    page,
-    total: response.total,
-    totalPages: Math.ceil(response.total / response.limit),
-    projects: response.items.map((item) => ({
-      ...item,
-      createdAt: toDate(item.createdAt),
-      updatedAt: toDate(item.updatedAt),
-    })),
-  };
+    return {
+      page,
+      total: response.total,
+      totalPages: Math.ceil(response.total / response.limit),
+      projects: response.items.map((item) => ({
+        ...item,
+        createdAt: toDate(item.createdAt),
+        updatedAt: toDate(item.updatedAt),
+      })),
+    };
+  } catch (error) {
+    handleAdminLoaderError(error, "Failed to load admin projects.");
+  }
 }
 
 export const loadAdminProjectDetail = cache(async (id: string) => {
@@ -223,8 +263,10 @@ export const loadAdminProjectDetail = cache(async (id: string) => {
       updatedAt: toDate(project.updatedAt),
       publishedAt: project.publishedAt ? toDate(project.publishedAt) : null,
     };
-  } catch {
-    notFound();
+  } catch (error) {
+    handleAdminLoaderError(error, "Failed to load the admin project.", {
+      allowNotFound: true,
+    });
   }
 });
 
@@ -233,33 +275,37 @@ export async function loadAdminFeedbackPage(searchParams: {
   status?: string;
   priority?: string;
 }) {
-  const actorOptions = await getLoaderActorOptions();
-  const [feedback, stats] = await Promise.all([
-    apiFetch<AdminFeedbackListItemResponse[]>(
-      `/v1/admin/feedback?${buildQuery({
-        type: searchParams.type,
-        status: searchParams.status,
-        priority: searchParams.priority,
-      })}`,
-      undefined,
-      actorOptions,
-    ),
-    apiFetch<AdminFeedbackStatsResponse>(
-      "/v1/admin/feedback/stats",
-      undefined,
-      actorOptions,
-    ),
-  ]);
+  try {
+    const actorOptions = await getLoaderActorOptions();
+    const [feedback, stats] = await Promise.all([
+      apiFetch<AdminFeedbackListItemResponse[]>(
+        `/v1/admin/feedback?${buildQuery({
+          type: searchParams.type,
+          status: searchParams.status,
+          priority: searchParams.priority,
+        })}`,
+        undefined,
+        actorOptions,
+      ),
+      apiFetch<AdminFeedbackStatsResponse>(
+        "/v1/admin/feedback/stats",
+        undefined,
+        actorOptions,
+      ),
+    ]);
 
-  return {
-    stats,
-    feedback: feedback.map((item) => ({
-      ...item,
-      createdAt: toDate(item.createdAt),
-      updatedAt: toDate(item.updatedAt),
-      respondedAt: item.respondedAt ? toDate(item.respondedAt) : null,
-    })),
-  };
+    return {
+      stats,
+      feedback: feedback.map((item) => ({
+        ...item,
+        createdAt: toDate(item.createdAt),
+        updatedAt: toDate(item.updatedAt),
+        respondedAt: item.respondedAt ? toDate(item.respondedAt) : null,
+      })),
+    };
+  } catch (error) {
+    handleAdminLoaderError(error, "Failed to load admin feedback.");
+  }
 }
 
 export const loadAdminFeedbackDetail = cache(async (id: string) => {
@@ -276,25 +322,31 @@ export const loadAdminFeedbackDetail = cache(async (id: string) => {
       updatedAt: toDate(feedback.updatedAt),
       respondedAt: feedback.respondedAt ? toDate(feedback.respondedAt) : null,
     };
-  } catch {
-    notFound();
+  } catch (error) {
+    handleAdminLoaderError(error, "Failed to load the admin feedback.", {
+      allowNotFound: true,
+    });
   }
 });
 
 export async function loadAdminVersionsPage() {
-  const actorOptions = await getLoaderActorOptions();
-  const versions = await apiFetch<AdminVersionsListResponse>(
-    "/v1/admin/versions",
-    undefined,
-    actorOptions,
-  );
+  try {
+    const actorOptions = await getLoaderActorOptions();
+    const versions = await apiFetch<AdminVersionsListResponse>(
+      "/v1/admin/versions",
+      undefined,
+      actorOptions,
+    );
 
-  return versions.map((item) => ({
-    ...item,
-    createdAt: toDate(item.createdAt),
-    updatedAt: toDate(item.updatedAt),
-    publishedAt: item.publishedAt ? toDate(item.publishedAt) : null,
-  }));
+    return versions.map((item) => ({
+      ...item,
+      createdAt: toDate(item.createdAt),
+      updatedAt: toDate(item.updatedAt),
+      publishedAt: item.publishedAt ? toDate(item.publishedAt) : null,
+    }));
+  } catch (error) {
+    handleAdminLoaderError(error, "Failed to load admin versions.");
+  }
 }
 
 export const loadAdminVersionDetail = cache(async (id: string) => {
@@ -311,8 +363,10 @@ export const loadAdminVersionDetail = cache(async (id: string) => {
       updatedAt: toDate(version.updatedAt),
       publishedAt: version.publishedAt ? toDate(version.publishedAt) : null,
     };
-  } catch {
-    notFound();
+  } catch (error) {
+    handleAdminLoaderError(error, "Failed to load the admin version.", {
+      allowNotFound: true,
+    });
   }
 });
 

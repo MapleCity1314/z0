@@ -1,5 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+class MockApiClientError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiClientError";
+    this.status = status;
+  }
+}
+
 const requireAuth = vi.fn();
 const apiFetch = vi.fn();
 
@@ -9,6 +19,10 @@ vi.mock("@/lib/session", () => ({
 
 vi.mock("@/lib/api", () => ({
   apiFetch,
+  getApiErrorMessage: vi.fn(
+    (error: unknown, fallback: string) =>
+      error instanceof Error && error.message ? error.message : fallback,
+  ),
 }));
 
 describe("project db actions", () => {
@@ -122,5 +136,19 @@ describe("project db actions", () => {
       error: "Invalid project input",
     });
     expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it("returns normalized auth errors from api failures", async () => {
+    apiFetch.mockRejectedValueOnce(
+      new MockApiClientError(401, "Authentication required"),
+    );
+
+    const { listProjectsAction } = await import("./project-actions");
+    const result = await listProjectsAction();
+
+    expect(result).toEqual({
+      success: false,
+      error: "Authentication required",
+    });
   });
 });

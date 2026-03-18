@@ -1,13 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+class MockApiClientError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiClientError";
+    this.status = status;
+  }
+}
+
 const apiFetch = vi.fn();
 const getCurrentUser = vi.fn();
 const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
+const redirect = vi.fn(() => {
+  throw new Error("NEXT_REDIRECT");
+});
 
 vi.mock("@/lib/api", () => ({
   apiFetch,
+  getApiErrorMessage: vi.fn(
+    (error: unknown, fallback: string) =>
+      error instanceof Error && error.message ? error.message : fallback,
+  ),
+  isApiErrorStatus: vi.fn((error: unknown, ...statuses: number[]) =>
+    error instanceof MockApiClientError && statuses.includes(error.status),
+  ),
 }));
 
 vi.mock("@/lib/session", () => ({
@@ -16,6 +36,7 @@ vi.mock("@/lib/session", () => ({
 
 vi.mock("next/navigation", () => ({
   notFound,
+  redirect,
 }));
 
 describe("admin loaders", () => {
@@ -148,7 +169,9 @@ describe("admin loaders", () => {
   });
 
   it("converts missing admin detail responses into notFound()", async () => {
-    apiFetch.mockRejectedValueOnce(new Error("404"));
+    apiFetch.mockRejectedValueOnce(
+      new MockApiClientError(404, "The requested resource was not found."),
+    );
 
     const { loadAdminVersionDetail } = await import("./loaders");
 
@@ -156,5 +179,19 @@ describe("admin loaders", () => {
       "NEXT_NOT_FOUND",
     );
     expect(notFound).toHaveBeenCalled();
+  });
+
+  it("redirects admin detail loaders to auth on 401 responses", async () => {
+    apiFetch.mockRejectedValueOnce(
+      new MockApiClientError(401, "Authentication required"),
+    );
+
+    const { loadAdminFeedbackDetail } = await import("./loaders");
+
+    await expect(loadAdminFeedbackDetail("fb-1")).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+    expect(redirect).toHaveBeenCalledWith("/auth");
+    expect(notFound).not.toHaveBeenCalled();
   });
 });

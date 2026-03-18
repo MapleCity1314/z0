@@ -33,6 +33,7 @@ export * from "./agent/chat";
 export * from "./agent/plugin-boundary";
 export * from "./modules/admin";
 export * from "./modules/feedback";
+export * from "./modules/integrations";
 export * from "./modules/projects";
 export * from "./modules/users";
 export * from "./modules/versions";

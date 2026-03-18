@@ -33,8 +33,8 @@ vi.mock("next/navigation", () => ({
   unstable_rethrow: unstableRethrow,
 }));
 
-vi.mock("@/lib/api", () => ({
-  getApiErrorMessage: vi.fn(
+vi.mock("@/lib/auth-errors", () => ({
+  getActionErrorMessage: vi.fn(
     (error: unknown, fallback: string) =>
       error instanceof Error && error.message ? error.message : fallback,
   ),

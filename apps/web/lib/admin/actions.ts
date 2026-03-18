@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
-import { getApiErrorMessage } from "@/lib/api";
+import { getActionErrorMessage } from "@/lib/auth-errors";
 import {
   addFeedbackResponse,
   archiveVersion,
@@ -23,7 +23,7 @@ type AdminActionResult =
 function toAdminActionError(error: unknown, fallback: string): AdminActionResult {
   return {
     success: false,
-    message: getApiErrorMessage(error, fallback),
+    message: getActionErrorMessage(error, fallback),
   };
 }
 

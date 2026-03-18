@@ -7,8 +7,9 @@ import {
   type ProjectRecord,
 } from "@z0/backend";
 import { z } from "zod";
-import { apiFetch, getApiErrorMessage } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { requireAuth } from "@/lib/session";
+import { getServerActionErrorMessage } from "@/lib/server-action-errors";
 
 const projectStatusFilterSchema = z.enum([
   "all",
@@ -49,12 +50,7 @@ type ProjectInfo = {
   updatedAt: Date;
 };
 
-function toErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof z.ZodError) {
-    return "Invalid project input";
-  }
-  return getApiErrorMessage(error, fallback);
-}
+const invalidProjectInputMessage = "Invalid project input";
 
 async function getActor() {
   const user = await requireAuth();
@@ -131,7 +127,10 @@ export async function createProjectAction(
   } catch (error) {
     return {
       success: false,
-      error: toErrorMessage(error, "Failed to create project."),
+      error: getServerActionErrorMessage(error, {
+        fallback: "Failed to create project.",
+        invalidInputMessage: invalidProjectInputMessage,
+      }),
     };
   }
 }
@@ -186,7 +185,10 @@ export async function listProjectsAction(params?: {
   } catch (error) {
     return {
       success: false,
-      error: toErrorMessage(error, "Failed to list projects."),
+      error: getServerActionErrorMessage(error, {
+        fallback: "Failed to list projects.",
+        invalidInputMessage: invalidProjectInputMessage,
+      }),
     };
   }
 }
@@ -200,7 +202,10 @@ export async function getProjectInfoAction(
   } catch (error) {
     return {
       success: false,
-      error: toErrorMessage(error, "Failed to load project."),
+      error: getServerActionErrorMessage(error, {
+        fallback: "Failed to load project.",
+        invalidInputMessage: invalidProjectInputMessage,
+      }),
     };
   }
 }
@@ -242,7 +247,10 @@ export async function updateProjectInfoAction(
   } catch (error) {
     return {
       success: false,
-      error: toErrorMessage(error, "Failed to update project metadata."),
+      error: getServerActionErrorMessage(error, {
+        fallback: "Failed to update project metadata.",
+        invalidInputMessage: invalidProjectInputMessage,
+      }),
     };
   }
 }
@@ -263,7 +271,10 @@ export async function verifyProjectOwnership(
   } catch (error) {
     return {
       success: false,
-      error: toErrorMessage(error, "Failed to verify project ownership."),
+      error: getServerActionErrorMessage(error, {
+        fallback: "Failed to verify project ownership.",
+        invalidInputMessage: invalidProjectInputMessage,
+      }),
     };
   }
 }
@@ -278,12 +289,21 @@ export async function updateProjectFilesAction(
       projectId,
       files: newFiles,
     });
+    const current = await apiFetch<ProjectRecord>(
+      `/v1/projects/${parsed.projectId}`,
+      undefined,
+      { actor },
+    );
+    const mergedFiles = {
+      ...(current.files ?? {}),
+      ...parsed.files,
+    };
 
     const updated = await apiFetch<ProjectRecord>(
       `/v1/projects/${parsed.projectId}/files`,
       {
         method: "PATCH",
-        body: JSON.stringify({ files: parsed.files }),
+        body: JSON.stringify({ files: mergedFiles }),
       },
       { actor },
     );
@@ -298,7 +318,10 @@ export async function updateProjectFilesAction(
   } catch (error) {
     return {
       success: false,
-      error: toErrorMessage(error, "Failed to update project files."),
+      error: getServerActionErrorMessage(error, {
+        fallback: "Failed to update project files.",
+        invalidInputMessage: invalidProjectInputMessage,
+      }),
     };
   }
 }
@@ -339,7 +362,10 @@ export async function deleteProjectFileAction(
   } catch (error) {
     return {
       success: false,
-      error: toErrorMessage(error, "Failed to delete the project file."),
+      error: getServerActionErrorMessage(error, {
+        fallback: "Failed to delete the project file.",
+        invalidInputMessage: invalidProjectInputMessage,
+      }),
     };
   }
 }

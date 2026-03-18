@@ -1,10 +1,16 @@
 "use server";
 
 import { apiFetch } from "@/lib/api";
+import { getActionErrorMessage } from "@/lib/auth-errors";
 
 export async function updateProfile(_userId: string, formData: FormData) {
   try {
-    const profile = await apiFetch<{ id: string; name: string; email: string; avatar: string | null }>("/v1/users/me", {
+    const profile = await apiFetch<{
+      id: string;
+      name: string;
+      email: string;
+      avatar: string | null;
+    }>("/v1/users/me", {
       method: "PATCH",
       body: JSON.stringify({
         name: formData.get("name"),
@@ -18,8 +24,10 @@ export async function updateProfile(_userId: string, formData: FormData) {
       data: profile,
     };
   } catch (error) {
-    console.error("Update profile error:", error);
-    return { success: false, message: error instanceof Error ? error.message : "Failed to update profile" };
+    return {
+      success: false,
+      message: getActionErrorMessage(error, "Failed to update profile"),
+    };
   }
 }
 

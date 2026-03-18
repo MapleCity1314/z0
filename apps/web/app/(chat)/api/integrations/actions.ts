@@ -5,6 +5,8 @@ import {
   warmPooledMcpServers,
   type AgentMcpServerMetadata,
 } from "@z0/backend";
+import { AUTHENTICATION_REQUIRED_MESSAGE } from "@/lib/api-errors";
+import { getActionErrorMessage } from "@/lib/auth-errors";
 import { getCurrentUser } from "@/lib/session";
 import { toSystemPluginMarketItems } from "@/components/chat/plugin-market";
 import {
@@ -33,9 +35,16 @@ type ActionResult<T = unknown> = {
 async function requireUser() {
   const user = await getCurrentUser();
   if (!user?.id) {
-    throw new Error("User not authenticated");
+    throw new Error(AUTHENTICATION_REQUIRED_MESSAGE);
   }
   return user;
+}
+
+function toActionError(error: unknown, fallback: string) {
+  return {
+    success: false,
+    message: getActionErrorMessage(error, fallback),
+  } as const;
 }
 
 export async function getChatIntegrationsAction(chatId: string): Promise<
@@ -57,13 +66,7 @@ export async function getChatIntegrationsAction(chatId: string): Promise<
       data: { mcpServers, skills },
     };
   } catch (error) {
-    return {
-      success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Failed to load chat integrations",
-    };
+    return toActionError(error, "Failed to load chat integrations");
   }
 }
 
@@ -82,11 +85,7 @@ export async function addChatMcpServerAction(params: {
     });
     return { success: true, message: "MCP server linked to chat" } as const;
   } catch (error) {
-    return {
-      success: false,
-      message:
-        error instanceof Error ? error.message : "Failed to add MCP server",
-    } as const;
+    return toActionError(error, "Failed to add MCP server");
   }
 }
 
@@ -113,13 +112,7 @@ export async function setChatMcpServerStateAction(params: {
     ]);
     return { success: true, message: "MCP settings updated" } as const;
   } catch (error) {
-    return {
-      success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Failed to update MCP settings",
-    } as const;
+    return toActionError(error, "Failed to update MCP settings");
   }
 }
 
@@ -138,10 +131,7 @@ export async function addChatSkillAction(params: {
     });
     return { success: true, message: "Skill linked to chat" } as const;
   } catch (error) {
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Failed to add skill",
-    } as const;
+    return toActionError(error, "Failed to add skill");
   }
 }
 
@@ -168,13 +158,7 @@ export async function setChatSkillStateAction(params: {
     ]);
     return { success: true, message: "Skill settings updated" } as const;
   } catch (error) {
-    return {
-      success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Failed to update skill settings",
-    } as const;
+    return toActionError(error, "Failed to update skill settings");
   }
 }
 
@@ -196,13 +180,7 @@ export async function getUserIntegrationSettingsAction(): Promise<
       data: { mcpServers, skills },
     };
   } catch (error) {
-    return {
-      success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Failed to load user integration settings",
-    };
+    return toActionError(error, "Failed to load user integration settings");
   }
 }
 
@@ -230,13 +208,7 @@ export async function getSystemIntegrationMarketAction(): Promise<
       },
     };
   } catch (error) {
-    return {
-      success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Failed to load system integration market",
-    };
+    return toActionError(error, "Failed to load system integration market");
   }
 }
 
@@ -253,11 +225,7 @@ export async function addUserMcpServerAction(params: {
     });
     return { success: true, message: "MCP server added" } as const;
   } catch (error) {
-    return {
-      success: false,
-      message:
-        error instanceof Error ? error.message : "Failed to add MCP server",
-    } as const;
+    return toActionError(error, "Failed to add MCP server");
   }
 }
 
@@ -274,10 +242,7 @@ export async function addUserSkillAction(params: {
     });
     return { success: true, message: "Skill added" } as const;
   } catch (error) {
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Failed to add skill",
-    } as const;
+    return toActionError(error, "Failed to add skill");
   }
 }
 
@@ -294,11 +259,7 @@ export async function setUserMcpDefaultAction(params: {
     });
     return { success: true, message: "Default MCP setting updated" } as const;
   } catch (error) {
-    return {
-      success: false,
-      message:
-        error instanceof Error ? error.message : "Failed to update MCP default",
-    } as const;
+    return toActionError(error, "Failed to update MCP default");
   }
 }
 
@@ -315,13 +276,7 @@ export async function setUserSkillDefaultAction(params: {
     });
     return { success: true, message: "Default skill setting updated" } as const;
   } catch (error) {
-    return {
-      success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Failed to update skill default",
-    } as const;
+    return toActionError(error, "Failed to update skill default");
   }
 }
 
@@ -363,10 +318,6 @@ export async function warmChatMcpServersAction(params: {
       },
     };
   } catch (error) {
-    return {
-      success: false,
-      message:
-        error instanceof Error ? error.message : "Failed to warm MCP servers",
-    };
+    return toActionError(error, "Failed to warm MCP servers");
   }
 }

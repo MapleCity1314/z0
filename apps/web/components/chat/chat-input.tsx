@@ -25,7 +25,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { selectableModels, type SelectableModelName } from "@/lib/agent/model";
-import { isUnauthenticatedMessage } from "@/lib/auth-errors";
+import { shouldShowErrorToast } from "@/lib/auth-errors";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -362,6 +362,12 @@ export function ChatInput({
   const [mcpWarmSummary, setMcpWarmSummary] = useState("");
   const user = useUserStore((state) => state.user);
 
+  const showActionError = (message: string) => {
+    if (shouldShowErrorToast(message)) {
+      toast.error(message);
+    }
+  };
+
   const refreshChatIntegrations = async () => {
     if (!user) {
       setMcpServers([]);
@@ -381,9 +387,7 @@ export function ChatInput({
     setIntegrationsLoading(false);
 
     if (!chatResult.success || !chatResult.data) {
-      if (!isUnauthenticatedMessage(chatResult.message)) {
-        toast.error(chatResult.message);
-      }
+      showActionError(chatResult.message);
       return;
     }
 
@@ -428,6 +432,8 @@ export function ChatInput({
         })),
       );
       setSystemPluginMarket(marketResult.data.plugins);
+    } else {
+      showActionError(marketResult.message);
     }
   };
 
@@ -540,9 +546,7 @@ export function ChatInput({
     void (async () => {
       const result = await addChatMcpServerAction({ chatId, name, endpoint });
       if (!result.success) {
-        if (!isUnauthenticatedMessage(result.message)) {
-          toast.error(result.message);
-        }
+        showActionError(result.message);
         return;
       }
       setMcpName("");
@@ -559,9 +563,7 @@ export function ChatInput({
     void (async () => {
       const result = await addChatSkillAction({ chatId, name, directory });
       if (!result.success) {
-        if (!isUnauthenticatedMessage(result.message)) {
-          toast.error(result.message);
-        }
+        showActionError(result.message);
         return;
       }
       setSkillName("");
@@ -575,7 +577,9 @@ export function ChatInput({
       <div className="relative">
         <PromptInput
           onSubmit={onSubmit}
-          className="shadow-2xl shadow-zinc-200/50 dark:shadow-black/80"
+          className={cn(
+            !showWelcome && "shadow-2xl shadow-zinc-200/50 dark:shadow-black/80",
+          )}
           accept="image/*"
           multiple
         >
@@ -841,9 +845,7 @@ export function ChatInput({
             endpoint: marketItem.endpoint,
           });
           if (!result.success) {
-            if (!isUnauthenticatedMessage(result.message)) {
-              toast.error(result.message);
-            }
+            showActionError(result.message);
             return;
           }
           toast.success(`已添加 MCP：${marketItem.name}`);
@@ -857,9 +859,7 @@ export function ChatInput({
             useByDefault: nextServer.useByDefault,
           });
           if (!result.success) {
-            if (!isUnauthenticatedMessage(result.message)) {
-              toast.error(result.message);
-            }
+            showActionError(result.message);
             return;
           }
           setMcpServers((prev) =>
@@ -890,9 +890,7 @@ export function ChatInput({
             directory: marketItem.directory,
           });
           if (!result.success) {
-            if (!isUnauthenticatedMessage(result.message)) {
-              toast.error(result.message);
-            }
+            showActionError(result.message);
             return;
           }
           toast.success(`已添加 Skill：${marketItem.name}`);
@@ -906,9 +904,7 @@ export function ChatInput({
             useByDefault: nextSkill.useByDefault,
           });
           if (!result.success) {
-            if (!isUnauthenticatedMessage(result.message)) {
-              toast.error(result.message);
-            }
+            showActionError(result.message);
             return;
           }
           setSkills((prev) =>

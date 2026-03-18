@@ -2,6 +2,7 @@
 
 import { revalidateTag } from "next/cache";
 import { apiFetch } from "@/lib/api";
+import { getActionErrorMessage } from "@/lib/auth-errors";
 import { getCurrentUser } from "@/lib/session";
 import type { Feedback } from "@/lib/schema";
 
@@ -32,7 +33,10 @@ export async function submitFeedbackAction(data: {
     }
     return { success: true, message: "Feedback submitted successfully", data: feedback };
   } catch (error) {
-    return { success: false, message: error instanceof Error ? error.message : "Failed to submit feedback" };
+    return {
+      success: false,
+      message: getActionErrorMessage(error, "Failed to submit feedback"),
+    };
   }
 }
 
@@ -41,7 +45,10 @@ export async function getUserFeedbackAction(): Promise<ActionResult<Feedback[]>>
     const feedback = await apiFetch<Feedback[]>("/v1/feedback");
     return { success: true, message: "Feedback retrieved successfully", data: feedback };
   } catch (error) {
-    return { success: false, message: error instanceof Error ? error.message : "Failed to retrieve feedback" };
+    return {
+      success: false,
+      message: getActionErrorMessage(error, "Failed to retrieve feedback"),
+    };
   }
 }
 
@@ -50,7 +57,10 @@ export async function getFeedbackAction(feedbackId: string): Promise<ActionResul
     const feedback = await apiFetch<Feedback>(`/v1/feedback/${feedbackId}`);
     return { success: true, message: "Feedback retrieved successfully", data: feedback };
   } catch (error) {
-    return { success: false, message: error instanceof Error ? error.message : "Failed to retrieve feedback" };
+    return {
+      success: false,
+      message: getActionErrorMessage(error, "Failed to retrieve feedback"),
+    };
   }
 }
 
@@ -64,7 +74,10 @@ export async function getAllFeedbackAction(filters?: { type?: string; status?: s
     const feedback = await apiFetch<Feedback[]>(`/v1/admin/feedback${suffix}`);
     return { success: true, message: "Feedback retrieved successfully", data: feedback };
   } catch (error) {
-    return { success: false, message: error instanceof Error ? error.message : "Failed to retrieve feedback" };
+    return {
+      success: false,
+      message: getActionErrorMessage(error, "Failed to retrieve feedback"),
+    };
   }
 }
 
@@ -76,7 +89,10 @@ export async function updateFeedbackStatusAction(feedbackId: string, status: "pe
     });
     return { success: true, message: "Feedback status updated successfully", data: feedback };
   } catch (error) {
-    return { success: false, message: error instanceof Error ? error.message : "Failed to update feedback status" };
+    return {
+      success: false,
+      message: getActionErrorMessage(error, "Failed to update feedback status"),
+    };
   }
 }
 
@@ -88,7 +104,10 @@ export async function addFeedbackResponseAction(feedbackId: string, response: st
     });
     return { success: true, message: "Response added successfully", data: feedback };
   } catch (error) {
-    return { success: false, message: error instanceof Error ? error.message : "Failed to add response" };
+    return {
+      success: false,
+      message: getActionErrorMessage(error, "Failed to add response"),
+    };
   }
 }
 
@@ -97,6 +116,9 @@ export async function deleteFeedbackAction(feedbackId: string): Promise<ActionRe
     await apiFetch<{ deleted: true }>(`/v1/feedback/${feedbackId}`, { method: "DELETE" });
     return { success: true, message: "Feedback deleted successfully" };
   } catch (error) {
-    return { success: false, message: error instanceof Error ? error.message : "Failed to delete feedback" };
+    return {
+      success: false,
+      message: getActionErrorMessage(error, "Failed to delete feedback"),
+    };
   }
 }

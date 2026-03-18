@@ -19,9 +19,22 @@ vi.mock("@/lib/session", () => ({
 
 vi.mock("@/lib/api", () => ({
   apiFetch,
-  getApiErrorMessage: vi.fn(
-    (error: unknown, fallback: string) =>
-      error instanceof Error && error.message ? error.message : fallback,
+}));
+
+vi.mock("@/lib/server-action-errors", () => ({
+  getServerActionErrorMessage: vi.fn(
+    (
+      error: unknown,
+      options: { fallback: string; invalidInputMessage?: string },
+    ) => {
+      if (error instanceof Error && error.name === "ZodError") {
+        return options.invalidInputMessage ?? "Invalid request input";
+      }
+
+      return error instanceof Error && error.message
+        ? error.message
+        : options.fallback;
+    },
   ),
 }));
 
@@ -86,10 +99,17 @@ describe("project db actions", () => {
     );
   });
 
-  it("sends the edited file snapshot directly to the api", async () => {
-    apiFetch.mockResolvedValueOnce({
-      id: "550e8400-e29b-41d4-a716-446655440001",
-    });
+  it("merges edited files with the current project snapshot before saving", async () => {
+    apiFetch
+      .mockResolvedValueOnce({
+        id: "550e8400-e29b-41d4-a716-446655440001",
+        files: {
+          "src/keep.ts": "keep",
+        },
+      })
+      .mockResolvedValueOnce({
+        id: "550e8400-e29b-41d4-a716-446655440001",
+      });
 
     const { updateProjectFilesAction } = await import("./project-actions");
     const result = await updateProjectFilesAction(
@@ -108,11 +128,23 @@ describe("project db actions", () => {
     });
     expect(apiFetch).toHaveBeenNthCalledWith(
       1,
+      "/v1/projects/550e8400-e29b-41d4-a716-446655440001",
+      undefined,
+      {
+        actor: {
+          userId: "550e8400-e29b-41d4-a716-446655440000",
+          role: "user",
+        },
+      },
+    );
+    expect(apiFetch).toHaveBeenNthCalledWith(
+      2,
       "/v1/projects/550e8400-e29b-41d4-a716-446655440001/files",
       {
         method: "PATCH",
         body: JSON.stringify({
           files: {
+            "src/keep.ts": "keep",
             "src/App.tsx": "new",
           },
         }),
@@ -124,7 +156,7 @@ describe("project db actions", () => {
         },
       },
     );
-    expect(apiFetch).toHaveBeenCalledTimes(1);
+    expect(apiFetch).toHaveBeenCalledTimes(2);
   });
 
   it("validates project ids before issuing api calls", async () => {

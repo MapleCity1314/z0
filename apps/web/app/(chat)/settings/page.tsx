@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bolt, PencilLine, Plus, Server, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { isUnauthenticatedMessage } from "@/lib/auth-errors";
+import { shouldShowErrorToast } from "@/lib/auth-errors";
 import {
   addUserMcpServerAction,
   addUserSkillAction,
@@ -52,6 +52,12 @@ export default function IntegrationSettingsPage() {
     string | null
   >(null);
 
+  const showActionError = (message: string) => {
+    if (shouldShowErrorToast(message)) {
+      toast.error(message);
+    }
+  };
+
   const refreshSettings = async () => {
     if (!user) {
       setMcpServers([]);
@@ -65,9 +71,7 @@ export default function IntegrationSettingsPage() {
     setLoading(false);
 
     if (!result.success || !result.data) {
-      if (!isUnauthenticatedMessage(result.message)) {
-        toast.error(result.message);
-      }
+      showActionError(result.message);
       return;
     }
 
@@ -113,9 +117,7 @@ export default function IntegrationSettingsPage() {
 
     const result = await addUserMcpServerAction({ name, endpoint });
     if (!result.success) {
-      if (!isUnauthenticatedMessage(result.message)) {
-        toast.error(result.message);
-      }
+      showActionError(result.message);
       return;
     }
 
@@ -132,9 +134,7 @@ export default function IntegrationSettingsPage() {
 
     const result = await addUserSkillAction({ name, directory });
     if (!result.success) {
-      if (!isUnauthenticatedMessage(result.message)) {
-        toast.error(result.message);
-      }
+      showActionError(result.message);
       return;
     }
 
@@ -232,9 +232,7 @@ export default function IntegrationSettingsPage() {
                             });
                             setSavingMcpDefaultId(null);
                             if (!result.success) {
-                              if (!isUnauthenticatedMessage(result.message)) {
-                                toast.error(result.message);
-                              }
+                              showActionError(result.message);
                               return;
                             }
                             setMcpServers((prev) =>
@@ -320,9 +318,7 @@ export default function IntegrationSettingsPage() {
                             });
                             setSavingSkillDefaultId(null);
                             if (!result.success) {
-                              if (!isUnauthenticatedMessage(result.message)) {
-                                toast.error(result.message);
-                              }
+                              showActionError(result.message);
                               return;
                             }
                             setSkills((prev) =>

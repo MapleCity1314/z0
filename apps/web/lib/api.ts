@@ -1,4 +1,7 @@
-import { createInternalAuthHeaders } from "@z0/backend";
+import {
+  ApiClientError,
+  normalizeApiErrorMessage,
+} from "@/lib/api-errors";
 
 type ApiError = {
   code?: string;
@@ -10,57 +13,6 @@ type ApiResponse<T> = {
   data?: T;
   error?: ApiError;
 };
-
-const fallbackMessageByStatus: Record<number, string> = {
-  401: "Authentication required",
-  403: "You do not have access to this resource.",
-  404: "The requested resource was not found.",
-  422: "The request could not be processed. Please check your input.",
-};
-
-export class ApiClientError extends Error {
-  status: number;
-  code?: string;
-  details?: Record<string, unknown>;
-
-  constructor({
-    status,
-    message,
-    code,
-    details,
-  }: {
-    status: number;
-    message: string;
-    code?: string;
-    details?: Record<string, unknown>;
-  }) {
-    super(message);
-    this.name = "ApiClientError";
-    this.status = status;
-    this.code = code;
-    this.details = details;
-  }
-}
-
-function getFallbackMessage(status: number) {
-  if (status >= 500) {
-    return "Something went wrong. Please try again later.";
-  }
-
-  return fallbackMessageByStatus[status] ?? `API request failed: ${status}`;
-}
-
-function normalizeApiErrorMessage(status: number, error?: ApiError) {
-  if (status === 401 || status === 403 || status === 404) {
-    return getFallbackMessage(status);
-  }
-
-  if (status >= 500) {
-    return getFallbackMessage(status);
-  }
-
-  return error?.message?.trim() || getFallbackMessage(status);
-}
 
 async function parseApiResponse<T>(response: Response): Promise<ApiResponse<T>> {
   const contentType = response.headers.get("content-type") ?? "";
@@ -97,20 +49,27 @@ type ApiFetchOptions = {
   };
 };
 
+async function getInternalHeaders(options?: ApiFetchOptions) {
+  if (!options?.actor) {
+    return {};
+  }
+
+  const { createInternalAuthHeaders } = await import("@z0/backend");
+  return createInternalAuthHeaders({
+    actor: {
+      userId: options.actor.userId,
+      role: options.actor.role ?? "user",
+    },
+    purpose: "web-api",
+  });
+}
+
 export async function apiFetch<T>(
   path: string,
   init?: RequestInit,
   options?: ApiFetchOptions,
 ): Promise<T> {
-  const internalHeaders = options?.actor
-    ? createInternalAuthHeaders({
-        actor: {
-          userId: options.actor.userId,
-          role: options.actor.role ?? "user",
-        },
-        purpose: "web-api",
-      })
-    : {};
+  const internalHeaders = await getInternalHeaders(options);
   const cookie = await getForwardedCookie(options);
   const response = await fetch(`${getApiBaseUrl()}${path}`, {
     ...init,
@@ -141,20 +100,4 @@ export async function apiFetch<T>(
   }
 
   return payload.data;
-}
-
-export function isApiClientError(error: unknown): error is ApiClientError {
-  return error instanceof ApiClientError;
-}
-
-export function isApiErrorStatus(error: unknown, ...statuses: number[]) {
-  return isApiClientError(error) && statuses.includes(error.status);
-}
-
-export function getApiErrorMessage(error: unknown, fallback: string) {
-  if (isApiClientError(error)) {
-    return error.message;
-  }
-
-  return error instanceof Error && error.message ? error.message : fallback;
 }

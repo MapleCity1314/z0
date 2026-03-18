@@ -2,7 +2,8 @@
 
 import { requireAuth } from "@/lib/session";
 import type { Project } from "@/lib/schema";
-import { apiFetch, getApiErrorMessage } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
+import { getActionErrorMessage } from "@/lib/auth-errors";
 
 type ActionResult<T = unknown> = {
   success: boolean;
@@ -38,7 +39,7 @@ export async function createProjectAction(data: {
   } catch (error) {
     return {
       success: false,
-      message: getApiErrorMessage(error, "Failed to create project."),
+      message: getActionErrorMessage(error, "Failed to create project."),
     };
   }
 }
@@ -58,7 +59,7 @@ export async function getUserProjectsAction(): Promise<
   } catch (error) {
     return {
       success: false,
-      message: getApiErrorMessage(error, "Failed to retrieve projects."),
+      message: getActionErrorMessage(error, "Failed to retrieve projects."),
     };
   }
 }
@@ -82,7 +83,7 @@ export async function getProjectAction(
   } catch (error) {
     return {
       success: false,
-      message: getApiErrorMessage(error, "Failed to retrieve project."),
+      message: getActionErrorMessage(error, "Failed to retrieve project."),
     };
   }
 }
@@ -108,7 +109,7 @@ export async function updateProjectFilesAction(
   } catch (error) {
     return {
       success: false,
-      message: getApiErrorMessage(error, "Failed to update files."),
+      message: getActionErrorMessage(error, "Failed to update files."),
     };
   }
 }
@@ -135,7 +136,7 @@ export async function deployProjectAction(
   } catch (error) {
     return {
       success: false,
-      message: getApiErrorMessage(error, "Failed to deploy project."),
+      message: getActionErrorMessage(error, "Failed to deploy project."),
     };
   }
 }
@@ -157,7 +158,7 @@ export async function publishProjectAction(
   } catch (error) {
     return {
       success: false,
-      message: getApiErrorMessage(error, "Failed to publish project."),
+      message: getActionErrorMessage(error, "Failed to publish project."),
     };
   }
 }
@@ -179,7 +180,7 @@ export async function unpublishProjectAction(
   } catch (error) {
     return {
       success: false,
-      message: getApiErrorMessage(error, "Failed to unpublish project."),
+      message: getActionErrorMessage(error, "Failed to unpublish project."),
     };
   }
 }
@@ -197,7 +198,7 @@ export async function deleteProjectAction(
   } catch (error) {
     return {
       success: false,
-      message: getApiErrorMessage(error, "Failed to delete project."),
+      message: getActionErrorMessage(error, "Failed to delete project."),
     };
   }
 }
@@ -223,7 +224,7 @@ export async function updateProjectMetadataAction(
   } catch (error) {
     return {
       success: false,
-      message: getApiErrorMessage(error, "Failed to update project."),
+      message: getActionErrorMessage(error, "Failed to update project."),
     };
   }
 }
@@ -243,7 +244,7 @@ export async function getPublicProjectsAction(
   } catch (error) {
     return {
       success: false,
-      message: getApiErrorMessage(error, "Failed to retrieve public projects."),
+      message: getActionErrorMessage(error, "Failed to retrieve public projects."),
     };
   }
 }

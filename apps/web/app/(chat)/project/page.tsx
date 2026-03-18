@@ -14,7 +14,7 @@ export default async function ProjectsPage() {
     redirect("/auth");
   }
 
-  const projects = await loadUserProjectsPage();
+  const projects = await loadUserProjectsPage(user);
 
   return (
     <div className="relative h-full w-full bg-black overflow-hidden">

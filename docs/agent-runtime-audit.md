@@ -80,7 +80,7 @@ Current state is important:
 - `MCPServer`, `UserMCPServer`, `ChatMCPServer` are persisted and exposed in UI
 - configured skills are now mounted into runtime as discoverable instruction packs through the `loadSkill` tool
 - built-in backend skills now ship from `packages/backend/skills`
-- MCP entries are still configuration records only and are not yet executable runtime providers
+- MCP entries now back a real runtime warmup and pooled execution layer in `packages/backend/src/agent/mcp.ts`
 
 This means the product currently has:
 
@@ -88,7 +88,22 @@ This means the product currently has:
 - real tool bridge execution
 - real skill/MCP settings storage
 - real runtime skill discovery and `loadSkill`
-- no actual runtime MCP client/session layer
+- real MCP client/runtime connection with warmup status and qualified tool exposure
+
+## Core vs plugin boundary status
+
+Roadmap plugin work is still mostly directional, but the core now has a first concrete boundary contract:
+
+- `packages/shared-types/src/agent.ts` defines planned plugin ids, capability surfaces, plugin manifests, inventory items, and ownership records
+- `packages/backend/src/agent/plugin-boundary.ts` maps the current tool catalog into a capability boundary snapshot
+- `apps/api/src/routes/agent.ts` exposes `GET /v1/agent/capabilities`
+
+This means plugin support is not implemented as a mounting/runtime system yet, but the codebase now has:
+
+- an explicit core capability list
+- a normalized planned plugin inventory
+- tool-to-plugin migration targets for roadmap planning
+- a stable API snapshot for UI or admin surfaces to inspect capability boundaries
 
 ## Decisions
 
@@ -182,14 +197,19 @@ Additional optimization now implemented:
    - skills become reusable prompt/workflow packs
    - skill activation should inject structured instructions, not masquerade as tools
 
-2. Introduce a real MCP runtime
-   - MCP servers become executable external capability providers
-   - bridge them into the catalog as a separate source, not ad hoc DB rows
+2. Harden and expand the MCP runtime
+   - keep MCP servers executable external capability providers
+   - bridge them into the catalog as a first-class source, not ad hoc DB rows
+   - add stronger runtime health, retry, and observability semantics
 
 3. Harden internal infra tools
    - replace pseudo-sandbox execution
    - move runtime health/event tooling behind dedicated services
 
-4. Split model/provider policy from UI labels
+4. Turn plugin contracts into a real plugin system
+   - add manifest mounting and runtime registration
+   - move planned plugin capability groups behind explicit installation/activation flows
+
+5. Split model/provider policy from UI labels
    - keep UI model choices stable
    - move provider routing and thinking policy behind backend policy config

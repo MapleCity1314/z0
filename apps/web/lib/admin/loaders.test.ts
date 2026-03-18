@@ -18,9 +18,15 @@ const notFound = vi.fn(() => {
 const redirect = vi.fn(() => {
   throw new Error("NEXT_REDIRECT");
 });
+const forbidden = vi.fn(() => {
+  throw new Error("NEXT_FORBIDDEN");
+});
 
 vi.mock("@/lib/api", () => ({
   apiFetch,
+}));
+
+vi.mock("@/lib/api-errors", () => ({
   getApiErrorMessage: vi.fn(
     (error: unknown, fallback: string) =>
       error instanceof Error && error.message ? error.message : fallback,
@@ -35,6 +41,7 @@ vi.mock("@/lib/session", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
+  forbidden,
   notFound,
   redirect,
 }));
@@ -193,5 +200,17 @@ describe("admin loaders", () => {
     );
     expect(redirect).toHaveBeenCalledWith("/auth");
     expect(notFound).not.toHaveBeenCalled();
+  });
+
+  it("converts 403 admin loader responses into forbidden()", async () => {
+    apiFetch.mockRejectedValueOnce(
+      new MockApiClientError(403, "You do not have access to this resource."),
+    );
+
+    const { loadAdminProjectsPage } = await import("./loaders");
+
+    await expect(loadAdminProjectsPage({})).rejects.toThrow("NEXT_FORBIDDEN");
+    expect(forbidden).toHaveBeenCalled();
+    expect(redirect).not.toHaveBeenCalled();
   });
 });

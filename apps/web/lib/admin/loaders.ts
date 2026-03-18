@@ -1,10 +1,7 @@
 import { cache } from "react";
-import { notFound, redirect } from "next/navigation";
-import {
-  apiFetch,
-  getApiErrorMessage,
-  isApiErrorStatus,
-} from "@/lib/api";
+import { forbidden, notFound, redirect } from "next/navigation";
+import { apiFetch } from "@/lib/api";
+import { getApiErrorMessage, isApiErrorStatus } from "@/lib/api-errors";
 import { getCurrentUser } from "@/lib/session";
 import type {
   AdminChatDetailResponse,
@@ -65,8 +62,12 @@ function handleAdminLoaderError(
   fallback: string,
   options?: { allowNotFound?: boolean },
 ): never {
-  if (isApiErrorStatus(error, 401, 403)) {
+  if (isApiErrorStatus(error, 401)) {
     redirect("/auth");
+  }
+
+  if (isApiErrorStatus(error, 403)) {
+    forbidden();
   }
 
   if (options?.allowNotFound && isApiErrorStatus(error, 404)) {

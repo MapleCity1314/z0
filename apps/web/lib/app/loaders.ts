@@ -1,6 +1,11 @@
 import type { VersionRecord } from "@z0/backend";
 import { apiFetch } from "@/lib/api";
 
+type LoaderActor = {
+  id: string;
+  role?: string | null;
+};
+
 type ProjectPageRecord = {
   id: string;
   userId: string;
@@ -19,8 +24,17 @@ type ProjectPageRecord = {
   lastDeployedAt: string | null;
 };
 
-export async function loadUserProjectsPage() {
-  const projects = await apiFetch<ProjectPageRecord[]>("/v1/projects");
+export async function loadUserProjectsPage(actor: LoaderActor) {
+  const projects = await apiFetch<ProjectPageRecord[]>(
+    "/v1/projects",
+    undefined,
+    {
+      actor: {
+        userId: actor.id,
+        role: actor.role ?? "user",
+      },
+    },
+  );
 
   return projects.map((project) => ({
     ...project,

@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { HTTPException } from "hono/http-exception";
 import { registerAgentRoutes } from "./routes/agent";
 import { registerAdminRoutes } from "./routes/admin";
 import { registerFeedbackRoutes } from "./routes/feedback";
@@ -71,6 +72,47 @@ export function createApp(overrides: Partial<AppServices> = {}) {
       credentials: true,
     }),
   );
+
+  app.onError((error, c) => {
+    if (error instanceof HTTPException) {
+      const message =
+        error.message.trim().length > 0
+          ? error.message
+          : error.status === 401
+            ? "Unauthorized"
+            : error.status === 403
+              ? "Forbidden"
+              : "Request failed";
+      const code =
+        error.status === 401
+          ? "unauthorized"
+          : error.status === 403
+            ? "forbidden"
+            : "request_failed";
+
+      return c.json(
+        {
+          error: {
+            code,
+            message,
+          },
+        },
+        error.status,
+      );
+    }
+
+    console.error("[api] unhandled error", error);
+
+    return c.json(
+      {
+        error: {
+          code: "internal_error",
+          message: "Internal server error",
+        },
+      },
+      500,
+    );
+  });
 
   registerHealthRoutes(app);
   registerAgentRoutes(app);

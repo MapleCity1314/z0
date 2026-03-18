@@ -79,6 +79,7 @@ packages/
   sandbox/              Placeholder mount point for external sandbox repo
 docs/
   architecture.md       Architecture notes
+  agent-worktree-collaboration.md  Multi-agent worktree guide and prompt templates
 ```
 
 ## 5. Commands
@@ -192,6 +193,8 @@ Use `vercel-composition-patterns` when:
 When a skill clearly matches the task, read its `SKILL.md` first and follow it narrowly. Do not load entire reference trees unless needed.
 
 ## 11. Change Strategy For Agents
+
+For parallel branch or worktree execution, read `docs/agent-worktree-collaboration.md` before starting. It defines recommended task lanes, file ownership boundaries, and prompt templates for new agents.
 
 Before making changes:
 - inspect the relevant package and the nearest tests

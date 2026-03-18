@@ -315,11 +315,6 @@ export default function Chat({
       thinkingEnabled={thinkingEnabled}
       onThinkingToggle={() => setThinkingEnabled(!thinkingEnabled)}
       studioModeEnabled={studioModeEnabled}
-      onStudioModeToggle={() => {
-        const nextStudioMode = !studioModeEnabled;
-        setStudioModeEnabled(nextStudioMode);
-        setStoreProjectId(nextStudioMode ? (selectedProjectId ?? null) : null);
-      }}
       selectedModel={selectedModel}
       onModelChange={setSelectedModel}
       selectedProjectId={selectedProjectId}

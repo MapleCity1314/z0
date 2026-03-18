@@ -4,6 +4,7 @@ import { type ChatStatus, type FileUIPart } from "ai";
 import {
   ArrowLeft,
   ArrowRight,
+  BadgePlus,
   Brain,
   ChevronDown,
   Code2,
@@ -72,10 +73,12 @@ import type {
   ConversationMcpServer,
   ConversationSkill,
   SystemMcpMarketItem,
+  SystemPluginMarketItem,
   SystemSkillMarketItem,
 } from "./integration-market-types";
 import { McpServerDialog } from "./mcp-market-dialog";
 import { SkillsDialog } from "./skills-market-dialog";
+import { Z0PluginsDialog } from "./z0-plugins-dialog";
 
 interface ChatInputProps {
   chatId: string;
@@ -88,7 +91,6 @@ interface ChatInputProps {
   thinkingEnabled: boolean;
   onThinkingToggle: () => void;
   studioModeEnabled: boolean;
-  onStudioModeToggle: () => void;
   selectedModel: SelectableModelName;
   onModelChange: (model: SelectableModelName) => void;
   selectedProjectId?: string | null;
@@ -322,7 +324,6 @@ export function ChatInput({
   thinkingEnabled,
   onThinkingToggle,
   studioModeEnabled,
-  onStudioModeToggle,
   selectedModel,
   onModelChange,
   selectedProjectId,
@@ -335,6 +336,7 @@ export function ChatInput({
 
   const [mcpDialogOpen, setMcpDialogOpen] = useState(false);
   const [skillsDialogOpen, setSkillsDialogOpen] = useState(false);
+  const [pluginsDialogOpen, setPluginsDialogOpen] = useState(false);
   const [integrationsLoading, setIntegrationsLoading] = useState(false);
 
   const [mcpServers, setMcpServers] = useState<ConversationMcpServer[]>([]);
@@ -344,6 +346,9 @@ export function ChatInput({
   );
   const [systemSkillMarket, setSystemSkillMarket] = useState<
     SystemSkillMarketItem[]
+  >([]);
+  const [systemPluginMarket, setSystemPluginMarket] = useState<
+    SystemPluginMarketItem[]
   >([]);
 
   const [mcpName, setMcpName] = useState("");
@@ -363,6 +368,7 @@ export function ChatInput({
       setSkills([]);
       setSystemMcpMarket([]);
       setSystemSkillMarket([]);
+      setSystemPluginMarket([]);
       setIntegrationsLoading(false);
       return;
     }
@@ -421,12 +427,14 @@ export function ChatInput({
           sourceType: item.sourceType,
         })),
       );
+      setSystemPluginMarket(marketResult.data.plugins);
     }
   };
 
   useEffect(() => {
     setMcpDialogOpen(false);
     setSkillsDialogOpen(false);
+    setPluginsDialogOpen(false);
     setMcpName("");
     setMcpEndpoint("");
     setSkillName("");
@@ -441,6 +449,11 @@ export function ChatInput({
   const enabledSkillsCount = useMemo(
     () => skills.filter((skill) => skill.useInCurrentChat).length,
     [skills],
+  );
+  const plannedPluginsCount = useMemo(
+    () =>
+      systemPluginMarket.filter((plugin) => plugin.status === "planned").length,
+    [systemPluginMarket],
   );
   const mcpWarmTargets = useMemo(() => {
     const targets = mcpServers.filter((server) =>
@@ -596,28 +609,11 @@ export function ChatInput({
                     <Plus className="size-4" />
                   </PromptInputActionMenuTrigger>
                   <PromptInputActionMenuContent className="w-80 p-2">
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      className={toggleRowClassName}
-                      onClick={onStudioModeToggle}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          onStudioModeToggle();
-                        }
-                      }}
-                    >
-                      <span className="flex items-center gap-2">
-                        <FolderOpen className="size-4" />
-                        Studio mode (project mode)
-                      </span>
-                      <Switch
-                        checked={studioModeEnabled}
-                        className="pointer-events-none"
-                      />
+                    <div className="px-2 pb-2">
+                      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-500">
+                        Core controls
+                      </p>
                     </div>
-
                     <div
                       role="button"
                       tabIndex={0}
@@ -663,6 +659,9 @@ export function ChatInput({
                     </div>
 
                     <div className="mt-2 border-zinc-200 border-t pt-2 dark:border-zinc-800">
+                      <p className="mb-2 px-2 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-500">
+                        Integrations
+                      </p>
                       <button
                         type="button"
                         className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -699,6 +698,26 @@ export function ChatInput({
                         <span className="inline-flex items-center gap-2">
                           <span className="text-muted-foreground text-xs">
                             {enabledSkillsCount} active
+                          </span>
+                          <PencilLine className="size-4" />
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="mt-1 flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                        onClick={() => setPluginsDialogOpen(true)}
+                      >
+                        <span className="flex items-center gap-2">
+                          <BadgePlus className="size-4" />
+                          z0 Plugins
+                        </span>
+                        <span className="inline-flex items-center gap-2">
+                          <span className="text-muted-foreground text-xs">
+                            {plannedPluginsCount} planned
+                          </span>
+                          <span className="rounded-full border border-amber-300/50 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:border-amber-500/30 dark:text-amber-300">
+                            Experimental
                           </span>
                           <PencilLine className="size-4" />
                         </span>
@@ -898,6 +917,12 @@ export function ChatInput({
             ),
           );
         }}
+      />
+
+      <Z0PluginsDialog
+        open={pluginsDialogOpen}
+        onOpenChange={setPluginsDialogOpen}
+        plugins={systemPluginMarket}
       />
     </PromptInputProvider>
   );

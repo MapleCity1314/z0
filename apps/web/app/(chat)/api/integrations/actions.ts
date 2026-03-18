@@ -1,10 +1,12 @@
 "use server";
 
 import {
+  getAgentCapabilityBoundarySnapshot,
   warmPooledMcpServers,
   type AgentMcpServerMetadata,
 } from "@z0/backend";
 import { getCurrentUser } from "@/lib/session";
+import { toSystemPluginMarketItems } from "@/components/chat/plugin-market";
 import {
   addMcpServerForChat,
   addMcpServerForUser,
@@ -208,10 +210,12 @@ export async function getSystemIntegrationMarketAction(): Promise<
   ActionResult<{
     mcpServers: Awaited<ReturnType<typeof getSystemMcpServers>>;
     skills: Awaited<ReturnType<typeof getSystemSkills>>;
+    plugins: ReturnType<typeof toSystemPluginMarketItems>;
   }>
 > {
   try {
     await requireUser();
+    const capabilitySnapshot = getAgentCapabilityBoundarySnapshot();
     const [mcpServers, skills] = await Promise.all([
       getSystemMcpServers(),
       getSystemSkills(),
@@ -219,7 +223,11 @@ export async function getSystemIntegrationMarketAction(): Promise<
     return {
       success: true,
       message: "System integration market loaded",
-      data: { mcpServers, skills },
+      data: {
+        mcpServers,
+        skills,
+        plugins: toSystemPluginMarketItems(capabilitySnapshot),
+      },
     };
   } catch (error) {
     return {

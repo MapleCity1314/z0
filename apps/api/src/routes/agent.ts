@@ -5,6 +5,7 @@ import {
   createRemoteAgentTools,
   discoverAgentSkills,
   extractFileAttachmentsFromParts,
+  getAgentCapabilityBoundarySnapshot,
   getConfiguredMcpServers,
   getOrCreatePooledMcpToolRuntime,
   getConfiguredSkillDirectories,
@@ -20,10 +21,19 @@ import {
   validateChatRequest,
   type AgentRunTelemetry,
 } from "@z0/backend";
+import type { AgentCapabilityBoundarySnapshot } from "@z0/shared-types";
 import type { Hono } from "hono";
 import { requireActor } from "../actor";
 
 export function registerAgentRoutes(app: Hono) {
+  app.get("/v1/agent/capabilities", async (c) => {
+    await requireActor(c);
+
+    const snapshot: AgentCapabilityBoundarySnapshot =
+      getAgentCapabilityBoundarySnapshot();
+    return c.json({ data: snapshot });
+  });
+
   app.post("/v1/agent/chat", async (c) => {
     const actor = await requireActor(c);
     let requestedModel: string | undefined;

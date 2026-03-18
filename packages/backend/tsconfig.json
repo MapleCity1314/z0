@@ -3,7 +3,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@z0/db": ["../db/src/index.ts"]
+      "@z0/db": ["../db/src/index.ts"],
+      "@z0/shared-types": ["../shared-types/src/index.ts"]
     },
     "outDir": "./dist"
   },

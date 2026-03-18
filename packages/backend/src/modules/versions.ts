@@ -24,6 +24,19 @@ export const createVersionInputSchema = z.object({
   docsUrl: z.string().url().optional(),
 });
 
+export const updateVersionInputSchema = z.object({
+  title: z.string().min(1).max(256).optional(),
+  description: z.string().max(20_000).nullable().optional(),
+  features: z.array(changelogItemSchema).optional(),
+  improvements: z.array(changelogItemSchema).optional(),
+  bugFixes: z.array(changelogItemSchema).optional(),
+  breaking: z.array(changelogItemSchema).optional(),
+  highlights: z.array(z.string().min(1).max(256)).optional(),
+  migration: z.string().max(20_000).nullable().optional(),
+  downloadUrl: z.union([z.string().url(), z.null()]).optional(),
+  docsUrl: z.union([z.string().url(), z.null()]).optional(),
+});
+
 export type ChangelogItem = z.infer<typeof changelogItemSchema>;
 
 export type VersionRecord = {
@@ -62,7 +75,7 @@ export interface VersionsRepository {
   publish(versionId: string, actorUserId: string): Promise<VersionRecord | null>;
   update(
     versionId: string,
-    input: Partial<Omit<VersionRecord, "id" | "createdAt" | "updatedAt" | "publishedAt">>,
+    input: z.infer<typeof updateVersionInputSchema>,
   ): Promise<VersionRecord | null>;
   archive(versionId: string): Promise<VersionRecord | null>;
   delete(versionId: string): Promise<boolean>;
@@ -121,12 +134,28 @@ export class VersionsService {
 
   async update(
     versionId: string,
-    input: Partial<Omit<VersionRecord, "id" | "createdAt" | "updatedAt" | "publishedAt">>,
+    rawInput: z.infer<typeof updateVersionInputSchema>,
   ): Promise<DomainResult<VersionRecord>> {
-    const version = await this.repository.update(versionId, input);
-    return version
-      ? ok(version)
-      : fail({ code: "version_update_failed", message: "Failed to update version" });
+    try {
+      const input = updateVersionInputSchema.parse(rawInput);
+      const version = await this.repository.update(versionId, input);
+      return version
+        ? ok(version)
+        : fail({ code: "version_update_failed", message: "Failed to update version" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return fail({
+          code: "validation_error",
+          message: "Invalid version update input",
+          details: { issues: error.issues },
+        });
+      }
+
+      return fail({
+        code: "version_update_failed",
+        message: error instanceof Error ? error.message : "Failed to update version",
+      });
+    }
   }
 
   async archive(versionId: string): Promise<DomainResult<VersionRecord>> {

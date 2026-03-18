@@ -1,4 +1,8 @@
 import type { Hono } from "hono";
+import type {
+  CreateVersionRequest,
+  UpdateVersionRequest,
+} from "@z0/shared-types";
 import { requireAdmin } from "../actor";
 import { jsonResult } from "../http";
 import type { AppServices } from "../services";
@@ -35,7 +39,7 @@ export function registerVersionRoutes(app: Hono, services: AppServices) {
 
   app.post("/v1/admin/versions", async (c) => {
     const actor = await requireAdmin(c);
-    const body = await c.req.json();
+    const body = (await c.req.json()) as CreateVersionRequest;
     return jsonResult(
       c,
       await services.versionsService.create({
@@ -67,10 +71,21 @@ export function registerVersionRoutes(app: Hono, services: AppServices) {
 
   app.patch("/v1/admin/versions/:id", async (c) => {
     await requireAdmin(c);
-    const body = await c.req.json();
+    const body = (await c.req.json()) as UpdateVersionRequest;
     return jsonResult(
       c,
-      await services.versionsService.update(c.req.param("id"), body),
+      await services.versionsService.update(c.req.param("id"), {
+        title: body.title,
+        description: body.description,
+        features: body.features,
+        improvements: body.improvements,
+        bugFixes: body.bugFixes,
+        breaking: body.breaking,
+        highlights: body.highlights,
+        migration: body.migration,
+        downloadUrl: body.downloadUrl,
+        docsUrl: body.docsUrl,
+      }),
     );
   });
 

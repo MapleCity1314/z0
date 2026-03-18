@@ -79,4 +79,22 @@ describe("VersionsService", () => {
       expect(result.error.code).toBe("version_not_found");
     }
   });
+
+  it("validates version update input before calling the repository", async () => {
+    const repository = makeRepository();
+    const service = new VersionsService(repository);
+
+    const result = await service.update(
+      "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      {
+        downloadUrl: "not-a-url",
+      } as Parameters<VersionsService["update"]>[1],
+    );
+
+    expect(result.ok).toBe(false);
+    expect(repository.update).not.toHaveBeenCalled();
+    if (!result.ok) {
+      expect(result.error.code).toBe("validation_error");
+    }
+  });
 });

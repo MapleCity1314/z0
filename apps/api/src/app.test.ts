@@ -1,6 +1,14 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Hono } from "hono";
 import { ok, fail } from "@z0/backend";
+import type {
+  AdminDashboardActivityDto,
+  AdminDashboardStatsDto,
+  AdminFeedbackStatsDto,
+  ApiErrorPayload,
+  ApiSuccessPayload,
+  VersionDto,
+} from "@z0/shared-types";
 
 const actorHeaders = {
   "x-user-id": "550e8400-e29b-41d4-a716-446655440000",
@@ -9,6 +17,10 @@ const actorHeaders = {
 const adminHeaders = {
   ...actorHeaders,
   "x-user-role": "admin",
+};
+
+type ApiErrorResponse = {
+  error: ApiErrorPayload;
 };
 
 function createServices() {
@@ -107,6 +119,25 @@ describe("createApp", () => {
     });
 
     expect(response.status).toBe(401);
+  });
+
+  it("returns the agent capability boundary snapshot for authenticated actors", async () => {
+    const response = await app.request("/v1/agent/capabilities", {
+      headers: actorHeaders,
+    });
+    const payload = (await response.json()) as any;
+
+    expect(response.status).toBe(200);
+    expect(payload.data.contractVersion).toBe(
+      "2026-03-core-plugin-boundary-v1",
+    );
+    expect(payload.data.pluginManifests).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "@z0/plugin-project" }),
+        expect.objectContaining({ id: "@z0/plugin-search" }),
+        expect.objectContaining({ id: "@z0/plugin-subagents" }),
+      ]),
+    );
   });
 
   it("returns current user profile", async () => {
@@ -227,10 +258,11 @@ describe("createApp", () => {
     );
 
     const response = await app.request("/v1/versions/latest");
-    const payload = (await response.json()) as any;
+    const payload = (await response.json()) as ApiSuccessPayload<VersionDto>;
 
     expect(response.status).toBe(200);
     expect(payload.data.version).toBe("1.2.0");
+    expect(payload.data.publishedAt).toBe("2026-03-03T00:00:00.000Z");
   });
 
   it("blocks admin routes for non-admin users", async () => {
@@ -269,9 +301,13 @@ describe("createApp", () => {
 
     expect(dashboardResponse.status).toBe(200);
     expect(activityResponse.status).toBe(200);
-    expect(((await dashboardResponse.json()) as any).data.users.total).toBe(4);
     expect(
-      ((await activityResponse.json()) as any).data.recentUsers,
+      ((await dashboardResponse.json()) as ApiSuccessPayload<AdminDashboardStatsDto>)
+        .data.users.total,
+    ).toBe(4);
+    expect(
+      ((await activityResponse.json()) as ApiSuccessPayload<AdminDashboardActivityDto>)
+        .data.recentUsers,
     ).toHaveLength(1);
   });
 
@@ -285,7 +321,8 @@ describe("createApp", () => {
     const response = await app.request("/v1/admin/feedback/stats", {
       headers: adminHeaders,
     });
-    const payload = (await response.json()) as any;
+    const payload =
+      (await response.json()) as ApiSuccessPayload<AdminFeedbackStatsDto>;
 
     expect(response.status).toBe(200);
     expect(payload.data.byStatus[0].count).toBe(2);
@@ -319,10 +356,11 @@ describe("createApp", () => {
     const response = await app.request("/v1/admin/versions/ver-1", {
       headers: adminHeaders,
     });
-    const payload = (await response.json()) as any;
+    const payload = (await response.json()) as ApiSuccessPayload<VersionDto>;
 
     expect(response.status).toBe(200);
     expect(payload.data.id).toBe("ver-1");
+    expect(payload.data.createdAt).toBe("2026-03-01T00:00:00.000Z");
   });
 
   it("returns 404 for missing admin project details", async () => {
@@ -331,7 +369,7 @@ describe("createApp", () => {
     const response = await app.request("/v1/admin/projects/missing", {
       headers: adminHeaders,
     });
-    const payload = (await response.json()) as any;
+    const payload = (await response.json()) as ApiErrorResponse;
 
     expect(response.status).toBe(404);
     expect(payload.error.code).toBe("project_not_found");
@@ -353,7 +391,7 @@ describe("createApp", () => {
       },
       body: JSON.stringify({ response: "" }),
     });
-    const payload = (await response.json()) as any;
+    const payload = (await response.json()) as ApiErrorResponse;
 
     expect(response.status).toBe(400);
     expect(payload.error.message).toBe("Feedback response is required");
@@ -524,5 +562,63 @@ describe("createApp", () => {
       "ver-2",
       actorHeaders["x-user-id"],
     );
+  });
+
+  it("updates versions with the explicit admin DTO fields only", async () => {
+    services.versionsService.update.mockResolvedValue(
+      ok({
+        id: "ver-2",
+        version: "1.3.0",
+        title: "Retitled release",
+        description: null,
+        type: "minor",
+        features: [],
+        improvements: [],
+        bugFixes: [],
+        breaking: [],
+        highlights: [],
+        migration: null,
+        status: "draft",
+        isLatest: false,
+        publishedBy: actorHeaders["x-user-id"],
+        downloadUrl: null,
+        docsUrl: null,
+        createdAt: new Date("2026-03-01T00:00:00Z"),
+        updatedAt: new Date("2026-03-04T00:00:00Z"),
+        publishedAt: null,
+      }),
+    );
+
+    const response = await app.request("/v1/admin/versions/ver-2", {
+      method: "PATCH",
+      headers: {
+        ...adminHeaders,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        title: "Retitled release",
+        description: null,
+        downloadUrl: null,
+        id: "ignored-id",
+        isLatest: true,
+        publishedAt: "2026-03-05T00:00:00Z",
+      }),
+    });
+    const payload = (await response.json()) as ApiSuccessPayload<VersionDto>;
+
+    expect(response.status).toBe(200);
+    expect(payload.data.title).toBe("Retitled release");
+    expect(services.versionsService.update).toHaveBeenCalledWith("ver-2", {
+      title: "Retitled release",
+      description: null,
+      features: undefined,
+      improvements: undefined,
+      bugFixes: undefined,
+      breaking: undefined,
+      highlights: undefined,
+      migration: undefined,
+      downloadUrl: null,
+      docsUrl: undefined,
+    });
   });
 });

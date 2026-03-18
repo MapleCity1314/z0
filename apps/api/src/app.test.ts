@@ -138,19 +138,37 @@ describe("createApp", () => {
 
     expect(response.status).toBe(200);
     expect(payload.data.contractVersion).toBe(
-      "2026-03-core-plugin-boundary-v2",
+      "2026-03-core-plugin-boundary-v3",
+    );
+    expect(payload.data.snapshotScope).toBe("core-with-planned-plugins");
+    expect(payload.data.pluginRuntime).toEqual(
+      expect.objectContaining({
+        mountingStatus: "not-supported",
+        installationStatus: "not-available",
+        activationStatus: "not-available",
+      }),
     );
     expect(payload.data.pluginManifests).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: "@z0/plugin-project" }),
-        expect.objectContaining({ id: "@z0/plugin-search" }),
-        expect.objectContaining({ id: "@z0/plugin-subagents" }),
+        expect.objectContaining({
+          id: "@z0/plugin-project",
+          runtimeStatus: "not-mounted",
+        }),
+        expect.objectContaining({
+          id: "@z0/plugin-search",
+          runtimeStatus: "not-mounted",
+        }),
+        expect.objectContaining({
+          id: "@z0/plugin-subagents",
+          runtimeStatus: "not-mounted",
+        }),
       ]),
     );
     expect(payload.data.pluginInventory).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: "@z0/plugin-project",
+          runtimeStatus: "not-mounted",
           highlights: expect.arrayContaining([
             "Project lifecycle and workspace management",
           ]),

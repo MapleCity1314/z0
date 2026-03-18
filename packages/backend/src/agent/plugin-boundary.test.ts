@@ -5,13 +5,31 @@ describe("agent capability boundary snapshot", () => {
   it("captures stable core seams and planned plugin manifests", () => {
     const snapshot = getAgentCapabilityBoundarySnapshot();
 
-    expect(snapshot.contractVersion).toBe("2026-03-core-plugin-boundary-v2");
+    expect(snapshot.contractVersion).toBe("2026-03-core-plugin-boundary-v3");
+    expect(snapshot.snapshotScope).toBe("core-with-planned-plugins");
+    expect(snapshot.pluginRuntime).toEqual({
+      mountingStatus: "not-supported",
+      installationStatus: "not-available",
+      activationStatus: "not-available",
+      notes: expect.arrayContaining([
+        "The current snapshot is a planning contract, not a mounted plugin runtime.",
+      ]),
+    });
     expect(snapshot.coreCapabilities).toHaveLength(5);
     expect(snapshot.pluginManifests).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: "@z0/plugin-project" }),
-        expect.objectContaining({ id: "@z0/plugin-search" }),
-        expect.objectContaining({ id: "@z0/plugin-subagents" }),
+        expect.objectContaining({
+          id: "@z0/plugin-project",
+          runtimeStatus: "not-mounted",
+        }),
+        expect.objectContaining({
+          id: "@z0/plugin-search",
+          runtimeStatus: "not-mounted",
+        }),
+        expect.objectContaining({
+          id: "@z0/plugin-subagents",
+          runtimeStatus: "not-mounted",
+        }),
       ]),
     );
   });
@@ -30,6 +48,7 @@ describe("agent capability boundary snapshot", () => {
       id: "@z0/plugin-project",
       name: "Project and Agentic Dev Sandbox",
       status: "planned",
+      runtimeStatus: "not-mounted",
       description:
         "Owns project CRUD, workspace files, build/runtime loops, browser automation, and project-local editing workflows.",
       highlights: expect.arrayContaining([
@@ -44,6 +63,11 @@ describe("agent capability boundary snapshot", () => {
       workflows: ["modify-run-inspect-iterate"],
       subagentRoles: [],
     });
+    expect(
+      snapshot.pluginInventory.every(
+        (plugin) => plugin.runtimeStatus === "not-mounted",
+      ),
+    ).toBe(true);
     expect(subagentsPlugin?.dependencies).toEqual([
       "@z0/plugin-project",
       "@z0/plugin-workflow",

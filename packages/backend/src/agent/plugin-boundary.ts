@@ -1,9 +1,14 @@
+import {
+  plannedAgentPluginIds,
+  type AgentPluginId,
+} from "@z0/shared-types";
 import type {
   AgentCapabilityBoundarySnapshot,
   AgentCoreCapabilityDescriptor,
   AgentPluginInventoryItem,
   AgentPluginManifest,
   AgentPluginMigrationNote,
+  AgentPluginRuntimeDescriptor,
   AgentToolOwnershipRecord,
   AgentToolMigrationStage,
 } from "@z0/shared-types";
@@ -47,9 +52,23 @@ const CORE_CAPABILITIES: AgentCoreCapabilityDescriptor[] = [
   },
 ];
 
-const PLUGIN_MANIFESTS: AgentPluginManifest[] = [
-  {
-    id: "@z0/plugin-project",
+const PLUGIN_RUNTIME_DESCRIPTOR: AgentPluginRuntimeDescriptor = {
+  mountingStatus: "not-supported",
+  installationStatus: "not-available",
+  activationStatus: "not-available",
+  notes: [
+    "The current snapshot is a planning contract, not a mounted plugin runtime.",
+    "All agent capabilities still execute through z0 core-owned chat, tool, skill, and MCP runtime seams.",
+  ],
+};
+
+type PlannedPluginManifestDefinition = Omit<
+  AgentPluginManifest,
+  "id" | "runtimeStatus"
+>;
+
+const PLANNED_PLUGIN_MANIFESTS_BY_ID = {
+  "@z0/plugin-project": {
     name: "Project and Agentic Dev Sandbox",
     status: "planned",
     description:
@@ -64,8 +83,7 @@ const PLUGIN_MANIFESTS: AgentPluginManifest[] = [
     uiPanels: ["project-workspace", "design-workspace"],
     workflows: ["modify-run-inspect-iterate"],
   },
-  {
-    id: "@z0/plugin-search",
+  "@z0/plugin-search": {
     name: "Super Search and Platform Intelligence",
     status: "planned",
     description:
@@ -79,8 +97,7 @@ const PLUGIN_MANIFESTS: AgentPluginManifest[] = [
     mcpServers: ["research-providers"],
     workflows: ["multi-source-research"],
   },
-  {
-    id: "@z0/plugin-subagents",
+  "@z0/plugin-subagents": {
     name: "Subagent Customization",
     status: "planned",
     description:
@@ -98,8 +115,7 @@ const PLUGIN_MANIFESTS: AgentPluginManifest[] = [
     ],
     dependencies: ["@z0/plugin-project", "@z0/plugin-workflow"],
   },
-  {
-    id: "@z0/plugin-workflow",
+  "@z0/plugin-workflow": {
     name: "Workflow Canvas",
     status: "planned",
     description:
@@ -111,8 +127,7 @@ const PLUGIN_MANIFESTS: AgentPluginManifest[] = [
     ],
     workflows: ["workflow-canvas", "scheduled-runs"],
   },
-  {
-    id: "@z0/plugin-trading",
+  "@z0/plugin-trading": {
     name: "Crypto Quant and Semi-Automated Trading",
     status: "planned",
     description:
@@ -126,8 +141,7 @@ const PLUGIN_MANIFESTS: AgentPluginManifest[] = [
     skills: ["market-regime-analysis", "signal-validation"],
     dependencies: ["@z0/plugin-search", "@z0/plugin-workflow"],
   },
-  {
-    id: "@z0/plugin-resume",
+  "@z0/plugin-resume": {
     name: "Resume and Job Search",
     status: "planned",
     description:
@@ -141,8 +155,7 @@ const PLUGIN_MANIFESTS: AgentPluginManifest[] = [
     skills: ["resume-authoring", "job-matching"],
     dependencies: ["@z0/plugin-search", "@z0/plugin-workflow"],
   },
-  {
-    id: "@z0/plugin-gittree",
+  "@z0/plugin-gittree": {
     name: "GitTree Multi-Workflow Mode",
     status: "planned",
     description:
@@ -155,7 +168,13 @@ const PLUGIN_MANIFESTS: AgentPluginManifest[] = [
     workflows: ["parallel-worktrees"],
     dependencies: ["@z0/plugin-project", "@z0/plugin-workflow"],
   },
-];
+} satisfies Record<AgentPluginId, PlannedPluginManifestDefinition>;
+
+const PLUGIN_MANIFESTS: AgentPluginManifest[] = plannedAgentPluginIds.map((id) => ({
+  id,
+  runtimeStatus: "not-mounted",
+  ...PLANNED_PLUGIN_MANIFESTS_BY_ID[id],
+}));
 
 const MIGRATION_NOTES: AgentPluginMigrationNote[] = [
   {
@@ -238,6 +257,7 @@ function toPluginInventoryItem(
     name: manifest.name,
     description: manifest.description,
     status: manifest.status,
+    runtimeStatus: manifest.runtimeStatus,
     highlights: manifest.highlights,
     dependencies: manifest.dependencies ?? [],
     tools: manifest.tools ?? [],
@@ -255,7 +275,9 @@ export function getAgentPluginInventory(): AgentPluginInventoryItem[] {
 
 export function getAgentCapabilityBoundarySnapshot(): AgentCapabilityBoundarySnapshot {
   return {
-    contractVersion: "2026-03-core-plugin-boundary-v2",
+    contractVersion: "2026-03-core-plugin-boundary-v3",
+    snapshotScope: "core-with-planned-plugins",
+    pluginRuntime: PLUGIN_RUNTIME_DESCRIPTOR,
     coreCapabilities: CORE_CAPABILITIES,
     pluginManifests: PLUGIN_MANIFESTS,
     pluginInventory: getAgentPluginInventory(),

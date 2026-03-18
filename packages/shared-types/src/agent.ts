@@ -26,6 +26,13 @@ export type AgentCapabilitySurface =
   | "subagent-role";
 
 export type AgentPluginStatus = "planned" | "experimental" | "active";
+export type AgentPluginRuntimeStatus = "not-mounted" | "mounted";
+
+export type AgentPluginMountingStatus = "not-supported" | "startup-mounted";
+export type AgentPluginInstallationStatus =
+  | "not-available"
+  | "config-registered";
+export type AgentPluginActivationStatus = "not-available" | "runtime-available";
 
 export type AgentToolMigrationStage =
   | "stable-core"
@@ -47,6 +54,7 @@ export interface AgentPluginManifest {
   id: AgentPluginId;
   name: string;
   status: AgentPluginStatus;
+  runtimeStatus: AgentPluginRuntimeStatus;
   description: string;
   highlights: string[];
   tools?: string[];
@@ -63,6 +71,7 @@ export interface AgentPluginInventoryItem {
   name: string;
   description: string;
   status: AgentPluginStatus;
+  runtimeStatus: AgentPluginRuntimeStatus;
   highlights: string[];
   dependencies: AgentPluginId[];
   tools: string[];
@@ -91,8 +100,17 @@ export interface AgentPluginMigrationNote {
   implications: string[];
 }
 
+export interface AgentPluginRuntimeDescriptor {
+  mountingStatus: AgentPluginMountingStatus;
+  installationStatus: AgentPluginInstallationStatus;
+  activationStatus: AgentPluginActivationStatus;
+  notes: string[];
+}
+
 export interface AgentCapabilityBoundarySnapshot {
-  contractVersion: "2026-03-core-plugin-boundary-v2";
+  contractVersion: "2026-03-core-plugin-boundary-v3";
+  snapshotScope: "core-with-planned-plugins";
+  pluginRuntime: AgentPluginRuntimeDescriptor;
   coreCapabilities: AgentCoreCapabilityDescriptor[];
   pluginManifests: AgentPluginManifest[];
   pluginInventory: AgentPluginInventoryItem[];

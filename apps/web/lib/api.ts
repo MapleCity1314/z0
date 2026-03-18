@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import { createInternalAuthHeaders } from "@z0/backend";
 
 type ApiError = {
@@ -82,6 +81,15 @@ function getApiBaseUrl() {
   return process.env.API_BASE_URL ?? "http://localhost:3001";
 }
 
+async function getForwardedCookie(options?: ApiFetchOptions) {
+  if (options?.actor || typeof window !== "undefined") {
+    return null;
+  }
+
+  const { headers } = await import("next/headers");
+  return (await headers()).get("cookie");
+}
+
 type ApiFetchOptions = {
   actor?: {
     userId: string;
@@ -103,7 +111,7 @@ export async function apiFetch<T>(
         purpose: "web-api",
       })
     : {};
-  const cookie = options?.actor ? null : (await headers()).get("cookie");
+  const cookie = await getForwardedCookie(options);
   const response = await fetch(`${getApiBaseUrl()}${path}`, {
     ...init,
     headers: {

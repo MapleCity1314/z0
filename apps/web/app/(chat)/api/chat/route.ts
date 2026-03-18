@@ -1,9 +1,7 @@
 import {
-  createInternalAuthHeaders,
   mapAgentChatError,
   parseChatRequestBody,
   validateChatRequest,
-  withTimeout,
 } from "@z0/backend";
 import { type NextRequest, NextResponse } from "next/server";
 import { getChatById } from "@/components/chat/actions";
@@ -12,120 +10,16 @@ import {
   getRelevantMemories,
 } from "@/lib/agent/memory/service";
 import { processAllMessageFiles } from "@/lib/agent/chat/attachments";
+import { runDeferredPersistence } from "@/lib/agent/chat/persistence";
 import {
-  runDeferredPersistence,
-} from "@/lib/agent/chat/persistence";
+  logResponsePreview,
+  prepareChatForwardRequest,
+  readForwardedChatError,
+  summarizeHeaders,
+} from "@/lib/agent/chat/transport";
 import { getCurrentUser } from "@/lib/session";
 
 export const maxDuration = 30;
-
-const MEMORY_TIMEOUT_MS = 1200;
-
-function maskHeaderValue(value: string) {
-  if (value.length <= 8) {
-    return "*".repeat(value.length);
-  }
-
-  return `${value.slice(0, 4)}...${value.slice(-4)}`;
-}
-
-function summarizeHeaders(headers: HeadersInit) {
-  return Object.fromEntries(
-    Array.from(new Headers(headers).entries()).map(([key, value]) => [
-      key,
-      key === "authorization" ||
-      key === "x-api-key" ||
-      key === "x-internal-auth-sig"
-        ? maskHeaderValue(value)
-        : value,
-    ]),
-  );
-}
-
-function logResponsePreview(
-  stream: ReadableStream<Uint8Array> | null,
-  label: string,
-) {
-  if (!stream) {
-    return stream;
-  }
-
-  const [previewStream, passthroughStream] = stream.tee();
-
-  void (async () => {
-    const reader = previewStream.getReader();
-    const decoder = new TextDecoder();
-    let preview = "";
-
-    try {
-      while (preview.length < 1200) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-
-        preview += decoder.decode(value, { stream: true });
-      }
-    } catch (error) {
-      console.error(`${label} preview failed`, error);
-      return;
-    } finally {
-      reader.releaseLock();
-    }
-
-    console.log(label, preview.slice(0, 1200));
-  })();
-
-  return passthroughStream;
-}
-
-async function fetchMemoriesForPrompt(userId: string, query: string) {
-  try {
-    const memoryPromise =
-      query.trim().length > 3
-        ? getRelevantMemories(userId, query, 5)
-        : getRelevantMemories(userId, undefined, 5);
-
-    return await withTimeout(memoryPromise, MEMORY_TIMEOUT_MS, []);
-  } catch (error) {
-    console.warn(
-      "[Server] Memory fetch failed, continuing without memory:",
-      error,
-    );
-    return [];
-  }
-}
-
-async function readForwardedChatError(response: Response) {
-  const fallbackCause =
-    response.statusText.trim().length > 0
-      ? `Agent API returned ${response.status} ${response.statusText}`
-      : `Agent API returned ${response.status}`;
-
-  try {
-    const payload = await response.json();
-
-    if (
-      typeof payload === "object" &&
-      payload !== null &&
-      typeof (payload as { code?: unknown }).code === "string" &&
-      typeof (payload as { message?: unknown }).message === "string"
-    ) {
-      return payload;
-    }
-  } catch (error) {
-    console.warn("[Server] API chat error payload was not valid JSON", {
-      status: response.status,
-      message: error instanceof Error ? error.message : String(error),
-    });
-  }
-
-  return {
-    code: "bad_request:api",
-    message: "Failed to process chat request",
-    cause: fallbackCause,
-  };
-}
 
 export async function POST(request: NextRequest) {
   let requestedModel: string | undefined;
@@ -152,61 +46,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const processedMessages = await processAllMessageFiles(payload.messages);
-    const userQuery = [...payload.messages]
-      .reverse()
-      .find((message) => message.role === "user")
-      ?.parts.filter((part): part is { type: "text"; text: string } => part.type === "text")
-      .map((part) => part.text)
-      .join(" ")
-      .trim() ?? "";
-    const memoryContext = formatMemoriesForContext(
-      await fetchMemoriesForPrompt(user.id, userQuery),
-    );
+    const forwardedRequest = await prepareChatForwardRequest({
+      payload,
+      user,
+      cookieHeader: request.headers.get("cookie"),
+      processMessages: processAllMessageFiles,
+      getChatById,
+      getRelevantMemories,
+      formatMemoriesForContext,
+    });
 
-    const chatResult = await getChatById({ id: payload.id });
-    const isNewChat = !chatResult.success || !chatResult.data;
-
-    runDeferredPersistence({
-      chatId: payload.id,
-      userId: user.id,
-      messages: processedMessages,
-      projectId: payload.projectId,
-      isNewChat,
-      userQuery,
-    }).catch(() => undefined);
-
-    const apiUrl = `${process.env.API_BASE_URL ?? "http://localhost:3001"}/v1/agent/chat`;
-    const apiHeaders = {
-      "content-type": "application/json",
-      ...createInternalAuthHeaders({
-        actor: {
-          userId: user.id,
-          role: user.role,
-        },
-        purpose: "web-api",
-      }),
-      ...(request.headers.get("cookie")
-        ? { cookie: request.headers.get("cookie") as string }
-        : {}),
-    };
+    runDeferredPersistence(forwardedRequest.persistence).catch(() => undefined);
 
     console.log("[Server] Forwarding chat request to API", {
-      apiUrl,
-      headers: summarizeHeaders(apiHeaders),
+      apiUrl: forwardedRequest.apiUrl,
+      headers: summarizeHeaders(forwardedRequest.apiHeaders),
       model: payload.model,
       webSearchEnabled: payload.webSearchEnabled,
       isReasoning: payload.isReasoning,
     });
 
-    const response = await fetch(apiUrl, {
+    const response = await fetch(forwardedRequest.apiUrl, {
       method: "POST",
-      headers: apiHeaders,
-      body: JSON.stringify({
-        ...payload,
-        messages: processedMessages,
-        memoryContext,
-      }),
+      headers: forwardedRequest.apiHeaders,
+      body: JSON.stringify(forwardedRequest.apiBody),
       cache: "no-store",
     });
 

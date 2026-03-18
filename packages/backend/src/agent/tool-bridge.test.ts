@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createToolBridgeErrorResponse,
   createToolBridgeSuccessResponse,
+  getToolBridgeErrorStatus,
   normalizeToolBridgeExecutionError,
   parseToolBridgeRequestBody,
   parseToolBridgeResponse,
@@ -99,5 +100,13 @@ describe("agent tool bridge contract", () => {
         toolName: "demoTool",
       },
     });
+  });
+
+  it("infers response statuses from bridge execution failures", async () => {
+    const { z } = await import("zod");
+
+    expect(getToolBridgeErrorStatus(new z.ZodError([]))).toBe(400);
+    expect(getToolBridgeErrorStatus({ status: 429 })).toBe(429);
+    expect(getToolBridgeErrorStatus(new Error("boom"))).toBe(500);
   });
 });

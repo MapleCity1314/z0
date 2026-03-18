@@ -4,11 +4,16 @@ import { ZodError } from "zod";
 import {
   createToolBridgeErrorResponse,
   createToolBridgeSuccessResponse,
+  getToolBridgeErrorStatus,
   normalizeToolBridgeExecutionError,
   parseToolBridgeRequestBody,
   verifyInternalAuthHeaders,
 } from "@z0/backend";
 import { buildAgentTools } from "@/lib/agent/chat/tools";
+import {
+  authorizeToolBridgeTargets,
+  resolveAgentToolForBridge,
+} from "@/lib/agent/chat/tool-bridge-server";
 import { db } from "@/lib/db";
 import { chat, project } from "@/lib/schema";
 
@@ -53,71 +58,57 @@ export async function POST(
     );
   }
 
-  if (body.chatId) {
-    const [chatRecord] = await db
-      .select({ id: chat.id })
-      .from(chat)
-      .where(and(eq(chat.id, body.chatId), eq(chat.userId, actor.userId)))
-      .limit(1);
+  const accessError = await authorizeToolBridgeTargets({
+    actorUserId: actor.userId,
+    body,
+    toolName,
+    hasOwnedChat: async (chatId, userId) => {
+      const [chatRecord] = await db
+        .select({ id: chat.id })
+        .from(chat)
+        .where(and(eq(chat.id, chatId), eq(chat.userId, userId)))
+        .limit(1);
 
-    if (!chatRecord) {
-      return NextResponse.json(
-        createToolBridgeErrorResponse({
-          code: "forbidden:tool_bridge",
-          message: "Chat not found or access denied",
-          status: 403,
-          toolName,
-        }),
-        { status: 403 },
-      );
-    }
+      return Boolean(chatRecord);
+    },
+    hasOwnedProject: async (projectId, userId) => {
+      const [projectRecord] = await db
+        .select({ id: project.id })
+        .from(project)
+        .where(and(eq(project.id, projectId), eq(project.userId, userId)))
+        .limit(1);
+
+      return Boolean(projectRecord);
+    },
+  });
+
+  if (accessError) {
+    return NextResponse.json(accessError, {
+      status: accessError.error.status,
+    });
   }
 
-  if (body.projectId) {
-    const [projectRecord] = await db
-      .select({ id: project.id })
-      .from(project)
-      .where(
-        and(eq(project.id, body.projectId), eq(project.userId, actor.userId)),
-      )
-      .limit(1);
+  const { targetTool, error: toolLookupError } = resolveAgentToolForBridge({
+    toolName,
+    webSearchEnabled: body.webSearchEnabled,
+    projectId: body.projectId ?? null,
+    buildTools: (webSearchEnabled, projectId) =>
+      buildAgentTools(webSearchEnabled, projectId) as Record<
+        string,
+        { execute?: (input: unknown, context: unknown) => Promise<unknown> }
+      >,
+  });
 
-    if (!projectRecord) {
-      return NextResponse.json(
-        createToolBridgeErrorResponse({
-          code: "forbidden:tool_bridge",
-          message: "Project not found or access denied",
-          status: 403,
-          toolName,
-        }),
-        { status: 403 },
-      );
-    }
+  if (toolLookupError) {
+    return NextResponse.json(toolLookupError, {
+      status: toolLookupError.error.status,
+    });
   }
 
-  const tools = buildAgentTools(
-    body.webSearchEnabled ?? false,
-    body.projectId ?? null,
-  ) as Record<
-    string,
-    { execute?: (input: unknown, context: unknown) => Promise<unknown> }
-  >;
-  const targetTool = tools[toolName];
-
-  if (!targetTool || typeof targetTool.execute !== "function") {
-    return NextResponse.json(
-      createToolBridgeErrorResponse({
-        code: "not_found:tool_bridge",
-        message: `Unknown agent tool: ${toolName}`,
-        status: 404,
-        toolName,
-      }),
-      { status: 404 },
-    );
-  }
+  const executeTool = targetTool.execute;
 
   try {
-    const data = await targetTool.execute(body.input ?? {}, {
+    const data = await executeTool(body.input ?? {}, {
       toolCallId: body.toolCallId,
       messages: {
         chatId: body.chatId,
@@ -141,14 +132,7 @@ export async function POST(
         fallbackMessage: "Tool execution failed",
       }),
       {
-        status:
-          error instanceof ZodError
-            ? 400
-            : typeof (error as { status?: unknown })?.status === "number" &&
-                (error as { status: number }).status >= 400 &&
-                (error as { status: number }).status <= 599
-              ? (error as { status: number }).status
-              : 500,
+        status: getToolBridgeErrorStatus(error),
       },
     );
   }

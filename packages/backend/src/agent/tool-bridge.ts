@@ -174,6 +174,24 @@ export function normalizeToolBridgeExecutionError(params: {
   });
 }
 
+export function getToolBridgeErrorStatus(error: unknown) {
+  if (error instanceof z.ZodError) {
+    return 400;
+  }
+
+  const candidate = error as { status?: unknown } | null;
+  if (
+    typeof candidate?.status === "number" &&
+    Number.isInteger(candidate.status) &&
+    candidate.status >= 400 &&
+    candidate.status <= 599
+  ) {
+    return candidate.status;
+  }
+
+  return 500;
+}
+
 export function parseToolBridgeResponse(
   payload: unknown,
 ): ToolBridgeSuccessResponse | ToolBridgeErrorResponse {

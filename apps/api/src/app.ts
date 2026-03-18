@@ -5,6 +5,7 @@ import { registerAgentRoutes } from "./routes/agent";
 import { registerAdminRoutes } from "./routes/admin";
 import { registerFeedbackRoutes } from "./routes/feedback";
 import { registerHealthRoutes } from "./routes/health";
+import { registerIntegrationRoutes } from "./routes/integrations";
 import { registerProjectRoutes } from "./routes/projects";
 import { registerUserRoutes } from "./routes/users";
 import { registerVersionRoutes } from "./routes/versions";
@@ -17,6 +18,7 @@ export function createApp(overrides: Partial<AppServices> = {}) {
   const defaults =
     overrides.adminService &&
     overrides.feedbackService &&
+    overrides.integrationsService &&
     overrides.projectsService &&
     overrides.usersService &&
     overrides.versionsService
@@ -28,6 +30,8 @@ export function createApp(overrides: Partial<AppServices> = {}) {
     overrides.feedbackService ?? defaults?.feedbackService;
   const projectsService =
     overrides.projectsService ?? defaults?.projectsService;
+  const integrationsService =
+    overrides.integrationsService ?? defaults?.integrationsService;
   const usersService = overrides.usersService ?? defaults?.usersService;
   const versionsService =
     overrides.versionsService ?? defaults?.versionsService;
@@ -35,6 +39,7 @@ export function createApp(overrides: Partial<AppServices> = {}) {
   if (
     !adminService ||
     !feedbackService ||
+    !integrationsService ||
     !projectsService ||
     !usersService ||
     !versionsService
@@ -45,6 +50,7 @@ export function createApp(overrides: Partial<AppServices> = {}) {
   const resolvedServices: AppServices = {
     adminService,
     feedbackService,
+    integrationsService,
     projectsService,
     usersService,
     versionsService,
@@ -116,6 +122,7 @@ export function createApp(overrides: Partial<AppServices> = {}) {
 
   registerHealthRoutes(app);
   registerAgentRoutes(app);
+  registerIntegrationRoutes(app, resolvedServices);
   registerUserRoutes(app, resolvedServices);
   registerProjectRoutes(app, resolvedServices);
   registerFeedbackRoutes(app, resolvedServices);

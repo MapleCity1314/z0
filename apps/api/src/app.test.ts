@@ -8,6 +8,8 @@ import type {
   AdminFeedbackStatsDto,
   ApiErrorPayload,
   ApiSuccessPayload,
+  ChatIntegrationsDto,
+  SystemIntegrationMarketDto,
   VersionDto,
 } from "@z0/shared-types";
 
@@ -53,6 +55,19 @@ function createServices() {
       updateStatus: vi.fn(),
       respond: vi.fn(),
     },
+    integrationsService: {
+      getChatIntegrations: vi.fn(),
+      addChatMcpServer: vi.fn(),
+      updateChatMcpServerState: vi.fn(),
+      addChatSkill: vi.fn(),
+      updateChatSkillState: vi.fn(),
+      getUserIntegrationSettings: vi.fn(),
+      getSystemIntegrationMarket: vi.fn(),
+      addUserMcpServer: vi.fn(),
+      setUserMcpDefault: vi.fn(),
+      addUserSkill: vi.fn(),
+      setUserSkillDefault: vi.fn(),
+    },
     versionsService: {
       getLatest: vi.fn(),
       listPublished: vi.fn(),
@@ -92,6 +107,7 @@ describe("createApp", () => {
       usersService: services.usersService as never,
       projectsService: services.projectsService as never,
       feedbackService: services.feedbackService as never,
+      integrationsService: services.integrationsService as never,
       versionsService: services.versionsService as never,
       adminService: services.adminService as never,
     });
@@ -138,19 +154,37 @@ describe("createApp", () => {
 
     expect(response.status).toBe(200);
     expect(payload.data.contractVersion).toBe(
-      "2026-03-core-plugin-boundary-v2",
+      "2026-03-core-plugin-boundary-v3",
+    );
+    expect(payload.data.snapshotScope).toBe("core-with-planned-plugins");
+    expect(payload.data.pluginRuntime).toEqual(
+      expect.objectContaining({
+        mountingStatus: "not-supported",
+        installationStatus: "not-available",
+        activationStatus: "not-available",
+      }),
     );
     expect(payload.data.pluginManifests).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: "@z0/plugin-project" }),
-        expect.objectContaining({ id: "@z0/plugin-search" }),
-        expect.objectContaining({ id: "@z0/plugin-subagents" }),
+        expect.objectContaining({
+          id: "@z0/plugin-project",
+          runtimeStatus: "not-mounted",
+        }),
+        expect.objectContaining({
+          id: "@z0/plugin-search",
+          runtimeStatus: "not-mounted",
+        }),
+        expect.objectContaining({
+          id: "@z0/plugin-subagents",
+          runtimeStatus: "not-mounted",
+        }),
       ]),
     );
     expect(payload.data.pluginInventory).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: "@z0/plugin-project",
+          runtimeStatus: "not-mounted",
           highlights: expect.arrayContaining([
             "Project lifecycle and workspace management",
           ]),
@@ -186,6 +220,104 @@ describe("createApp", () => {
     expect(services.usersService.getProfile).toHaveBeenCalledWith(
       actorHeaders["x-user-id"],
     );
+  });
+
+  it("returns the authenticated user's integration settings", async () => {
+    services.integrationsService.getUserIntegrationSettings.mockResolvedValue(
+      ok({
+        mcpServers: [
+          {
+            userMcpServerId: "mcp-user-1",
+            systemServerId: "mcp-system-1",
+            systemServerName: "Docs",
+            endpoint: "https://example.com/mcp",
+            sourceType: "external",
+            useByDefault: true,
+            enabledInChat: false,
+          },
+        ],
+        skills: [],
+      } satisfies ChatIntegrationsDto),
+    );
+
+    const response = await app.request("/v1/integrations/me", {
+      headers: actorHeaders,
+    });
+    const payload =
+      (await response.json()) as ApiSuccessPayload<ChatIntegrationsDto>;
+
+    expect(response.status).toBe(200);
+    expect(payload.data.mcpServers[0].systemServerName).toBe("Docs");
+    expect(
+      services.integrationsService.getUserIntegrationSettings,
+    ).toHaveBeenCalledWith(actorHeaders["x-user-id"]);
+  });
+
+  it("updates chat integration state through the integrations service", async () => {
+    services.integrationsService.updateChatMcpServerState.mockResolvedValue(
+      ok({ updated: true }),
+    );
+
+    const response = await app.request(
+      "/v1/integrations/chats/chat-1/mcp-servers/mcp-user-1",
+      {
+        method: "PATCH",
+        headers: {
+          ...actorHeaders,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          enabledInChat: true,
+          useByDefault: false,
+        }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(
+      services.integrationsService.updateChatMcpServerState,
+    ).toHaveBeenCalledWith({
+      userId: actorHeaders["x-user-id"],
+      chatId: "chat-1",
+      userMcpServerId: "mcp-user-1",
+      enabledInChat: true,
+      useByDefault: false,
+    });
+  });
+
+  it("returns the authenticated integrations market", async () => {
+    services.integrationsService.getSystemIntegrationMarket.mockResolvedValue(
+      ok({
+        mcpServers: [],
+        skills: [],
+        plugins: [
+          {
+            pluginId: "@z0/plugin-project",
+            name: "Project",
+            status: "planned",
+            runtimeStatus: "not-mounted",
+            description: "Project workflow",
+            highlights: [],
+            tools: ["project:*"],
+            skills: [],
+            mcpServers: [],
+            uiPanels: [],
+            workflows: [],
+            subagentRoles: [],
+            dependencies: [],
+          },
+        ],
+      } satisfies SystemIntegrationMarketDto),
+    );
+
+    const response = await app.request("/v1/integrations/market", {
+      headers: actorHeaders,
+    });
+    const payload =
+      (await response.json()) as ApiSuccessPayload<SystemIntegrationMarketDto>;
+
+    expect(response.status).toBe(200);
+    expect(payload.data.plugins[0].pluginId).toBe("@z0/plugin-project");
   });
 
   it("returns the authenticated user's projects", async () => {

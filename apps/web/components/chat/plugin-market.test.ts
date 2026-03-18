@@ -15,6 +15,7 @@ describe("toSystemPluginMarketItems", () => {
           pluginId: "@z0/plugin-project",
           name: "Project and Agentic Dev Sandbox",
           status: "planned",
+          runtimeStatus: "not-mounted",
           highlights: expect.arrayContaining([
             "Project lifecycle and workspace management",
           ]),
@@ -22,10 +23,12 @@ describe("toSystemPluginMarketItems", () => {
         }),
         expect.objectContaining({
           pluginId: "@z0/plugin-search",
+          runtimeStatus: "not-mounted",
           mcpServers: expect.arrayContaining(["research-providers"]),
         }),
         expect.objectContaining({
           pluginId: "@z0/plugin-subagents",
+          runtimeStatus: "not-mounted",
           subagentRoles: expect.arrayContaining(["frontend-reviewer"]),
         }),
       ]),

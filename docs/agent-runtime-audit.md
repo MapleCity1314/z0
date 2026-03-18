@@ -104,6 +104,8 @@ This means plugin support is not implemented as a mounting/runtime system yet, b
 - a normalized planned plugin inventory
 - tool-to-plugin migration targets for roadmap planning
 - a stable API snapshot for UI or admin surfaces to inspect capability boundaries
+- explicit snapshot metadata that says plugin installation, activation, and mounting are not available yet
+- per-plugin runtime status so UI surfaces can say "planned, not mounted" instead of implying an installable market
 
 ## Decisions
 

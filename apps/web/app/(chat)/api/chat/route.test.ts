@@ -21,7 +21,9 @@ const withTimeout = vi.hoisted(() => vi.fn(async (promise: Promise<unknown>) => 
 const getChatById = vi.hoisted(() => vi.fn(async () => ({ success: true, data: { id: "chat-1" } })));
 const getRelevantMemories = vi.hoisted(() => vi.fn(async () => []));
 const formatMemoriesForContext = vi.hoisted(() => vi.fn(() => "memory context"));
-const processAllMessageFiles = vi.hoisted(() => vi.fn(async (messages) => messages));
+const processAllMessageFiles = vi.hoisted(() =>
+  vi.fn(async (messages: unknown) => messages),
+);
 const runDeferredPersistence = vi.hoisted(() => vi.fn(async () => undefined));
 const getCurrentUser = vi.hoisted(() => vi.fn(async () => ({ id: "user-1", role: "user" })));
 

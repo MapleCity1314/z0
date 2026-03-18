@@ -1,30 +1,24 @@
 "use server";
 
 import {
-  getAgentCapabilityBoundarySnapshot,
   warmPooledMcpServers,
   type AgentMcpServerMetadata,
 } from "@z0/backend";
+import type {
+  AddMcpServerRequest,
+  AddSkillRequest,
+  ChatIntegrationsDto,
+  SystemIntegrationMarketDto,
+  UpdateChatMcpServerStateRequest,
+  UpdateChatSkillStateRequest,
+  UpdateUserMcpDefaultRequest,
+  UpdateUserSkillDefaultRequest,
+  UserIntegrationSettingsDto,
+} from "@z0/shared-types";
+import { apiFetch } from "@/lib/api";
 import { AUTHENTICATION_REQUIRED_MESSAGE } from "@/lib/api-errors";
 import { getActionErrorMessage } from "@/lib/auth-errors";
 import { getCurrentUser } from "@/lib/session";
-import { toSystemPluginMarketItems } from "@/components/chat/plugin-market";
-import {
-  addMcpServerForChat,
-  addMcpServerForUser,
-  addSkillForChat,
-  addSkillForUser,
-  getChatMcpServers,
-  getChatSkills,
-  getSystemMcpServers,
-  getSystemSkills,
-  getUserMcpServers,
-  getUserSkills,
-  setChatMcpEnabled,
-  setChatSkillEnabled,
-  setUserMcpDefault,
-  setUserSkillDefault,
-} from "@/lib/db/integrations";
 
 type ActionResult<T = unknown> = {
   success: boolean;
@@ -40,6 +34,14 @@ async function requireUser() {
   return user;
 }
 
+async function getActor() {
+  const user = await requireUser();
+  return {
+    userId: user.id,
+    role: user.role,
+  };
+}
+
 function toActionError(error: unknown, fallback: string) {
   return {
     success: false,
@@ -47,23 +49,19 @@ function toActionError(error: unknown, fallback: string) {
   } as const;
 }
 
-export async function getChatIntegrationsAction(chatId: string): Promise<
-  ActionResult<{
-    mcpServers: Awaited<ReturnType<typeof getChatMcpServers>>;
-    skills: Awaited<ReturnType<typeof getChatSkills>>;
-  }>
-> {
+export async function getChatIntegrationsAction(
+  chatId: string,
+): Promise<ActionResult<ChatIntegrationsDto>> {
   try {
-    const user = await requireUser();
-    const [mcpServers, skills] = await Promise.all([
-      getChatMcpServers(user.id, chatId),
-      getChatSkills(user.id, chatId),
-    ]);
-
+    const data = await apiFetch<ChatIntegrationsDto>(
+      `/v1/integrations/chats/${chatId}`,
+      undefined,
+      { actor: await getActor() },
+    );
     return {
       success: true,
       message: "Chat integrations loaded",
-      data: { mcpServers, skills },
+      data,
     };
   } catch (error) {
     return toActionError(error, "Failed to load chat integrations");
@@ -76,13 +74,17 @@ export async function addChatMcpServerAction(params: {
   endpoint: string;
 }) {
   try {
-    const user = await requireUser();
-    await addMcpServerForChat({
-      userId: user.id,
-      chatId: params.chatId,
-      name: params.name,
-      endpoint: params.endpoint,
-    });
+    await apiFetch<{ userMcpServerId: string }>(
+      `/v1/integrations/chats/${params.chatId}/mcp-servers`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name: params.name,
+          endpoint: params.endpoint,
+        } satisfies AddMcpServerRequest),
+      },
+      { actor: await getActor() },
+    );
     return { success: true, message: "MCP server linked to chat" } as const;
   } catch (error) {
     return toActionError(error, "Failed to add MCP server");
@@ -96,20 +98,17 @@ export async function setChatMcpServerStateAction(params: {
   useByDefault: boolean;
 }) {
   try {
-    const user = await requireUser();
-    await Promise.all([
-      setChatMcpEnabled({
-        userId: user.id,
-        chatId: params.chatId,
-        userMcpServerId: params.userMcpServerId,
-        enabled: params.enabledInChat,
-      }),
-      setUserMcpDefault({
-        userId: user.id,
-        userMcpServerId: params.userMcpServerId,
-        useByDefault: params.useByDefault,
-      }),
-    ]);
+    await apiFetch<{ updated: true }>(
+      `/v1/integrations/chats/${params.chatId}/mcp-servers/${params.userMcpServerId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          enabledInChat: params.enabledInChat,
+          useByDefault: params.useByDefault,
+        } satisfies UpdateChatMcpServerStateRequest),
+      },
+      { actor: await getActor() },
+    );
     return { success: true, message: "MCP settings updated" } as const;
   } catch (error) {
     return toActionError(error, "Failed to update MCP settings");
@@ -122,13 +121,17 @@ export async function addChatSkillAction(params: {
   directory: string;
 }) {
   try {
-    const user = await requireUser();
-    await addSkillForChat({
-      userId: user.id,
-      chatId: params.chatId,
-      name: params.name,
-      directory: params.directory,
-    });
+    await apiFetch<{ userSkillId: string }>(
+      `/v1/integrations/chats/${params.chatId}/skills`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name: params.name,
+          directory: params.directory,
+        } satisfies AddSkillRequest),
+      },
+      { actor: await getActor() },
+    );
     return { success: true, message: "Skill linked to chat" } as const;
   } catch (error) {
     return toActionError(error, "Failed to add skill");
@@ -142,20 +145,17 @@ export async function setChatSkillStateAction(params: {
   useByDefault: boolean;
 }) {
   try {
-    const user = await requireUser();
-    await Promise.all([
-      setChatSkillEnabled({
-        userId: user.id,
-        chatId: params.chatId,
-        userSkillId: params.userSkillId,
-        enabled: params.enabledInChat,
-      }),
-      setUserSkillDefault({
-        userId: user.id,
-        userSkillId: params.userSkillId,
-        useByDefault: params.useByDefault,
-      }),
-    ]);
+    await apiFetch<{ updated: true }>(
+      `/v1/integrations/chats/${params.chatId}/skills/${params.userSkillId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          enabledInChat: params.enabledInChat,
+          useByDefault: params.useByDefault,
+        } satisfies UpdateChatSkillStateRequest),
+      },
+      { actor: await getActor() },
+    );
     return { success: true, message: "Skill settings updated" } as const;
   } catch (error) {
     return toActionError(error, "Failed to update skill settings");
@@ -163,21 +163,18 @@ export async function setChatSkillStateAction(params: {
 }
 
 export async function getUserIntegrationSettingsAction(): Promise<
-  ActionResult<{
-    mcpServers: Awaited<ReturnType<typeof getUserMcpServers>>;
-    skills: Awaited<ReturnType<typeof getUserSkills>>;
-  }>
+  ActionResult<UserIntegrationSettingsDto>
 > {
   try {
-    const user = await requireUser();
-    const [mcpServers, skills] = await Promise.all([
-      getUserMcpServers(user.id),
-      getUserSkills(user.id),
-    ]);
+    const data = await apiFetch<UserIntegrationSettingsDto>(
+      "/v1/integrations/me",
+      undefined,
+      { actor: await getActor() },
+    );
     return {
       success: true,
       message: "User integration settings loaded",
-      data: { mcpServers, skills },
+      data,
     };
   } catch (error) {
     return toActionError(error, "Failed to load user integration settings");
@@ -185,27 +182,18 @@ export async function getUserIntegrationSettingsAction(): Promise<
 }
 
 export async function getSystemIntegrationMarketAction(): Promise<
-  ActionResult<{
-    mcpServers: Awaited<ReturnType<typeof getSystemMcpServers>>;
-    skills: Awaited<ReturnType<typeof getSystemSkills>>;
-    plugins: ReturnType<typeof toSystemPluginMarketItems>;
-  }>
+  ActionResult<SystemIntegrationMarketDto>
 > {
   try {
-    await requireUser();
-    const capabilitySnapshot = getAgentCapabilityBoundarySnapshot();
-    const [mcpServers, skills] = await Promise.all([
-      getSystemMcpServers(),
-      getSystemSkills(),
-    ]);
+    const data = await apiFetch<SystemIntegrationMarketDto>(
+      "/v1/integrations/market",
+      undefined,
+      { actor: await getActor() },
+    );
     return {
       success: true,
       message: "System integration market loaded",
-      data: {
-        mcpServers,
-        skills,
-        plugins: toSystemPluginMarketItems(capabilitySnapshot),
-      },
+      data,
     };
   } catch (error) {
     return toActionError(error, "Failed to load system integration market");
@@ -217,12 +205,17 @@ export async function addUserMcpServerAction(params: {
   endpoint: string;
 }) {
   try {
-    const user = await requireUser();
-    await addMcpServerForUser({
-      userId: user.id,
-      name: params.name,
-      endpoint: params.endpoint,
-    });
+    await apiFetch<{ userMcpServerId: string }>(
+      "/v1/integrations/me/mcp-servers",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name: params.name,
+          endpoint: params.endpoint,
+        } satisfies AddMcpServerRequest),
+      },
+      { actor: await getActor() },
+    );
     return { success: true, message: "MCP server added" } as const;
   } catch (error) {
     return toActionError(error, "Failed to add MCP server");
@@ -234,12 +227,17 @@ export async function addUserSkillAction(params: {
   directory: string;
 }) {
   try {
-    const user = await requireUser();
-    await addSkillForUser({
-      userId: user.id,
-      name: params.name,
-      directory: params.directory,
-    });
+    await apiFetch<{ userSkillId: string }>(
+      "/v1/integrations/me/skills",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name: params.name,
+          directory: params.directory,
+        } satisfies AddSkillRequest),
+      },
+      { actor: await getActor() },
+    );
     return { success: true, message: "Skill added" } as const;
   } catch (error) {
     return toActionError(error, "Failed to add skill");
@@ -251,12 +249,16 @@ export async function setUserMcpDefaultAction(params: {
   useByDefault: boolean;
 }) {
   try {
-    const user = await requireUser();
-    await setUserMcpDefault({
-      userId: user.id,
-      userMcpServerId: params.userMcpServerId,
-      useByDefault: params.useByDefault,
-    });
+    await apiFetch<{ updated: true }>(
+      `/v1/integrations/me/mcp-servers/${params.userMcpServerId}/default`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          useByDefault: params.useByDefault,
+        } satisfies UpdateUserMcpDefaultRequest),
+      },
+      { actor: await getActor() },
+    );
     return { success: true, message: "Default MCP setting updated" } as const;
   } catch (error) {
     return toActionError(error, "Failed to update MCP default");
@@ -268,12 +270,16 @@ export async function setUserSkillDefaultAction(params: {
   useByDefault: boolean;
 }) {
   try {
-    const user = await requireUser();
-    await setUserSkillDefault({
-      userId: user.id,
-      userSkillId: params.userSkillId,
-      useByDefault: params.useByDefault,
-    });
+    await apiFetch<{ updated: true }>(
+      `/v1/integrations/me/skills/${params.userSkillId}/default`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          useByDefault: params.useByDefault,
+        } satisfies UpdateUserSkillDefaultRequest),
+      },
+      { actor: await getActor() },
+    );
     return { success: true, message: "Default skill setting updated" } as const;
   } catch (error) {
     return toActionError(error, "Failed to update skill default");

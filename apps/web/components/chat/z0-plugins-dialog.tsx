@@ -45,6 +45,38 @@ function summarizeCapabilities(plugin: SystemPluginMarketItem) {
   return capabilities.slice(0, 4);
 }
 
+function getPluginStatusLabel(plugin: SystemPluginMarketItem) {
+  if (plugin.runtimeStatus === "not-mounted") {
+    return "Planned, not mounted";
+  }
+
+  if (plugin.status === "active") {
+    return "Active";
+  }
+
+  return "Planned";
+}
+
+function getPluginStatusTone(plugin: SystemPluginMarketItem) {
+  if (plugin.runtimeStatus === "mounted" && plugin.status === "active") {
+    return "bg-emerald-500/15 text-emerald-200";
+  }
+
+  return "bg-amber-500/15 text-amber-200";
+}
+
+function getPluginFootnote(plugin: SystemPluginMarketItem) {
+  if (plugin.runtimeStatus === "not-mounted") {
+    return "Current state: cataloged for boundary planning only. Install and runtime mounting flows are not available yet.";
+  }
+
+  if (plugin.dependencies.length > 0) {
+    return `Depends on ${plugin.dependencies.join(", ")}`;
+  }
+
+  return "Mounted through z0 core.";
+}
+
 function CapabilityBadge({
   label,
   kind,
@@ -90,11 +122,12 @@ export function Z0PluginsDialog({
           </DialogTitle>
           <div className="mt-3 flex flex-col gap-3 text-sm text-zinc-300 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
-              <p className="font-medium text-amber-200">Experimental surface</p>
+              <p className="font-medium text-amber-200">Planning contract surface</p>
               <p className="mt-1 text-zinc-400">
-                Plugins are the planned capability layer above z0 core. This
-                panel tracks the intended plugin families and their boundaries
-                without implying that install or runtime mounting is available yet.
+                Plugins are the planned capability layer above z0 core. This panel
+                tracks intended plugin families and ownership boundaries, while the
+                current runtime still executes through core-owned chat, tool,
+                skill, and MCP seams.
               </p>
             </div>
             <div className="flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
@@ -126,13 +159,11 @@ export function Z0PluginsDialog({
                     <span
                       className={cn(
                         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium",
-                        plugin.status === "active"
-                          ? "bg-emerald-500/15 text-emerald-200"
-                          : "bg-amber-500/15 text-amber-200",
+                        getPluginStatusTone(plugin),
                       )}
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" />
-                      {plugin.status === "active" ? "Active" : "Planned"}
+                      {getPluginStatusLabel(plugin)}
                     </span>
                   </div>
 
@@ -152,15 +183,15 @@ export function Z0PluginsDialog({
                     </div>
                   ) : null}
 
+                  <p className="mt-4 text-xs text-zinc-500">
+                    {getPluginFootnote(plugin)}
+                  </p>
+
                   {plugin.dependencies.length > 0 ? (
-                    <p className="mt-4 text-xs text-zinc-500">
+                    <p className="mt-2 text-xs text-zinc-500">
                       Depends on {plugin.dependencies.join(", ")}
                     </p>
-                  ) : (
-                    <p className="mt-4 text-xs text-zinc-500">
-                      Mounted through z0 core once plugin runtime support exists.
-                    </p>
-                  )}
+                  ) : null}
                 </section>
               );
             })}

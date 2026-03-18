@@ -2,6 +2,10 @@ import { tool } from "ai";
 import { z } from "zod";
 import { createInternalAuthHeaders } from "../auth/internal";
 import { getEnabledAgentToolCatalog } from "./tool-catalog";
+import {
+  createToolBridgeErrorResponse,
+  parseToolBridgeResponse,
+} from "./tool-bridge";
 
 const passthroughInputSchema = z.object({}).passthrough();
 
@@ -55,14 +59,17 @@ export function createRemoteAgentTools(params: {
           },
         );
 
-        const payload = (await response.json()) as {
-          data?: unknown;
-          error?: { message?: string };
-        };
+        const payload = parseToolBridgeResponse(
+          await response.json().catch(() =>
+            createToolBridgeErrorResponse(
+              `${entry.name} returned an invalid bridge response`,
+            ),
+          ),
+        );
 
-        if (!response.ok || payload.error) {
+        if (!response.ok || "error" in payload) {
           throw new Error(
-            payload.error?.message ??
+            ("error" in payload ? payload.error.message : undefined) ??
               `${entry.name} failed with ${response.status}`,
           );
         }

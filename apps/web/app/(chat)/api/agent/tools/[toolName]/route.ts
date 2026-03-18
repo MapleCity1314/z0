@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
-import { verifyInternalAuthHeaders } from "@z0/backend";
+import {
+  createToolBridgeErrorResponse,
+  createToolBridgeSuccessResponse,
+  parseToolBridgeRequestBody,
+  verifyInternalAuthHeaders,
+} from "@z0/backend";
 import { buildAgentTools } from "@/lib/agent/chat/tools";
 import { db } from "@/lib/db";
 import { chat, project } from "@/lib/schema";
@@ -16,13 +21,7 @@ export async function POST(
   }
 
   const { toolName } = await context.params;
-  const body = (await request.json()) as {
-    chatId?: string;
-    projectId?: string | null;
-    webSearchEnabled?: boolean;
-    toolCallId?: string;
-    input?: unknown;
-  };
+  const body = parseToolBridgeRequestBody(await request.json());
 
   if (body.chatId) {
     const [chatRecord] = await db
@@ -33,7 +32,7 @@ export async function POST(
 
     if (!chatRecord) {
       return NextResponse.json(
-        { error: { message: "Chat not found or access denied" } },
+        createToolBridgeErrorResponse("Chat not found or access denied"),
         { status: 403 },
       );
     }
@@ -50,7 +49,7 @@ export async function POST(
 
     if (!projectRecord) {
       return NextResponse.json(
-        { error: { message: "Project not found or access denied" } },
+        createToolBridgeErrorResponse("Project not found or access denied"),
         { status: 403 },
       );
     }
@@ -67,7 +66,7 @@ export async function POST(
 
   if (!targetTool || typeof targetTool.execute !== "function") {
     return NextResponse.json(
-      { error: { message: `Unknown agent tool: ${toolName}` } },
+      createToolBridgeErrorResponse(`Unknown agent tool: ${toolName}`),
       { status: 404 },
     );
   }
@@ -81,7 +80,7 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({ data });
+    return NextResponse.json(createToolBridgeSuccessResponse(data));
   } catch (error) {
     console.error("[AgentTool] Execution failed", {
       toolName,
@@ -91,12 +90,9 @@ export async function POST(
     });
 
     return NextResponse.json(
-      {
-        error: {
-          message:
-            error instanceof Error ? error.message : "Tool execution failed",
-        },
-      },
+      createToolBridgeErrorResponse(
+        error instanceof Error ? error.message : "Tool execution failed",
+      ),
       { status: 500 },
     );
   }

@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { createInternalAuthHeaders } from "@z0/backend";
 
 const buildAgentTools = vi.hoisted(() => vi.fn());
 const db = vi.hoisted(() => ({
@@ -11,6 +10,80 @@ const db = vi.hoisted(() => ({
       })),
     })),
   })),
+}));
+const createInternalAuthHeaders = vi.hoisted(() =>
+  vi.fn(
+    ({
+      actor,
+      purpose,
+    }: {
+      actor: { userId: string; role: string };
+      purpose: string;
+    }) => ({
+      "x-internal-actor-id": actor.userId,
+      "x-internal-actor-role": actor.role,
+      "x-internal-auth-purpose": purpose,
+    }),
+  ),
+);
+const verifyInternalAuthHeaders = vi.hoisted(() =>
+  vi.fn((headers: Headers, purpose: string) => {
+    if (headers.get("x-internal-auth-purpose") !== purpose) {
+      return null;
+    }
+
+    const userId = headers.get("x-internal-actor-id");
+    if (!userId) {
+      return null;
+    }
+
+    return {
+      userId,
+      role: headers.get("x-internal-actor-role") ?? "user",
+    };
+  }),
+);
+const parseToolBridgeRequestBody = vi.hoisted(() =>
+  vi.fn((body: unknown) => {
+    const input = (body ?? {}) as Record<string, unknown>;
+
+    return {
+      chatId: typeof input.chatId === "string" ? input.chatId : undefined,
+      projectId:
+        typeof input.projectId === "string" || input.projectId === null
+          ? (input.projectId as string | null)
+          : null,
+      webSearchEnabled:
+        typeof input.webSearchEnabled === "boolean"
+          ? input.webSearchEnabled
+          : false,
+      toolCallId:
+        typeof input.toolCallId === "string" ? input.toolCallId : undefined,
+      input: input.input ?? {},
+      context:
+        typeof input.context === "object" && input.context !== null
+          ? input.context
+          : undefined,
+    };
+  }),
+);
+const createToolBridgeErrorResponse = vi.hoisted(() =>
+  vi.fn((message: string) => ({
+    error: { message },
+  })),
+);
+const createToolBridgeSuccessResponse = vi.hoisted(() =>
+  vi.fn((data: unknown) => ({
+    data,
+  })),
+);
+
+vi.mock("@z0/backend", () => ({
+  createInternalAuthHeaders,
+  verifyInternalAuthHeaders,
+  parseToolBridgeRequestBody,
+  createToolBridgeErrorResponse,
+  createToolBridgeSuccessResponse,
 }));
 
 vi.mock("@/lib/agent/chat/tools", () => ({
@@ -83,6 +156,35 @@ describe("agent tool bridge route", () => {
         messages: {
           projectId: null,
         },
+      },
+    });
+  });
+
+  it("returns a bridge error when the tool is missing", async () => {
+    buildAgentTools.mockReturnValue({});
+
+    const { POST } = await import("./route");
+    const request = new NextRequest("http://localhost/api/agent/tools/missing", {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: {
+        "content-type": "application/json",
+        ...createInternalAuthHeaders({
+          actor: { userId: "user-1", role: "user" },
+          purpose: "agent-bridge",
+        }),
+      },
+    });
+
+    const response = await POST(request, {
+      params: Promise.resolve({ toolName: "missing" }),
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(payload).toEqual({
+      error: {
+        message: "Unknown agent tool: missing",
       },
     });
   });

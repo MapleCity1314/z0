@@ -50,6 +50,31 @@ export type ToolBridgeErrorResponse = z.infer<
   typeof toolBridgeErrorResponseSchema
 >;
 
+function inferToolBridgeErrorCode(status: number): ToolBridgeErrorCode {
+  switch (status) {
+    case 400:
+      return "bad_request:tool_bridge";
+    case 403:
+      return "forbidden:tool_bridge";
+    case 404:
+      return "not_found:tool_bridge";
+    default:
+      return "failed:tool_bridge";
+  }
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  if (typeof error === "string" && error.trim().length > 0) {
+    return error;
+  }
+
+  return fallback;
+}
+
 export function parseToolBridgeRequestBody(
   body: unknown,
 ): ToolBridgeRequestPayload {
@@ -96,6 +121,57 @@ export function createToolBridgeErrorResponse(params: {
       toolName: params.toolName,
     },
   };
+}
+
+export function normalizeToolBridgeExecutionError(params: {
+  error: unknown;
+  toolName: string;
+  fallbackMessage?: string;
+}): ToolBridgeErrorResponse {
+  if (params.error instanceof z.ZodError) {
+    return createToolBridgeErrorResponse({
+      code: "bad_request:tool_bridge",
+      message: "Invalid tool input",
+      status: 400,
+      retryable: false,
+      toolName: params.toolName,
+    });
+  }
+
+  const candidate = params.error as {
+    code?: unknown;
+    message?: unknown;
+    status?: unknown;
+    retryable?: unknown;
+  } | null;
+  const parsedStatus =
+    typeof candidate?.status === "number" &&
+    Number.isInteger(candidate.status) &&
+    candidate.status >= 400 &&
+    candidate.status <= 599
+      ? candidate.status
+      : 500;
+  const parsedCode = toolBridgeErrorCodeSchema.safeParse(candidate?.code);
+  const retryable =
+    typeof candidate?.retryable === "boolean"
+      ? candidate.retryable
+      : parsedStatus >= 500;
+
+  return createToolBridgeErrorResponse({
+    code: parsedCode.success
+      ? parsedCode.data
+      : inferToolBridgeErrorCode(parsedStatus),
+    message:
+      parsedStatus >= 500
+        ? params.fallbackMessage ?? "Tool execution failed"
+        : getErrorMessage(
+            params.error,
+            params.fallbackMessage ?? "Tool execution failed",
+          ),
+    status: parsedStatus,
+    retryable,
+    toolName: params.toolName,
+  });
 }
 
 export function parseToolBridgeResponse(

@@ -17,6 +17,7 @@ export type AgentMcpServerRuntimeStatus = {
   sourceType: string;
   availability: "available" | "unavailable";
   toolCount: number;
+  retryable: boolean;
   error?: string;
 };
 
@@ -180,6 +181,7 @@ async function createRuntimeWithWarmResults(params: {
         sourceType: server.sourceType,
         availability: "available",
         toolCount: Object.keys(serverTools).length,
+        retryable: false,
       });
     } catch (error) {
       serverStatuses.push({
@@ -189,6 +191,7 @@ async function createRuntimeWithWarmResults(params: {
         sourceType: server.sourceType,
         availability: "unavailable",
         toolCount: 0,
+        retryable: true,
         error: error instanceof Error ? error.message : String(error),
       });
     }

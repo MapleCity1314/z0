@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import {
   createToolBridgeErrorResponse,
   createToolBridgeSuccessResponse,
+  normalizeToolBridgeExecutionError,
   parseToolBridgeRequestBody,
   verifyInternalAuthHeaders,
 } from "@z0/backend";
@@ -134,15 +135,21 @@ export async function POST(
     });
 
     return NextResponse.json(
-      createToolBridgeErrorResponse({
-        code: "failed:tool_bridge",
-        message:
-          error instanceof Error ? error.message : "Tool execution failed",
-        status: 500,
-        retryable: true,
+      normalizeToolBridgeExecutionError({
+        error,
         toolName,
+        fallbackMessage: "Tool execution failed",
       }),
-      { status: 500 },
+      {
+        status:
+          error instanceof ZodError
+            ? 400
+            : typeof (error as { status?: unknown })?.status === "number" &&
+                (error as { status: number }).status >= 400 &&
+                (error as { status: number }).status <= 599
+              ? (error as { status: number }).status
+              : 500,
+      },
     );
   }
 }

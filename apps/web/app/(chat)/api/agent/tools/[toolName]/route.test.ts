@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ZodError } from "zod";
 import { NextRequest } from "next/server";
 
 const buildAgentTools = vi.hoisted(() => vi.fn());
@@ -91,6 +92,53 @@ const createToolBridgeSuccessResponse = vi.hoisted(() =>
     data,
   })),
 );
+const normalizeToolBridgeExecutionError = vi.hoisted(() =>
+  vi.fn(
+    ({
+      error,
+      toolName,
+      fallbackMessage,
+    }: {
+      error: unknown;
+      toolName: string;
+      fallbackMessage?: string;
+    }) => {
+      if (error instanceof ZodError) {
+        return {
+          error: {
+            code: "bad_request:tool_bridge",
+            message: "Invalid tool input",
+            status: 400,
+            retryable: false,
+            toolName,
+          },
+        };
+      }
+
+      const status =
+        typeof (error as { status?: unknown })?.status === "number" &&
+        (error as { status: number }).status >= 400 &&
+        (error as { status: number }).status <= 599
+          ? (error as { status: number }).status
+          : 500;
+
+      return {
+        error: {
+          code: status === 400 ? "bad_request:tool_bridge" : "failed:tool_bridge",
+          message:
+            status >= 500
+              ? (fallbackMessage ?? "Tool execution failed")
+              : error instanceof Error
+                ? error.message
+                : "Tool execution failed",
+          status,
+          retryable: status >= 500,
+          toolName,
+        },
+      };
+    },
+  ),
+);
 
 vi.mock("@z0/backend", () => ({
   createInternalAuthHeaders,
@@ -98,6 +146,7 @@ vi.mock("@z0/backend", () => ({
   parseToolBridgeRequestBody,
   createToolBridgeErrorResponse,
   createToolBridgeSuccessResponse,
+  normalizeToolBridgeExecutionError,
 }));
 
 vi.mock("@/lib/agent/chat/tools", () => ({
@@ -245,6 +294,82 @@ describe("agent tool bridge route", () => {
         message: "invalid request",
         status: 400,
         retryable: undefined,
+        toolName: "demoTool",
+      },
+    });
+  });
+
+  it("sanitizes retryable tool execution failures", async () => {
+    buildAgentTools.mockReturnValue({
+      demoTool: {
+        execute: vi.fn(async () => {
+          throw new Error("database connection string leaked");
+        }),
+      },
+    });
+
+    const { POST } = await import("./route");
+    const request = new NextRequest("http://localhost/api/agent/tools/demoTool", {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: {
+        "content-type": "application/json",
+        ...createInternalAuthHeaders({
+          actor: { userId: "user-1", role: "user" },
+          purpose: "agent-bridge",
+        }),
+      },
+    });
+
+    const response = await POST(request, {
+      params: Promise.resolve({ toolName: "demoTool" }),
+    });
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "failed:tool_bridge",
+        message: "Tool execution failed",
+        status: 500,
+        retryable: true,
+        toolName: "demoTool",
+      },
+    });
+  });
+
+  it("returns non-retryable bad requests for zod execution failures", async () => {
+    buildAgentTools.mockReturnValue({
+      demoTool: {
+        execute: vi.fn(async () => {
+          throw new ZodError([]);
+        }),
+      },
+    });
+
+    const { POST } = await import("./route");
+    const request = new NextRequest("http://localhost/api/agent/tools/demoTool", {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: {
+        "content-type": "application/json",
+        ...createInternalAuthHeaders({
+          actor: { userId: "user-1", role: "user" },
+          purpose: "agent-bridge",
+        }),
+      },
+    });
+
+    const response = await POST(request, {
+      params: Promise.resolve({ toolName: "demoTool" }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "bad_request:tool_bridge",
+        message: "Invalid tool input",
+        status: 400,
+        retryable: false,
         toolName: "demoTool",
       },
     });

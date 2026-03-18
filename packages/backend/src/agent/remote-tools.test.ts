@@ -150,4 +150,72 @@ describe("createRemoteAgentTools", () => {
       retryable: true,
     });
   });
+
+  it("treats malformed json bridge payloads as retryable runtime errors", async () => {
+    global.fetch = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          error: {
+            unexpected: true,
+          },
+        }),
+        {
+          status: 502,
+          headers: { "content-type": "application/json" },
+        },
+      ),
+    ) as typeof fetch;
+
+    const tools = createRemoteAgentTools({
+      actor: { userId: "user-1", role: "user" },
+      webSearchEnabled: false,
+      projectId: null,
+      chatId: "chat-1",
+    });
+
+    await expect(
+      tools.createArtifact.execute?.({}, {
+        toolCallId: "tool-1",
+        messages: [],
+      } as never),
+    ).rejects.toMatchObject({
+      code: "invalid_response:tool_bridge",
+      status: 502,
+      toolName: "createArtifact",
+      retryable: true,
+    });
+  });
+
+  it("maps bridge network failures to retryable typed errors", async () => {
+    global.fetch = vi.fn(async () => {
+      throw new TypeError("fetch failed");
+    }) as typeof fetch;
+
+    const tools = createRemoteAgentTools({
+      actor: { userId: "user-1", role: "user" },
+      webSearchEnabled: false,
+      projectId: null,
+      chatId: "chat-1",
+    });
+
+    await expect(
+      tools.createArtifact.execute?.({}, {
+        toolCallId: "tool-1",
+        messages: [],
+      } as never),
+    ).rejects.toBeInstanceOf(RemoteToolExecutionError);
+
+    await expect(
+      tools.createArtifact.execute?.({}, {
+        toolCallId: "tool-1",
+        messages: [],
+      } as never),
+    ).rejects.toMatchObject({
+      code: "failed:tool_bridge",
+      status: 502,
+      toolName: "createArtifact",
+      retryable: true,
+      message: "createArtifact bridge request failed",
+    });
+  });
 });

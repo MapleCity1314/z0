@@ -50,39 +50,63 @@ export function createRemoteAgentTools(params: {
           },
           purpose: "agent-bridge",
         });
-        const response = await fetch(
-          `${webBaseUrl}/api/agent/tools/${encodeURIComponent(entry.name)}`,
-          {
-            method: "POST",
-            headers: {
-              "content-type": "application/json",
-              ...internalHeaders,
-            },
-            body: JSON.stringify({
-              chatId: params.chatId,
-              projectId: params.projectId,
-              webSearchEnabled: params.webSearchEnabled,
-              toolCallId: context.toolCallId,
-              input,
-              context: {
-                messages: context.messages,
+        let response: Response;
+
+        try {
+          response = await fetch(
+            `${webBaseUrl}/api/agent/tools/${encodeURIComponent(entry.name)}`,
+            {
+              method: "POST",
+              headers: {
+                "content-type": "application/json",
+                ...internalHeaders,
               },
-            }),
-            cache: "no-store",
-          },
+              body: JSON.stringify({
+                chatId: params.chatId,
+                projectId: params.projectId,
+                webSearchEnabled: params.webSearchEnabled,
+                toolCallId: context.toolCallId,
+                input,
+                context: {
+                  messages: context.messages,
+                },
+              }),
+              cache: "no-store",
+            },
+          );
+        } catch {
+          throw new RemoteToolExecutionError(
+            "failed:tool_bridge",
+            502,
+            `${entry.name} bridge request failed`,
+            entry.name,
+            true,
+          );
+        }
+
+        const rawPayload = await response.json().catch(() =>
+          createToolBridgeErrorResponse({
+            code: "invalid_response:tool_bridge",
+            message: `${entry.name} returned an invalid bridge response`,
+            status: 502,
+            retryable: true,
+            toolName: entry.name,
+          }),
         );
 
-        const payload = parseToolBridgeResponse(
-          await response.json().catch(() =>
-            createToolBridgeErrorResponse({
-              code: "invalid_response:tool_bridge",
-              message: `${entry.name} returned an invalid bridge response`,
-              status: 502,
-              retryable: true,
-              toolName: entry.name,
-            }),
-          ),
-        );
+        let payload;
+
+        try {
+          payload = parseToolBridgeResponse(rawPayload);
+        } catch {
+          payload = createToolBridgeErrorResponse({
+            code: "invalid_response:tool_bridge",
+            message: `${entry.name} returned an invalid bridge response`,
+            status: 502,
+            retryable: true,
+            toolName: entry.name,
+          });
+        }
 
         if (!response.ok || "error" in payload) {
           const errorPayload =

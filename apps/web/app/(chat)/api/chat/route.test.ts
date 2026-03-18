@@ -151,4 +151,35 @@ describe("chat route", () => {
     });
     expect(mapAgentChatError).not.toHaveBeenCalled();
   });
+
+  it("normalizes malformed upstream json errors instead of forwarding invalid payloads", async () => {
+    global.fetch = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          detail: "missing code and message",
+        }),
+        {
+          status: 502,
+          statusText: "Bad Gateway",
+          headers: { "content-type": "application/json" },
+        },
+      ),
+    ) as typeof fetch;
+
+    const { POST } = await import("./route");
+    const request = new NextRequest("http://localhost/api/chat", {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: { "content-type": "application/json" },
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({
+      code: "bad_request:api",
+      message: "Failed to process chat request",
+      cause: "Agent API returned 502 Bad Gateway",
+    });
+  });
 });

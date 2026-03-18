@@ -53,6 +53,7 @@ describe("createConfiguredMcpToolRuntime", () => {
         sourceType: "external",
         availability: "available",
         toolCount: 1,
+        retryable: false,
       }),
     ]);
     expect(runtime.tools.mcp_browser_ops_echo.description).toContain(
@@ -109,6 +110,7 @@ describe("createConfiguredMcpToolRuntime", () => {
         endpoint: "https://offline.example.com/mcp",
         sourceType: "external",
         availability: "unavailable",
+        retryable: true,
         error: "offline",
       }),
       expect.objectContaining({
@@ -118,6 +120,7 @@ describe("createConfiguredMcpToolRuntime", () => {
         sourceType: "external",
         availability: "available",
         toolCount: 1,
+        retryable: false,
       }),
     ]);
     await runtime.close();
@@ -170,6 +173,7 @@ describe("createConfiguredMcpToolRuntime", () => {
         availability: "unavailable",
         success: false,
         toolCount: 0,
+        retryable: true,
       }),
       expect.objectContaining({
         id: "server-2",
@@ -179,6 +183,7 @@ describe("createConfiguredMcpToolRuntime", () => {
         availability: "available",
         success: true,
         toolCount: 2,
+        retryable: false,
       }),
     ]);
   });
@@ -219,6 +224,7 @@ describe("createConfiguredMcpToolRuntime", () => {
         endpoint: "https://example.com/mcp",
         sourceType: "external",
         availability: "available",
+        retryable: false,
       }),
     ]);
   });

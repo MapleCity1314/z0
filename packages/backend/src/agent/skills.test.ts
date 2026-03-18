@@ -99,6 +99,7 @@ describe("agent skills", () => {
       expect.objectContaining({
         name: "broken-skill",
         availability: "unavailable",
+        retryable: false,
         error: "No frontmatter found",
       }),
     ]);
@@ -163,7 +164,43 @@ describe("agent skills", () => {
     await expect(
       loadSkillTool.execute({ name: "missing-skill" }, {} as never),
     ).resolves.toEqual({
-      error: "Skill 'missing-skill' not found",
+      error: {
+        code: "not_found:skill",
+        message: "Skill 'missing-skill' not found",
+        retryable: false,
+      },
+    });
+  });
+
+  it("returns a retryable structured error when the skill file becomes unavailable", async () => {
+    const workspaceRoot = createTempRoot();
+    const skillDir = writeSkill(
+      workspaceRoot,
+      "patch-skill",
+      "Patch files carefully",
+    );
+
+    const [skill] = await discoverAgentSkills({
+      workspaceSkillDirectories: [workspaceRoot],
+    });
+
+    const tools = createSkillTools([skill]);
+    const loadSkillTool = tools.loadSkill;
+
+    if (!loadSkillTool?.execute) {
+      throw new Error("loadSkill tool was not created");
+    }
+
+    rmSync(join(skillDir, "SKILL.md"));
+
+    await expect(
+      loadSkillTool.execute({ name: "patch-skill" }, {} as never),
+    ).resolves.toEqual({
+      error: {
+        code: "unavailable:skill",
+        message: "Failed to load skill 'patch-skill'",
+        retryable: true,
+      },
     });
   });
 

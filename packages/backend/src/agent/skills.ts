@@ -17,9 +17,26 @@ export type AgentSkillRuntimeEntry = {
   path: string;
   source: "workspace" | "configured";
   availability: "available" | "unavailable";
+  retryable?: boolean;
   description?: string;
   error?: string;
 };
+
+export type AgentSkillLoadError = {
+  code: "not_found:skill" | "unavailable:skill";
+  message: string;
+  retryable: boolean;
+};
+
+export type AgentSkillLoadResult =
+  | {
+      name: string;
+      skillDirectory: string;
+      content: string;
+    }
+  | {
+      error: AgentSkillLoadError;
+    };
 
 type SkillFrontmatter = {
   name: string;
@@ -115,6 +132,7 @@ async function inspectSkillDirectory(
       path: skillDir,
       source,
       availability: "unavailable",
+      retryable: false,
       error: error instanceof Error ? error.message : String(error),
     };
   }
@@ -265,16 +283,35 @@ export function createSkillTools(skills: AgentSkillMetadata[]): ToolSet {
         );
 
         if (!skill) {
-          return { error: `Skill '${name}' not found` };
+          return {
+            error: {
+              code: "not_found:skill",
+              message: `Skill '${name}' not found`,
+              retryable: false,
+            },
+          } satisfies AgentSkillLoadResult;
         }
 
-        const content = await fs.readFile(resolve(skill.path, "SKILL.md"), "utf8");
+        try {
+          const content = await fs.readFile(
+            resolve(skill.path, "SKILL.md"),
+            "utf8",
+          );
 
-        return {
-          name: skill.name,
-          skillDirectory: skill.path,
-          content: stripSkillFrontmatter(content),
-        };
+          return {
+            name: skill.name,
+            skillDirectory: skill.path,
+            content: stripSkillFrontmatter(content),
+          } satisfies AgentSkillLoadResult;
+        } catch {
+          return {
+            error: {
+              code: "unavailable:skill",
+              message: `Failed to load skill '${skill.name}'`,
+              retryable: true,
+            },
+          } satisfies AgentSkillLoadResult;
+        }
       },
     }),
   } satisfies ToolSet;

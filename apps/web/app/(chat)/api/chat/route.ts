@@ -105,7 +105,12 @@ async function readForwardedChatError(response: Response) {
   try {
     const payload = await response.json();
 
-    if (typeof payload === "object" && payload !== null) {
+    if (
+      typeof payload === "object" &&
+      payload !== null &&
+      typeof (payload as { code?: unknown }).code === "string" &&
+      typeof (payload as { message?: unknown }).message === "string"
+    ) {
       return payload;
     }
   } catch (error) {

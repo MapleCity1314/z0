@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createToolBridgeErrorResponse,
   createToolBridgeSuccessResponse,
+  normalizeToolBridgeExecutionError,
   parseToolBridgeRequestBody,
   parseToolBridgeResponse,
 } from "./tool-bridge";
@@ -60,6 +61,42 @@ describe("agent tool bridge contract", () => {
         status: 500,
         retryable: undefined,
         toolName: undefined,
+      },
+    });
+  });
+
+  it("normalizes zod execution failures as non-retryable bad requests", async () => {
+    const { z } = await import("zod");
+
+    expect(
+      normalizeToolBridgeExecutionError({
+        error: new z.ZodError([]),
+        toolName: "demoTool",
+      }),
+    ).toEqual({
+      error: {
+        code: "bad_request:tool_bridge",
+        message: "Invalid tool input",
+        status: 400,
+        retryable: false,
+        toolName: "demoTool",
+      },
+    });
+  });
+
+  it("sanitizes retryable 5xx execution failures", () => {
+    expect(
+      normalizeToolBridgeExecutionError({
+        error: new Error("database connection leaked details"),
+        toolName: "demoTool",
+      }),
+    ).toEqual({
+      error: {
+        code: "failed:tool_bridge",
+        message: "Tool execution failed",
+        status: 500,
+        retryable: true,
+        toolName: "demoTool",
       },
     });
   });

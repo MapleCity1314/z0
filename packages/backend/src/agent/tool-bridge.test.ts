@@ -18,7 +18,7 @@ describe("agent tool bridge contract", () => {
     });
   });
 
-  it("parses both success and error responses", () => {
+  it("parses both success and structured error responses", () => {
     expect(
       parseToolBridgeResponse(createToolBridgeSuccessResponse({ ok: true })),
     ).toEqual({
@@ -26,10 +26,40 @@ describe("agent tool bridge contract", () => {
     });
 
     expect(
-      parseToolBridgeResponse(createToolBridgeErrorResponse("broken")),
+      parseToolBridgeResponse(
+        createToolBridgeErrorResponse({
+          code: "failed:tool_bridge",
+          message: "broken",
+          status: 500,
+          retryable: true,
+          toolName: "demoTool",
+        }),
+      ),
     ).toEqual({
       error: {
+        code: "failed:tool_bridge",
         message: "broken",
+        status: 500,
+        retryable: true,
+        toolName: "demoTool",
+      },
+    });
+  });
+
+  it("upgrades legacy message-only bridge errors", () => {
+    expect(
+      parseToolBridgeResponse({
+        error: {
+          message: "legacy failure",
+        },
+      }),
+    ).toEqual({
+      error: {
+        code: "failed:tool_bridge",
+        message: "legacy failure",
+        status: 500,
+        retryable: undefined,
+        toolName: undefined,
       },
     });
   });

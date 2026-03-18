@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+export const toolBridgeErrorCodeSchema = z.enum([
+  "bad_request:tool_bridge",
+  "forbidden:tool_bridge",
+  "not_found:tool_bridge",
+  "failed:tool_bridge",
+  "invalid_response:tool_bridge",
+]);
+
+export type ToolBridgeErrorCode = z.infer<typeof toolBridgeErrorCodeSchema>;
+
 export const toolBridgeRequestPayloadSchema = z.object({
   chatId: z.string().min(1).optional(),
   projectId: z.string().nullable().optional(),
@@ -28,7 +38,11 @@ export type ToolBridgeSuccessResponse = z.infer<
 
 export const toolBridgeErrorResponseSchema = z.object({
   error: z.object({
+    code: toolBridgeErrorCodeSchema,
     message: z.string(),
+    status: z.number().int().min(400).max(599),
+    retryable: z.boolean().optional(),
+    toolName: z.string().min(1).optional(),
   }),
 }).refine((value) => Object.prototype.hasOwnProperty.call(value, "error"));
 
@@ -66,12 +80,20 @@ export function createToolBridgeSuccessResponse(
   };
 }
 
-export function createToolBridgeErrorResponse(
-  message: string,
-): ToolBridgeErrorResponse {
+export function createToolBridgeErrorResponse(params: {
+  code: ToolBridgeErrorCode;
+  message: string;
+  status: number;
+  retryable?: boolean;
+  toolName?: string;
+}): ToolBridgeErrorResponse {
   return {
     error: {
-      message,
+      code: params.code,
+      message: params.message,
+      status: params.status,
+      retryable: params.retryable,
+      toolName: params.toolName,
     },
   };
 }
@@ -82,6 +104,27 @@ export function parseToolBridgeResponse(
   const successResult = toolBridgeSuccessResponseSchema.safeParse(payload);
   if (successResult.success) {
     return successResult.data;
+  }
+
+  const structuredErrorResult = toolBridgeErrorResponseSchema.safeParse(payload);
+  if (structuredErrorResult.success) {
+    return structuredErrorResult.data;
+  }
+
+  const legacyErrorResult = z
+    .object({
+      error: z.object({
+        message: z.string(),
+      }),
+    })
+    .safeParse(payload);
+
+  if (legacyErrorResult.success) {
+    return createToolBridgeErrorResponse({
+      code: "failed:tool_bridge",
+      message: legacyErrorResult.data.error.message,
+      status: 500,
+    });
   }
 
   return toolBridgeErrorResponseSchema.parse(payload);

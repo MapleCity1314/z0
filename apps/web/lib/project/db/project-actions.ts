@@ -263,22 +263,12 @@ export async function updateProjectFilesAction(
       projectId,
       files: newFiles,
     });
-    const project = await apiFetch<ProjectRecord>(
-      `/v1/projects/${parsed.projectId}`,
-      undefined,
-      { actor },
-    );
-
-    const updatedFiles = {
-      ...(project.files ?? {}),
-      ...parsed.files,
-    };
 
     const updated = await apiFetch<ProjectRecord>(
       `/v1/projects/${parsed.projectId}/files`,
       {
         method: "PATCH",
-        body: JSON.stringify({ files: updatedFiles }),
+        body: JSON.stringify({ files: parsed.files }),
       },
       { actor },
     );

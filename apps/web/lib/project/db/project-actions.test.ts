@@ -72,18 +72,10 @@ describe("project db actions", () => {
     );
   });
 
-  it("merges files before saving updates", async () => {
-    apiFetch
-      .mockResolvedValueOnce({
-        id: "550e8400-e29b-41d4-a716-446655440001",
-        files: {
-          "src/App.tsx": "old",
-          "package.json": "{}",
-        },
-      })
-      .mockResolvedValueOnce({
-        id: "550e8400-e29b-41d4-a716-446655440001",
-      });
+  it("sends the edited file snapshot directly to the api", async () => {
+    apiFetch.mockResolvedValueOnce({
+      id: "550e8400-e29b-41d4-a716-446655440001",
+    });
 
     const { updateProjectFilesAction } = await import("./project-actions");
     const result = await updateProjectFilesAction(
@@ -101,14 +93,13 @@ describe("project db actions", () => {
       },
     });
     expect(apiFetch).toHaveBeenNthCalledWith(
-      2,
+      1,
       "/v1/projects/550e8400-e29b-41d4-a716-446655440001/files",
       {
         method: "PATCH",
         body: JSON.stringify({
           files: {
             "src/App.tsx": "new",
-            "package.json": "{}",
           },
         }),
       },
@@ -119,6 +110,7 @@ describe("project db actions", () => {
         },
       },
     );
+    expect(apiFetch).toHaveBeenCalledTimes(1);
   });
 
   it("validates project ids before issuing api calls", async () => {

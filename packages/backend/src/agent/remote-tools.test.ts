@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createRemoteAgentTools } from "./remote-tools";
+import {
+  createRemoteAgentTools,
+  RemoteToolExecutionError,
+} from "./remote-tools";
 import { verifyInternalAuthHeaders } from "../auth/internal";
 
 describe("createRemoteAgentTools", () => {
@@ -78,6 +81,73 @@ describe("createRemoteAgentTools", () => {
       webSearchEnabled: true,
       toolCallId: "tool-1",
       input: { title: "Demo" },
+    });
+  });
+
+  it("throws a typed error when the bridge returns a structured failure", async () => {
+    global.fetch = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          error: {
+            code: "not_found:tool_bridge",
+            message: "Unknown agent tool: createArtifact",
+            status: 404,
+            toolName: "createArtifact",
+          },
+        }),
+        {
+          status: 404,
+          headers: { "content-type": "application/json" },
+        },
+      ),
+    ) as typeof fetch;
+
+    const tools = createRemoteAgentTools({
+      actor: { userId: "user-1", role: "user" },
+      webSearchEnabled: false,
+      projectId: null,
+      chatId: "chat-1",
+    });
+
+    await expect(
+      tools.createArtifact.execute?.({}, {
+        toolCallId: "tool-1",
+        messages: [],
+      } as never),
+    ).rejects.toMatchObject({
+      code: "not_found:tool_bridge",
+      status: 404,
+      toolName: "createArtifact",
+      message: "Unknown agent tool: createArtifact",
+      retryable: false,
+    });
+  });
+
+  it("treats invalid bridge responses as retryable runtime errors", async () => {
+    global.fetch = vi.fn(async () =>
+      new Response("not-json", {
+        status: 502,
+        headers: { "content-type": "text/plain" },
+      }),
+    ) as typeof fetch;
+
+    const tools = createRemoteAgentTools({
+      actor: { userId: "user-1", role: "user" },
+      webSearchEnabled: false,
+      projectId: null,
+      chatId: "chat-1",
+    });
+
+    await expect(
+      tools.createArtifact.execute?.({}, {
+        toolCallId: "tool-1",
+        messages: [],
+      } as never),
+    ).rejects.toMatchObject({
+      code: "invalid_response:tool_bridge",
+      status: 502,
+      toolName: "createArtifact",
+      retryable: true,
     });
   });
 });

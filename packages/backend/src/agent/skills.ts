@@ -12,6 +12,15 @@ export type AgentSkillMetadata = {
   source: "workspace" | "configured";
 };
 
+export type AgentSkillRuntimeEntry = {
+  name: string;
+  path: string;
+  source: "workspace" | "configured";
+  availability: "available" | "unavailable";
+  description?: string;
+  error?: string;
+};
+
 type SkillFrontmatter = {
   name: string;
   description: string;
@@ -90,6 +99,27 @@ async function readSkillMetadata(
   } satisfies AgentSkillMetadata;
 }
 
+async function inspectSkillDirectory(
+  skillDir: string,
+  source: AgentSkillRuntimeEntry["source"],
+): Promise<AgentSkillRuntimeEntry> {
+  try {
+    const skill = await readSkillMetadata(skillDir, source);
+    return {
+      ...skill,
+      availability: "available",
+    };
+  } catch (error) {
+    return {
+      name: skillDir.split("/").pop() || skillDir,
+      path: skillDir,
+      source,
+      availability: "unavailable",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 async function discoverSkillsInDirectory(directory: string) {
   const entries = await fs.readdir(directory, { withFileTypes: true });
   const skills: AgentSkillMetadata[] = [];
@@ -143,7 +173,27 @@ export async function discoverAgentSkills(params?: {
   workspaceSkillDirectories?: string[];
   configuredSkillDirectories?: string[];
 }) {
-  const skillMetadata: AgentSkillMetadata[] = [];
+  const runtimeEntries = await inspectAgentSkillRuntime(params);
+
+  return runtimeEntries.flatMap((entry) =>
+    entry.availability === "available" && entry.description
+      ? [
+          {
+            name: entry.name,
+            description: entry.description,
+            path: entry.path,
+            source: entry.source,
+          } satisfies AgentSkillMetadata,
+        ]
+      : [],
+  );
+}
+
+export async function inspectAgentSkillRuntime(params?: {
+  workspaceSkillDirectories?: string[];
+  configuredSkillDirectories?: string[];
+}) {
+  const runtimeEntries: AgentSkillRuntimeEntry[] = [];
   const seenNames = new Set<string>();
   const workspaceSkillDirectories =
     params?.workspaceSkillDirectories ?? getDefaultSkillDirectories();
@@ -158,7 +208,10 @@ export async function discoverAgentSkills(params?: {
         }
 
         seenNames.add(skill.name);
-        skillMetadata.push(skill);
+        runtimeEntries.push({
+          ...skill,
+          availability: "available",
+        });
       }
     } catch {
       continue;
@@ -166,22 +219,21 @@ export async function discoverAgentSkills(params?: {
   }
 
   for (const directory of params?.configuredSkillDirectories ?? []) {
-    try {
-      const resolvedDirectory = resolveConfiguredSkillDirectory(directory);
-      const skill = await readSkillMetadata(resolvedDirectory, "configured");
+    const resolvedDirectory = resolveConfiguredSkillDirectory(directory);
+    const runtimeEntry = await inspectSkillDirectory(
+      resolvedDirectory,
+      "configured",
+    );
 
-      if (seenNames.has(skill.name)) {
-        continue;
-      }
-
-      seenNames.add(skill.name);
-      skillMetadata.push(skill);
-    } catch {
+    if (seenNames.has(runtimeEntry.name)) {
       continue;
     }
+
+    seenNames.add(runtimeEntry.name);
+    runtimeEntries.push(runtimeEntry);
   }
 
-  return skillMetadata;
+  return runtimeEntries;
 }
 
 export function buildSkillsPrompt(skills: AgentSkillMetadata[]) {

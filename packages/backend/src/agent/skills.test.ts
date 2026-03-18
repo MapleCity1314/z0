@@ -7,6 +7,7 @@ import {
   createSkillTools,
   discoverAgentSkills,
   getDefaultSkillDirectories,
+  inspectAgentSkillRuntime,
   parseSkillFrontmatter,
   stripSkillFrontmatter,
 } from "./skills";
@@ -72,6 +73,43 @@ describe("agent skills", () => {
     expect(skills.map((skill) => skill.name)).toEqual([
       "workspace-skill",
       "configured-skill",
+    ]);
+  });
+
+  it("marks invalid configured skills as unavailable without loading them", async () => {
+    const workspaceRoot = createTempRoot();
+    const configuredRoot = createTempRoot();
+
+    writeSkill(workspaceRoot, "workspace-skill", "From workspace");
+    const invalidConfiguredDir = join(configuredRoot, "broken-skill");
+    mkdirSync(invalidConfiguredDir, { recursive: true });
+    writeFileSync(join(invalidConfiguredDir, "SKILL.md"), "# Broken skill\n");
+
+    const runtimeEntries = await inspectAgentSkillRuntime({
+      workspaceSkillDirectories: [workspaceRoot],
+      configuredSkillDirectories: [invalidConfiguredDir],
+    });
+
+    expect(runtimeEntries).toEqual([
+      expect.objectContaining({
+        name: "workspace-skill",
+        availability: "available",
+        description: "From workspace",
+      }),
+      expect.objectContaining({
+        name: "broken-skill",
+        availability: "unavailable",
+        error: "No frontmatter found",
+      }),
+    ]);
+
+    const discoveredSkills = await discoverAgentSkills({
+      workspaceSkillDirectories: [workspaceRoot],
+      configuredSkillDirectories: [invalidConfiguredDir],
+    });
+
+    expect(discoveredSkills.map((skill) => skill.name)).toEqual([
+      "workspace-skill",
     ]);
   });
 

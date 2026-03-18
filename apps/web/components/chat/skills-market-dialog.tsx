@@ -119,7 +119,8 @@ export function SkillsDialog({
             Skills 技能市场
           </DialogTitle>
           <DialogDescription className="mt-2 text-zinc-400">
-            左侧是当前对话配置，右侧是系统市场。点击“一键添加”会同时加入当前对话和你的用户配置。
+            左侧保存当前对话和用户级别的 Skill 配置，右侧是系统市场。运行时只会加载包含有效
+            `SKILL.md` 的技能目录；点击“一键添加”仍会同时加入当前对话和你的用户配置。
           </DialogDescription>
         </DialogHeader>
 

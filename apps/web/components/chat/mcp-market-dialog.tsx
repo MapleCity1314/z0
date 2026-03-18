@@ -123,9 +123,10 @@ export function McpServerDialog({
             MCP Servers
           </DialogTitle>
           <DialogDescription className="mt-2 text-zinc-400">
-            The left side controls MCP servers linked to this chat. The right
-            side shows the shared MCP registry. Quick add links a server to the
-            current chat and your account at the same time.
+            The left side stores MCP server links for this chat and your
+            account. The right side shows the shared MCP registry. Runtime
+            availability is separate from saved config, so a linked server is
+            only usable after the MCP runtime connects and warms successfully.
           </DialogDescription>
           {warmState !== "idle" && warmSummary ? (
             <p

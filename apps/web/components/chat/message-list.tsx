@@ -188,11 +188,13 @@ export function MessageList({
           message.role === "assistant"
             ? getCurrentReasoningStage(message.parts)
             : null;
+        const shouldShowInlineReasoning =
+          messageIsStreaming && message.role === "assistant" && currentReasoningStage;
 
         return (
           <Fragment key={message.id || index}>
             {renderMessage(message, index, messageIsStreaming, onRetry)}
-            {showLoadingAfterThisMessage ? (
+            {showLoadingAfterThisMessage && !shouldShowInlineReasoning ? (
               <AssistantLoadingIndicator label={currentReasoningStage?.title} />
             ) : null}
           </Fragment>

@@ -3,12 +3,12 @@
 import {
   ChainOfThought,
   ChainOfThoughtContent,
-  ChainOfThoughtHeader,
   ChainOfThoughtSearchResult,
   ChainOfThoughtSearchResults,
   ChainOfThoughtStep,
 } from "@/components/ai-elements/chain-of-thought";
 import { MessageResponse } from "@/components/ai-elements/message";
+import { ThinkingVoid } from "@/components/chat/thinking-void";
 import {
   extractReasoningText,
   parseReasoningStages,
@@ -159,10 +159,10 @@ export function AssistantReasoning({
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-3">
-      <ChainOfThought defaultOpen={isStreaming}>
-        <ChainOfThoughtHeader>
-          {activeStage?.title || "Thought Process"}
-        </ChainOfThoughtHeader>
+      {activeStage ? <ThinkingVoid label={activeStage.title} /> : null}
+
+      {completedStages.length > 0 || searchSteps.length > 0 ? (
+        <ChainOfThought defaultOpen>
         <ChainOfThoughtContent>
           {completedStages.map((stage, index) => (
             <ChainOfThoughtStep
@@ -192,7 +192,8 @@ export function AssistantReasoning({
             </ChainOfThoughtStep>
           ))}
         </ChainOfThoughtContent>
-      </ChainOfThought>
+        </ChainOfThought>
+      ) : null}
 
       {activeStage?.body ? (
         <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3">

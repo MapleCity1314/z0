@@ -13,7 +13,7 @@ const memory = vi.hoisted(() => ({
   extractMemoriesFromMessage: vi.fn(),
 }));
 
-vi.mock("@/components/chat/actions", () => actions);
+vi.mock("@/lib/chat", () => actions);
 vi.mock("@/lib/agent/memory/service", () => memory);
 
 describe("agent chat persistence helpers", () => {

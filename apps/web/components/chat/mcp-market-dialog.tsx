@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import type {
   ConversationMcpServer,
   SystemMcpMarketItem,
-} from "./integration-market-types";
+} from "@/lib/chat";
 
 type McpServerDialogProps = {
   open: boolean;

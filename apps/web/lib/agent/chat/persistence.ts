@@ -15,7 +15,7 @@ import {
   saveChat,
   saveMessages,
   saveToolCalls,
-} from "@/components/chat/actions";
+} from "@/lib/chat";
 import { normalizeMessagePartsForStorage } from "@/lib/utils/message-parts";
 
 export async function updateChatProjectLinkFromToolResults(

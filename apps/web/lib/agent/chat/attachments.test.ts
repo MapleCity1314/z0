@@ -4,7 +4,7 @@ const actions = vi.hoisted(() => ({
   readFileAsText: vi.fn(),
 }));
 
-vi.mock("@/components/chat/actions", () => actions);
+vi.mock("@/lib/chat", () => actions);
 
 describe("agent chat attachment helpers", () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
-import { getChatById, getMessagesByChatId } from "@/components/chat/actions";
-import Chat from "@/components/chat/chat";
+import { ChatScreen } from "@/components/chat/pages";
+import { getChatById, getMessagesByChatId } from "@/lib/chat";
 import { notFound } from "next/navigation";
 import type { UIMessage } from "ai";
 import { Suspense } from "react";
@@ -46,7 +46,7 @@ export default async function ChatPage({
 
   return (
     <Suspense fallback={<div className="flex items-center justify-center h-full text-zinc-500">Loading...</div>}>
-      <Chat
+      <ChatScreen
         key={chatResult.data.id}
         autoResume={true}
         id={chatResult.data.id}

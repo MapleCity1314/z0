@@ -1,0 +1,21 @@
+"use client";
+
+import { nanoid } from "nanoid";
+import { useRef } from "react";
+import { ChatScreen } from "@/components/chat/pages";
+
+export function NewChatScreen() {
+  // Keep the draft chat id stable for the whole lifetime of the welcome page.
+  // Replacing it during user-store hydration can break the first send flow.
+  const chatIdRef = useRef<string>(nanoid());
+
+  return (
+    <ChatScreen
+      key={chatIdRef.current}
+      autoResume={false}
+      id={chatIdRef.current}
+      initialMessages={[]}
+      isNewChat
+    />
+  );
+}

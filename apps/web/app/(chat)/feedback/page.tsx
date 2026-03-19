@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { ChatPageShell } from "@/components/chat/page-shell";
+import { ChatPageShell } from "@/components/chat/layout";
 import { FeedbackForm } from "@/components/feedback/feedback-form";
 import { FeedbackList } from "@/components/feedback/feedback-list";
 import { getCurrentUser } from "@/lib/session";

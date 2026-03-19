@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { pageMetadata } from "@/lib/metadata";
-import { getRecentChats, getMessagesByChatId } from "@/components/chat/actions";
-import { ChatPageShell } from "@/components/chat/page-shell";
-import { RecentChatList } from "@/components/chat/recent-chat-list";
+import { ChatPageShell } from "@/components/chat/layout";
+import { RecentChatList } from "@/components/chat/pages";
+import { getRecentChats, getMessagesByChatId } from "@/lib/chat";
 import type { DBMessage } from "@/lib/schema";
 import { getCurrentUser } from "@/lib/session";
 

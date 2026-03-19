@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Sidebar } from "@/components/chat/sidebar";
-import { ContentSurface } from "@/components/chat/content-surface";
-import { SidebarToggle } from "@/components/chat/sidebar-toggle";
-import { HeaderActions } from "@/components/chat/header-actions";
+import {
+  ChatContentSurface,
+  ChatHeaderActions,
+  ChatSidebarToggle,
+} from "@/components/chat/layout";
+import { ChatSidebar } from "@/components/chat/sidebar";
 import { DataStreamProvider } from "@/components/provider/data-stream-provider";
 import { ExecutorPanel } from "@/components/executor/executor-panel";
 import { ProjectPanel } from "@/components/project/project-panel";
@@ -58,10 +60,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         "dark:bg-black dark:text-zinc-100 dark:selection:bg-white/20 dark:selection:text-white" // Dark
       )}>
         {/* Desktop Sidebar */}
-        <Sidebar isOpen={isSidebarOpen} />
+        <ChatSidebar isOpen={isSidebarOpen} />
 
         {/* Mobile Sidebar (Drawer) */}
-        <Sidebar
+        <ChatSidebar
           isOpen={isSidebarOpen}
           isMobile={true}
           onClose={closeSidebar}
@@ -90,8 +92,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 : "rounded-none border-none"
             )}
           >
-            <SidebarToggle isOpen={isSidebarOpen} onToggle={toggleSidebar} />
-            <HeaderActions />
+            <ChatSidebarToggle isOpen={isSidebarOpen} onToggle={toggleSidebar} />
+            <ChatHeaderActions />
 
             {/* Main content area with chat and panels side by side */}
             <div className="relative flex flex-1 overflow-hidden gap-3 p-3 pt-14">
@@ -102,9 +104,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   isPanelOpen && !isMobile && "flex-[0.45]"
                 )}
               >
-                <ContentSurface>
+                <ChatContentSurface>
                   {children}
-                </ContentSurface>
+                </ChatContentSurface>
               </div>
 
               {/* Panels - side by side on desktop, overlay on mobile */}

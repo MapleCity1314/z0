@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ChatPageShell } from "@/components/chat/page-shell";
+import { ChatPageShell } from "@/components/chat/layout";
 import { VersionsHeader } from "@/components/version/versions-header";
 import { VersionList } from "@/components/version/version-list";
 import { loadPublishedVersions } from "@/lib/app/loaders";

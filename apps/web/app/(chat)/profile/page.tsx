@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChatPageShell } from "@/components/chat/page-shell";
+import { ChatPageShell } from "@/components/chat/layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";

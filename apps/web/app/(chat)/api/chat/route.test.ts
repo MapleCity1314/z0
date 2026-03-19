@@ -35,7 +35,7 @@ vi.mock("@z0/backend", () => ({
   withTimeout,
 }));
 
-vi.mock("@/components/chat/actions", () => ({
+vi.mock("@/lib/chat", () => ({
   getChatById,
 }));
 

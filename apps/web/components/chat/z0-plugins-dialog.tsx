@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { SystemPluginMarketItem } from "./integration-market-types";
+import type { SystemPluginMarketItem } from "@/lib/chat";
 
 type Z0PluginsDialogProps = {
   open: boolean;

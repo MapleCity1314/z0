@@ -4,11 +4,10 @@ import { ZodError } from "zod";
 import {
   createToolBridgeErrorResponse,
   createToolBridgeSuccessResponse,
-  getToolBridgeErrorStatus,
   normalizeToolBridgeExecutionError,
   parseToolBridgeRequestBody,
-} from "@z0/backend/agent/tool-bridge";
-import { verifyInternalAuthHeaders } from "@z0/backend/auth";
+  verifyInternalAuthHeaders,
+} from "@z0/backend";
 import { buildAgentTools } from "@/lib/agent/chat/tools";
 import {
   authorizeToolBridgeTargets,
@@ -125,15 +124,14 @@ export async function POST(
       message: error instanceof Error ? error.message : String(error),
     });
 
-    return NextResponse.json(
-      normalizeToolBridgeExecutionError({
-        error,
-        toolName,
-        fallbackMessage: "Tool execution failed",
-      }),
-      {
-        status: getToolBridgeErrorStatus(error),
-      },
-    );
+    const errorResponse = normalizeToolBridgeExecutionError({
+      error,
+      toolName,
+      fallbackMessage: "Tool execution failed",
+    });
+
+    return NextResponse.json(errorResponse, {
+      status: errorResponse.error.status,
+    });
   }
 }

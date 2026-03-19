@@ -13,7 +13,7 @@ import {
   Sparkles,
   Wrench,
 } from "lucide-react";
-import type { SystemPluginMarketItem } from "@/components/chat/integration-market-types";
+import type { SystemPluginMarketItem } from "@/lib/chat";
 import { GlassCard, PillInput } from "@/components/customize/shared";
 import type {
   ConnectorFormState,

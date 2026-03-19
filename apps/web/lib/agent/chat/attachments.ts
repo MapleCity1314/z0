@@ -1,5 +1,5 @@
 import type { UIMessage } from "ai";
-import { readFileAsText } from "@/components/chat/actions";
+import { readFileAsText } from "@/lib/chat";
 import type { FilePart, FileReadResult } from "@/lib/agent/chat/request";
 import { isFilePart } from "@/lib/agent/chat/request";
 

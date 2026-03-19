@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import type {
   ConversationSkill,
   SystemSkillMarketItem,
-} from "./integration-market-types";
+} from "@/lib/chat";
 
 type SkillsDialogProps = {
   open: boolean;

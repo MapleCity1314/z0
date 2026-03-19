@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { Suspense } from "react";
 import "./globals.css";
 import { ThemeProvider } from "@/components/provider/theme-provider";
@@ -8,14 +8,49 @@ import { UserProvider } from "@/components/provider/user-provider";
 import { Toaster } from "sonner";
 import { defaultMetadata } from "@/lib/metadata";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const z0Sans = localFont({
+  src: [
+    {
+      path: "../../../assets/brand/fonts/z0-sans-regular.woff2",
+      style: "normal",
+    },
+    {
+      path: "../../../assets/brand/fonts/z0-sans-italic.woff2",
+      style: "italic",
+    },
+  ],
+  variable: "--font-z0-sans",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const z0Serif = localFont({
+  src: [
+    {
+      path: "../../../assets/brand/fonts/z0-serif-regular.woff2",
+      style: "normal",
+    },
+    {
+      path: "../../../assets/brand/fonts/z0-serif-italic.woff2",
+      style: "italic",
+    },
+  ],
+  variable: "--font-z0-serif",
+  display: "swap",
+});
+
+const z0Mono = localFont({
+  src: [
+    {
+      path: "../../../assets/brand/fonts/z0-mono-regular.woff2",
+      style: "normal",
+    },
+    {
+      path: "../../../assets/brand/fonts/z0-mono-italic.woff2",
+      style: "italic",
+    },
+  ],
+  variable: "--font-z0-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = defaultMetadata;
@@ -27,7 +62,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body
+        className={`${z0Sans.variable} ${z0Serif.variable} ${z0Mono.variable} antialiased`}
+      >
         <Suspense fallback={null}>
           <SessionProvider>
             <UserProvider initialUser={null}>

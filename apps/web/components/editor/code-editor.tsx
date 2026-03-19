@@ -139,7 +139,7 @@ export function CodeEditor({
 
     // 设置编辑器选项
     editor.updateOptions({
-      fontFamily: "'Fira Code', 'Geist Mono', monospace",
+      fontFamily: "'Fira Code', monospace",
       fontLigatures: true,
       fontSize,
       lineHeight: 1.6,

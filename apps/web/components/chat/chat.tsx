@@ -346,8 +346,8 @@ export default function Chat({
               <div className="absolute inset-0 bg-zinc-50/35 dark:bg-black/45" />
             </div>
             {/* Desktop: Centered Layout */}
-            <div className="relative z-10 hidden h-full w-full flex-col items-center justify-center pt-32 md:flex">
-              <div className="w-full max-w-3xl mx-auto space-y-8">
+            <div className="relative z-10 hidden h-full w-full flex-col items-center justify-center md:flex">
+              <div className="mx-auto w-full max-w-3xl translate-y-8 space-y-6">
                 <Welcome />
 
                 <motion.div
@@ -364,7 +364,7 @@ export default function Chat({
 
             {/* Mobile: Input at Bottom */}
             <div className="relative z-10 flex h-full w-full flex-col md:hidden">
-              <div className="flex-1 flex items-center justify-center px-4 pb-44">
+              <div className="flex flex-1 items-center justify-center px-4 pb-36">
                 <Welcome />
               </div>
               <motion.div

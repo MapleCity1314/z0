@@ -19,9 +19,20 @@ import {
   PaperclipIcon,
   XIcon,
 } from "lucide-react";
-import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
+import type {
+  ComponentProps,
+  HTMLAttributes,
+  ReactElement,
+  ReactNode,
+} from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
 import { Streamdown } from "streamdown";
+import {
+  CodeBlock,
+  CodeBlockCopyButton,
+  extractCodeText,
+  isInlineCodeNode,
+} from "./code-block";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -308,6 +319,45 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 export const MessageResponse = memo(
   ({ className, components, ...props }: MessageResponseProps) => {
+    const MarkdownCode = ({
+      children,
+      className,
+      node,
+      ...codeProps
+    }: HTMLAttributes<HTMLElement> & {
+      children?: ReactNode;
+      node?: {
+        position?: {
+          start?: { line?: number };
+          end?: { line?: number };
+        };
+      };
+    }) => {
+      if (isInlineCodeNode(node)) {
+        return (
+          <code
+            className={cn(
+              "rounded bg-muted px-1.5 py-0.5 font-mono text-sm",
+              className
+            )}
+            {...codeProps}
+          >
+            {children}
+          </code>
+        );
+      }
+
+      const languageMatch = className?.match(/language-([^\s]+)/);
+      const language = languageMatch?.[1] ?? "text";
+      const code = extractCodeText(children).replace(/\n$/, "");
+
+      return (
+        <CodeBlock className="my-4" code={code} language={language}>
+          <CodeBlockCopyButton />
+        </CodeBlock>
+      );
+    };
+
     // 动态导入 InlineCitation 组件以避免循环依赖
     const CitationComponent = ({ title, url, description, quote }: any) => {
       // 延迟导入以避免打包问题
@@ -379,6 +429,8 @@ export const MessageResponse = memo(
         controls={{ code: true, table: true }}
         components={{
           ...(components || {}),
+          code: MarkdownCode,
+          pre: ({ children }: { children?: ReactNode }) => children,
           citation: CitationComponent,
         } as any}
         {...props}

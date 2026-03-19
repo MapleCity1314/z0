@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export type AgentToolDecision =
   | "keep-internal"
   | "refactor-internal"
@@ -32,6 +34,20 @@ export type AgentToolCatalogEntry = {
   requiresWebSearch?: boolean;
   decision: AgentToolDecision;
 };
+
+const defaultPassthroughToolInputSchema = z.object({}).passthrough();
+
+const tavilySearchInputSchema = z.object({
+  query: z.string().describe("The search query to look up on the web"),
+  searchDepth: z
+    .enum(["basic", "advanced", "fast", "ultra-fast"])
+    .optional()
+    .describe("The depth of the search"),
+  timeRange: z
+    .enum(["year", "month", "week", "day", "y", "m", "w", "d"])
+    .optional()
+    .describe("Time range for search results"),
+});
 
 export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
   {
@@ -549,4 +565,13 @@ export function summarizeAgentToolCatalog(
     requiresWebSearch: entries.filter((entry) => entry.requiresWebSearch)
       .length,
   };
+}
+
+export function getAgentToolInputSchema(toolName: string) {
+  switch (toolName) {
+    case "tavilySearch":
+      return tavilySearchInputSchema;
+    default:
+      return defaultPassthroughToolInputSchema;
+  }
 }

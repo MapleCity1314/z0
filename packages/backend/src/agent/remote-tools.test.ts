@@ -38,6 +38,24 @@ describe("createRemoteAgentTools", () => {
     expect(tools.readProjectFiles).toBeUndefined();
   });
 
+  it("exposes the real tavily search schema to the model", () => {
+    const tools = createRemoteAgentTools({
+      actor: { userId: "user-1", role: "user" },
+      webSearchEnabled: true,
+      projectId: null,
+      chatId: "chat-1",
+    });
+
+    const schema = tools.tavilySearch.inputSchema;
+
+    expect(schema).toBeDefined();
+    expect(schema.safeParse({ searchDepth: "advanced" }).success).toBe(false);
+    expect(
+      schema.safeParse({ query: "latest AI SDK news", searchDepth: "advanced" })
+        .success,
+    ).toBe(true);
+  });
+
   it("executes tools through the web bridge", async () => {
     const tools = createRemoteAgentTools({
       actor: { userId: "user-1", role: "admin" },

@@ -21,6 +21,10 @@ import { Bot } from "lucide-react";
 import { MessageList } from "./message-list";
 import { Welcome } from "./welcome";
 import { ChatInput } from "./chat-input";
+import {
+  CHAT_COLUMN_WIDTH_CLASS,
+  CHAT_COLUMN_WIDTH_COMPACT_CLASS,
+} from "./layout";
 import FluidBackground from "../fluid-background";
 import {
   buildOutgoingUserMessage,
@@ -276,21 +280,26 @@ export default function Chat({
     (status === "submitted" || status === "streaming") &&
     messages.some((message) => message.role === "user");
   const isDarkTheme = resolvedTheme === "dark";
+  const conversationResizeBehavior =
+    status === "streaming" ? "instant" : "smooth";
 
   // Track if we need to update URL after chat creation
   const pendingUrlUpdateRef = useRef(false);
 
-  // 🔧 FIX: Update URL after API responds (chat is created in DB)
-  // Use replaceState to avoid page reload and keep streaming intact
+  // Delay the route change until the first turn is settled. Navigating while the
+  // initial response is still streaming can replace the optimistic client state
+  // with the server-rendered /c/[id] page before persistence finishes.
   useEffect(() => {
-    if (pendingUrlUpdateRef.current && status === "streaming") {
+    if (
+      pendingUrlUpdateRef.current &&
+      status === "ready" &&
+      messages.some((message) => message.role === "user")
+    ) {
       pendingUrlUpdateRef.current = false;
-      // Update URL without navigation (keeps current component state)
       window.history.replaceState({}, "", `/c/${id}`);
-      // Refresh sidebar chat list
       mutate("recent-chats");
     }
-  }, [status, id, mutate]);
+  }, [status, id, messages, mutate]);
 
   const handleSendMessage = (message: {
     text: string;
@@ -354,7 +363,7 @@ export default function Chat({
             </div>
             {/* Desktop: Centered Layout */}
             <div className="relative z-10 hidden h-full w-full flex-col items-center justify-center md:flex">
-              <div className="mx-auto w-full max-w-3xl translate-y-8 space-y-6">
+              <div className={cn(CHAT_COLUMN_WIDTH_COMPACT_CLASS, "translate-y-8 space-y-6")}>
                 <Welcome />
 
                 <motion.div
@@ -384,7 +393,7 @@ export default function Chat({
                   "dark:bg-black/95 dark:border-zinc-800",
                 )}
               >
-                <div className="mx-auto w-full max-w-3xl">{InputComponent}</div>
+                <div className={CHAT_COLUMN_WIDTH_COMPACT_CLASS}>{InputComponent}</div>
               </motion.div>
             </div>
           </motion.div>
@@ -397,8 +406,13 @@ export default function Chat({
             transition={{ duration: 0.3, delay: 0.2 }}
             className="h-full w-full"
           >
-            <Conversation className="w-full h-full">
-              <ConversationContent className="max-w-3xl mx-auto w-full pt-4 pb-48 px-4 md:px-6">
+            <Conversation
+              className="w-full h-full"
+              resize={conversationResizeBehavior}
+            >
+              <ConversationContent
+                className={cn(CHAT_COLUMN_WIDTH_CLASS, "pt-4 pb-48")}
+              >
                 {messages.length === 0 ? (
                   <ConversationEmptyState
                     icon={
@@ -453,7 +467,12 @@ export default function Chat({
                   "dark:from-black dark:via-black/90 dark:to-transparent", // Dark
                 )}
               />
-              <div className="relative w-full max-w-3xl mx-auto px-4 pb-6 pt-2 pointer-events-auto">
+              <div
+                className={cn(
+                  "relative pb-6 pt-2 pointer-events-auto",
+                  CHAT_COLUMN_WIDTH_CLASS,
+                )}
+              >
                 {InputComponent}
               </div>
             </motion.div>

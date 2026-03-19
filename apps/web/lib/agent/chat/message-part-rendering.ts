@@ -24,6 +24,13 @@ export type MessageRendererKind =
   | "step-start"
   | "json";
 
+const SEARCH_TOOL_NAMES = new Set([
+  "tavilySearch",
+  "tavilyExtract",
+  "tavilyCrawl",
+  "tavilyMap",
+]);
+
 export function isToolPart(
   part: UIMessagePart<any, any>,
 ): part is UIMessagePart<any, any> & { type: `tool-${string}` } {
@@ -49,6 +56,27 @@ export function getToolName(part: UIMessagePart<any, any>) {
   }
 
   return (part as any).toolName || part.type.replace("tool-", "");
+}
+
+export function isSearchToolName(toolName: string) {
+  return SEARCH_TOOL_NAMES.has(toolName);
+}
+
+export function isSearchToolPart(part: UIMessagePart<any, any>) {
+  const toolName = getToolName(part);
+  return !!toolName && isSearchToolName(toolName);
+}
+
+export function shouldRenderMessagePartInBody(part: UIMessagePart<any, any>) {
+  if (part.type === "reasoning") {
+    return false;
+  }
+
+  if (isSearchToolPart(part)) {
+    return false;
+  }
+
+  return true;
 }
 
 export function getDataPartName(part: UIMessagePart<any, any>) {

@@ -69,6 +69,7 @@ import {
   ToolOutput,
 } from "@/components/ai-elements/tool";
 import { Button } from "@/components/ui/button";
+import { CHAT_MESSAGE_FRAME_CLASS } from "@/components/chat/layout";
 import {
   getDataPartName,
   getToolName,
@@ -81,6 +82,7 @@ import {
   type MessageRendererKind,
   type ToolRendererKind,
 } from "@/lib/agent/chat/message-part-rendering";
+import { cn } from "@/lib/utils";
 import { useExecutorStore } from "@/store/executor";
 import { useProjectStore } from "@/store/project";
 import type { UIMessagePart } from "ai";
@@ -144,7 +146,7 @@ function CodeArtifactRenderer({
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
+    <div className={CHAT_MESSAGE_FRAME_CLASS}>
       <Artifact className="my-2">
         <ArtifactHeader>
           <div className="flex flex-col gap-0.5">
@@ -469,7 +471,7 @@ const basePartRenderers: Record<
     </MessageAttachments>
   ),
   reasoning: (part, index) => (
-    <div key={index} className="mx-auto w-full max-w-3xl">
+    <div key={index} className={CHAT_MESSAGE_FRAME_CLASS}>
       <Reasoning isStreaming={(part as any).state === "streaming"}>
         <ReasoningTrigger />
         <ReasoningContent>{(part as any).text ?? ""}</ReasoningContent>
@@ -477,7 +479,7 @@ const basePartRenderers: Record<
     </div>
   ),
   "source-url": (part, index) => (
-    <div key={index} className="mx-auto w-full max-w-3xl">
+    <div key={index} className={CHAT_MESSAGE_FRAME_CLASS}>
       <Sources>
         <SourcesTrigger count={1} />
         <SourcesContent>
@@ -492,7 +494,7 @@ const basePartRenderers: Record<
     </div>
   ),
   "source-document": (part, index) => (
-    <div key={index} className="mx-auto w-full max-w-3xl">
+    <div key={index} className={CHAT_MESSAGE_FRAME_CLASS}>
       <Sources>
         <SourcesTrigger count={1} />
         <SourcesContent>
@@ -528,7 +530,7 @@ const toolPartRenderers: Record<ToolRendererKind, ToolPartRenderer> = {
     );
   },
   inspector: (part, index, toolName) => (
-    <div key={index} className="mx-auto w-full max-w-3xl">
+    <div key={index} className={CHAT_MESSAGE_FRAME_CLASS}>
       <Tool defaultOpen={false}>
         <ToolHeader
           title={toolName}
@@ -560,8 +562,8 @@ const toolPartRenderers: Record<ToolRendererKind, ToolPartRenderer> = {
     );
 
     return (
-      <div key={index} className="mx-auto my-2 w-full max-w-3xl">
-        <Task defaultOpen={isRunning || toolPart.state === "output-error"}>
+      <div key={index} className={cn(CHAT_MESSAGE_FRAME_CLASS, "my-2")}>
+        <Task defaultOpen={false}>
           <TaskTrigger
             title={
               taskInfo.subtitle
@@ -582,7 +584,7 @@ const dataPartRenderers: Record<DataRendererKind, DataPartRenderer> = {
   image: (part, index) => {
     const dataPart = part as any;
     return (
-      <div key={index} className="mx-auto my-2 w-full max-w-3xl">
+      <div key={index} className={cn(CHAT_MESSAGE_FRAME_CLASS, "my-2")}>
         <Image
           base64={dataPart.base64}
           uint8Array={dataPart.uint8Array}
@@ -595,7 +597,7 @@ const dataPartRenderers: Record<DataRendererKind, DataPartRenderer> = {
   artifact: (part, index) => {
     const dataPart = part as any;
     return (
-      <div key={index} className="mx-auto w-full max-w-3xl">
+      <div key={index} className={CHAT_MESSAGE_FRAME_CLASS}>
         <Artifact>
           <ArtifactHeader>
             <ArtifactTitle>{dataPart.title || "Artifact"}</ArtifactTitle>
@@ -614,7 +616,7 @@ const dataPartRenderers: Record<DataRendererKind, DataPartRenderer> = {
   plan: (part, index) => {
     const dataPart = part as any;
     return (
-      <div key={index} className="mx-auto w-full max-w-3xl">
+      <div key={index} className={CHAT_MESSAGE_FRAME_CLASS}>
         <Plan isStreaming={false}>
           <PlanHeader>
             <PlanTitle>{dataPart.title || "Plan"}</PlanTitle>
@@ -637,7 +639,7 @@ const dataPartRenderers: Record<DataRendererKind, DataPartRenderer> = {
   "chain-of-thought": (part, index) => {
     const dataPart = part as any;
     return (
-      <div key={index} className="mx-auto w-full max-w-3xl">
+      <div key={index} className={CHAT_MESSAGE_FRAME_CLASS}>
         <ChainOfThought>
           <ChainOfThoughtHeader>
             {dataPart.title || "Chain of Thought"}
@@ -692,7 +694,7 @@ const dataPartRenderers: Record<DataRendererKind, DataPartRenderer> = {
         : JSON.stringify(dataPart.data, null, 2);
 
     return (
-      <div key={index} className="mx-auto w-full max-w-3xl">
+      <div key={index} className={CHAT_MESSAGE_FRAME_CLASS}>
         <CodeBlock code={dataStr} language="json">
           <CodeBlockCopyButton />
         </CodeBlock>
@@ -731,7 +733,7 @@ function renderDataPart(part: UIMessagePart<any, any>, index: number) {
 
 function renderUnknownPart(part: UIMessagePart<any, any>, index: number) {
   return (
-    <div key={index} className="mx-auto w-full max-w-3xl">
+    <div key={index} className={CHAT_MESSAGE_FRAME_CLASS}>
       <CodeBlock code={JSON.stringify(part, null, 2)} language="json">
         <CodeBlockCopyButton />
       </CodeBlock>

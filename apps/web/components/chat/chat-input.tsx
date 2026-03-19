@@ -814,12 +814,15 @@ export function ChatInput({
                 <UploadAttachmentButton />
                 <PromptInputSubmit
                   status={status}
+                  type={status === "streaming" ? "button" : "submit"}
                   disabled={
                     status === "submitted" ||
                     (!messagesLength && status === "streaming")
                   }
-                  onClick={() => {
+                  onClick={(event) => {
                     if (status === "streaming") {
+                      event.preventDefault();
+                      event.stopPropagation();
                       onStop();
                     }
                   }}

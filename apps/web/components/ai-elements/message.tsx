@@ -41,7 +41,7 @@ export type MessageProps = HTMLAttributes<HTMLDivElement> & {
 export const Message = ({ className, from, ...props }: MessageProps) => (
   <div
     className={cn(
-      "group flex w-full max-w-[80%] flex-col gap-2",
+      "group flex w-full max-w-full flex-col gap-2",
       from === "user" ? "is-user ml-auto justify-end" : "is-assistant",
       className
     )}
@@ -58,9 +58,9 @@ export const MessageContent = ({
 }: MessageContentProps) => (
   <div
     className={cn(
-      "is-user:dark flex w-fit flex-col gap-2 overflow-hidden text-sm",
-      "group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
-      "group-[.is-assistant]:text-foreground",
+      "flex w-full min-w-0 flex-col gap-2 overflow-hidden text-sm",
+      "group-[.is-user]:ml-auto group-[.is-user]:w-fit group-[.is-user]:max-w-[min(100%,42rem)] group-[.is-user]:rounded-2xl group-[.is-user]:border group-[.is-user]:border-border/70 group-[.is-user]:bg-secondary/85 group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground group-[.is-user]:shadow-sm",
+      "group-[.is-assistant]:w-full group-[.is-assistant]:text-foreground",
       className
     )}
     {...props}
@@ -413,10 +413,10 @@ export const MessageResponse = memo(
     return (
         <Streamdown
         className={cn(
-          "size-full font-serif leading-7 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
-          // Constrain code blocks width (max-w-2xl = 672px, slightly narrower than input)
-          "[&>pre]:max-w-2xl [&>pre]:mx-auto [&>pre]:w-full",
-          "[&>div:has(>pre)]:max-w-2xl [&>div:has(>pre)]:mx-auto [&>div:has(>pre)]:w-full",
+          "size-full min-w-0 font-serif leading-7 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+          "[&>pre]:w-full [&>div:has(>pre)]:w-full",
+          "[&_pre]:max-w-full [&_pre]:overflow-x-auto",
+          "[&_table]:block [&_table]:w-full [&_table]:overflow-x-auto",
           "[&_h1]:font-sans [&_h1]:text-3xl [&_h1]:font-semibold",
           "[&_h2]:font-sans [&_h2]:text-2xl [&_h2]:font-semibold",
           "[&_h3]:font-sans [&_h3]:text-xl [&_h3]:font-semibold",

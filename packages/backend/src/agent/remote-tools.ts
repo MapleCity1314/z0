@@ -1,7 +1,9 @@
 import { tool } from "ai";
-import { z } from "zod";
 import { createInternalAuthHeaders } from "../auth/internal";
-import { getEnabledAgentToolCatalog } from "./tool-catalog";
+import {
+  getAgentToolInputSchema,
+  getEnabledAgentToolCatalog,
+} from "./tool-catalog";
 import {
   createToolBridgeErrorResponse,
   parseToolBridgeResponse,
@@ -9,8 +11,6 @@ import {
   type ToolBridgeErrorResponse,
   type ToolBridgeSuccessResponse,
 } from "./tool-bridge";
-
-const passthroughInputSchema = z.object({}).passthrough();
 
 export class RemoteToolExecutionError extends Error {
   constructor(
@@ -43,7 +43,7 @@ export function createRemoteAgentTools(params: {
     entry.name,
     tool({
       description: entry.description,
-      inputSchema: passthroughInputSchema,
+      inputSchema: getAgentToolInputSchema(entry.name),
       execute: async (input, context) => {
         const internalHeaders = createInternalAuthHeaders({
           actor: {

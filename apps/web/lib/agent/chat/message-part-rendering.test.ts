@@ -7,7 +7,10 @@ import {
   getToolTaskInfo,
   getToolTaskStatus,
   isDataPart,
+  isSearchToolPart,
+  isSearchToolName,
   isToolPart,
+  shouldRenderMessagePartInBody,
   resolveDataRendererKind,
   resolveMessageRendererKind,
   resolveToolRendererKind,
@@ -69,6 +72,35 @@ describe("message-part-rendering", () => {
 
     expect(getToolName(toolPart)).toBe("runBuild");
     expect(getDataPartName(dataPart)).toBe("plan");
+  });
+
+  it("recognizes search tools and hides them from message body rendering", () => {
+    const searchToolPart = {
+      type: "tool-tavilySearch",
+      toolCallId: "call-search",
+      state: "output-available",
+      input: { query: "latest next.js" },
+      output: { results: [] },
+    } as UIMessagePart<any, any>;
+
+    expect(isSearchToolName("tavilySearch")).toBe(true);
+    expect(isSearchToolPart(searchToolPart)).toBe(true);
+    expect(shouldRenderMessagePartInBody(searchToolPart)).toBe(false);
+    expect(
+      shouldRenderMessagePartInBody({
+        type: "reasoning",
+        text: "## Plan\nCheck sources",
+      } as UIMessagePart<any, any>),
+    ).toBe(false);
+    expect(
+      shouldRenderMessagePartInBody({
+        type: "tool-runBuild",
+        toolCallId: "call-build",
+        state: "output-available",
+        input: {},
+        output: {},
+      } as UIMessagePart<any, any>),
+    ).toBe(true);
   });
 
   it("resolves message renderer kinds", () => {

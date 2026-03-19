@@ -1,9 +1,8 @@
 import { headers } from "next/headers";
-import { verifyInternalAuthHeaders } from "@z0/backend/auth";
+import { resolveSessionActor, verifyInternalAuthHeaders } from "@z0/backend/auth";
 import { auth } from "./auth";
 
-async function getInternalActorFromHeaders() {
-  const requestHeaders = await headers();
+function getInternalActorFromHeaders(requestHeaders: Headers) {
   const actor =
     verifyInternalAuthHeaders(requestHeaders, "agent-bridge") ??
     verifyInternalAuthHeaders(requestHeaders, "web-api");
@@ -22,28 +21,44 @@ async function getInternalActorFromHeaders() {
 }
 
 export async function getSession() {
+  const requestHeaders = await headers();
+
   return auth.api.getSession({
-    headers: await headers(),
+    headers: requestHeaders,
   });
 }
 
 export async function getCurrentUser() {
-  const internalActor = await getInternalActorFromHeaders();
+  const requestHeaders = await headers();
+  const internalActor = getInternalActorFromHeaders(requestHeaders);
   if (internalActor) {
     return internalActor;
   }
 
-  const session = await getSession();
-  if (!session) {
+  const session = await auth.api.getSession({
+    headers: requestHeaders,
+  });
+  if (session) {
+    return {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      avatar: session.user.image ?? null,
+      role: (session.user as { role?: string }).role ?? "user",
+    };
+  }
+
+  const sessionActor = await resolveSessionActor(requestHeaders);
+  if (!sessionActor) {
     return null;
   }
 
   return {
-    id: session.user.id,
-    name: session.user.name,
-    email: session.user.email,
-    avatar: session.user.image ?? null,
-    role: (session.user as { role?: string }).role ?? "user",
+    id: sessionActor.userId,
+    name: "",
+    email: "",
+    avatar: null,
+    role: sessionActor.role ?? "user",
   };
 }
 

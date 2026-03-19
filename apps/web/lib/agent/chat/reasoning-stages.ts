@@ -1,9 +1,31 @@
 import type { UIMessage, UIMessagePart } from "ai";
+import { getToolName, getToolTaskInfo } from "./message-part-rendering";
 
 export type ReasoningStage = {
   title: string;
   body: string;
 };
+
+type ReasoningPartLike = UIMessagePart<any, any> & {
+  type: "reasoning";
+  text?: string;
+  state?: string;
+};
+
+type ToolPartLike = UIMessagePart<any, any> & {
+  type: string;
+  toolName?: string;
+  state?: string;
+  input?: Record<string, any>;
+  output?: Record<string, any>;
+};
+
+const SEARCH_TOOL_NAMES = new Set([
+  "tavilySearch",
+  "tavilyExtract",
+  "tavilyCrawl",
+  "tavilyMap",
+]);
 
 const STAGE_HEADING_PATTERN = /^##\s+(.+?)\s*$/gm;
 
@@ -14,14 +36,18 @@ function cleanBlock(text: string) {
 export function extractReasoningText(parts: UIMessage["parts"]): string {
   return parts
     .filter(
-      (
-        part,
-      ): part is UIMessagePart<any, any> & { type: "reasoning"; text?: string } =>
-        part.type === "reasoning",
+      (part): part is ReasoningPartLike => part.type === "reasoning",
     )
     .map((part) => part.text ?? "")
     .join("\n")
     .trim();
+}
+
+export function isReasoningStreaming(parts: UIMessage["parts"]): boolean {
+  return parts.some(
+    (part): part is ReasoningPartLike =>
+      part.type === "reasoning" && part.state === "streaming",
+  );
 }
 
 export function parseReasoningStages(text: string): ReasoningStage[] {
@@ -73,4 +99,41 @@ export function getCurrentReasoningStage(
 ): ReasoningStage | null {
   const stages = parseReasoningStages(extractReasoningText(parts));
   return stages.at(-1) ?? null;
+}
+
+export function getReasoningHeaderLabel(
+  parts: UIMessage["parts"],
+): string | null {
+  const currentStage = getCurrentReasoningStage(parts);
+  if (currentStage?.title) {
+    return currentStage.title;
+  }
+
+  const activeSearchTool = [...parts]
+    .reverse()
+    .find((part): part is ToolPartLike => {
+      const toolName = getToolName(part);
+      return (
+        !!toolName &&
+        SEARCH_TOOL_NAMES.has(toolName) &&
+        ((part as ToolPartLike).state === "input-available" ||
+          (part as ToolPartLike).state === "input-streaming")
+      );
+    });
+
+  if (!activeSearchTool) {
+    return null;
+  }
+
+  const toolName = getToolName(activeSearchTool);
+  if (!toolName) {
+    return null;
+  }
+
+  return getToolTaskInfo(
+    toolName,
+    activeSearchTool.input,
+    activeSearchTool.output,
+    true,
+  ).title;
 }

@@ -11,8 +11,11 @@ import {
 import { AssistantReasoning } from "@/components/chat/assistant-reasoning";
 import { renderMessagePart } from "@/components/chat/message-part-renderers";
 import { ThinkingVoid } from "@/components/chat/thinking-void";
-import { getCurrentReasoningStage } from "@/lib/agent/chat/reasoning-stages";
-import { getMessageCopyText } from "@/lib/agent/chat/message-part-rendering";
+import { getReasoningHeaderLabel } from "@/lib/agent/chat/reasoning-stages";
+import {
+  getMessageCopyText,
+  shouldRenderMessagePartInBody,
+} from "@/lib/agent/chat/message-part-rendering";
 import { cn } from "@/lib/utils";
 import type { UIMessage } from "ai";
 import { CheckIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
@@ -141,9 +144,9 @@ function renderMessage(
   return (
     <Message key={index} from={role}>
       <MessageContent>
-        <AssistantReasoning parts={parts} isStreaming={isStreaming} />
+        <AssistantReasoning parts={parts} />
         {parts
-          .filter((part) => part.type !== "reasoning")
+          .filter(shouldRenderMessagePartInBody)
           .map((part, partIndex) => renderMessagePart(part, partIndex))}
       </MessageContent>
       <MessageActionButtons
@@ -184,18 +187,18 @@ export function MessageList({
           showAssistantLoading &&
           hasAssistantForCurrentTurn &&
           index === lastAssistantIndex;
-        const currentReasoningStage =
+        const reasoningHeaderLabel =
           message.role === "assistant"
-            ? getCurrentReasoningStage(message.parts)
+            ? getReasoningHeaderLabel(message.parts)
             : null;
         const shouldShowInlineReasoning =
-          messageIsStreaming && message.role === "assistant" && currentReasoningStage;
+          messageIsStreaming && message.role === "assistant" && reasoningHeaderLabel;
 
         return (
           <Fragment key={message.id || index}>
             {renderMessage(message, index, messageIsStreaming, onRetry)}
             {showLoadingAfterThisMessage && !shouldShowInlineReasoning ? (
-              <AssistantLoadingIndicator label={currentReasoningStage?.title} />
+              <AssistantLoadingIndicator label={reasoningHeaderLabel ?? undefined} />
             ) : null}
           </Fragment>
         );

@@ -7,23 +7,38 @@ import {
   ChainOfThoughtSearchResults,
   ChainOfThoughtStep,
 } from "@/components/ai-elements/chain-of-thought";
-import { MessageResponse } from "@/components/ai-elements/message";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 import { ThinkingVoid } from "@/components/chat/thinking-void";
+import { CHAT_MESSAGE_FRAME_CLASS } from "@/components/chat/layout";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   extractReasoningText,
+  getReasoningHeaderLabel,
+  isReasoningStreaming,
   parseReasoningStages,
 } from "@/lib/agent/chat/reasoning-stages";
+import { cn } from "@/lib/utils";
 import {
   getToolName,
   getToolTaskInfo,
+  isSearchToolName,
 } from "@/lib/agent/chat/message-part-rendering";
 import type { UIMessage } from "ai";
-import { BrainIcon, GlobeIcon } from "lucide-react";
+import {
+  BrainIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  GlobeIcon,
+} from "lucide-react";
+import { useState } from "react";
 import { Streamdown } from "streamdown";
 
 type AssistantReasoningProps = {
   parts: UIMessage["parts"];
-  isStreaming: boolean;
 };
 
 type SearchToolPart = {
@@ -35,20 +50,13 @@ type SearchToolPart = {
   errorText?: string;
 };
 
-const SEARCH_TOOL_NAMES = new Set([
-  "tavilySearch",
-  "tavilyExtract",
-  "tavilyCrawl",
-  "tavilyMap",
-]);
-
 function isSearchToolPart(part: unknown): part is SearchToolPart & { type: string } {
   if (!part || typeof part !== "object" || !("type" in part)) {
     return false;
   }
 
   const toolName = getToolName(part as any);
-  return !!toolName && SEARCH_TOOL_NAMES.has(toolName);
+  return !!toolName && isSearchToolName(toolName);
 }
 
 function getSearchStepStatus(state?: string) {
@@ -123,10 +131,64 @@ function renderSearchStepContent(toolPart: SearchToolPart, toolName: string) {
   return null;
 }
 
+type SearchStep = {
+  key: string;
+  label: string;
+  description?: string;
+  status: "complete" | "active" | "error";
+  content: ReturnType<typeof renderSearchStepContent>;
+};
+
+function SearchReasoningStep({
+  step,
+  defaultOpen = false,
+}: {
+  step: SearchStep;
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const label =
+    step.status === "active" ? (
+      <Shimmer as="span" duration={1.6}>
+        {step.label}
+      </Shimmer>
+    ) : (
+      step.label
+    );
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <ChainOfThoughtStep
+        icon={GlobeIcon}
+        label={
+          <CollapsibleTrigger className="flex w-full items-center gap-2 text-left">
+            <span className="min-w-0 flex-1 truncate">{label}</span>
+            <ChevronRightIcon
+              className={cn(
+                "size-4 shrink-0 text-zinc-400 transition-transform",
+                isOpen && "rotate-90",
+              )}
+            />
+          </CollapsibleTrigger>
+        }
+        description={step.description}
+        status={step.status}
+        className="text-muted-foreground"
+      >
+        <CollapsibleContent className="data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-1 data-[state=open]:animate-in data-[state=open]:slide-in-from-top-1">
+          {step.content ? (
+            <div className="text-muted-foreground/80">{step.content}</div>
+          ) : null}
+        </CollapsibleContent>
+      </ChainOfThoughtStep>
+    </Collapsible>
+  );
+}
+
 export function AssistantReasoning({
   parts,
-  isStreaming,
 }: AssistantReasoningProps) {
+  const reasoningStreaming = isReasoningStreaming(parts);
   const reasoningText = extractReasoningText(parts);
   const stages = parseReasoningStages(reasoningText);
   const searchSteps = parts.filter(isSearchToolPart).map((part) => {
@@ -149,57 +211,113 @@ export function AssistantReasoning({
       content: renderSearchStepContent(toolPart, toolName),
     };
   });
+  const activeSearchStep =
+    [...searchSteps].reverse().find((step) => step.status === "active") ?? null;
+  const completedSearchSteps = searchSteps.filter(
+    (step) => step.key !== activeSearchStep?.key,
+  );
 
-  const completedStages = isStreaming ? stages.slice(0, -1) : stages;
-  const activeStage = isStreaming ? (stages.at(-1) ?? null) : null;
+  const completedStages = reasoningStreaming ? stages.slice(0, -1) : stages;
+  const activeStage = reasoningStreaming ? (stages.at(-1) ?? null) : null;
+  const headerLabel = getReasoningHeaderLabel(parts) || "Thinking";
+  const [isOpen, setIsOpen] = useState(false);
 
-  if (completedStages.length === 0 && !activeStage && searchSteps.length === 0) {
+  if (
+    completedStages.length === 0 &&
+    !activeStage &&
+    completedSearchSteps.length === 0 &&
+    !activeSearchStep
+  ) {
     return null;
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-3">
-      {activeStage ? <ThinkingVoid label={activeStage.title} /> : null}
+    <Collapsible
+      className={CHAT_MESSAGE_FRAME_CLASS}
+      open={isOpen}
+      onOpenChange={setIsOpen}
+    >
+      <CollapsibleTrigger
+        className={cn(
+          "flex w-full items-center gap-3 rounded-lg px-1 py-2 text-left text-muted-foreground transition-colors hover:text-foreground",
+          isOpen && "pb-2",
+        )}
+      >
+        <span className="min-w-0 flex-1 overflow-visible">
+          {reasoningStreaming ? (
+            <ThinkingVoid label={headerLabel} className="min-w-0 overflow-visible" />
+          ) : (
+            <span className="block truncate py-1 text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-500">
+              {headerLabel}
+            </span>
+          )}
+        </span>
+        <ChevronDownIcon
+          className={cn(
+            "size-4 shrink-0 text-zinc-400 transition-transform",
+            isOpen ? "rotate-180" : "rotate-0",
+          )}
+        />
+      </CollapsibleTrigger>
 
-      {completedStages.length > 0 || searchSteps.length > 0 ? (
-        <ChainOfThought defaultOpen>
-        <ChainOfThoughtContent>
-          {completedStages.map((stage, index) => (
-            <ChainOfThoughtStep
-              key={`stage-${index}-${stage.title}`}
-              icon={BrainIcon}
-              label={stage.title}
-              status="complete"
-            >
-              {stage.body ? (
-                <div className="text-muted-foreground text-sm">
-                  <Streamdown remarkRehypeOptions={{ allowDangerousHtml: false }}>
-                    {stage.body}
-                  </Streamdown>
-                </div>
+      <CollapsibleContent className="space-y-3 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:animate-in data-[state=open]:slide-in-from-top-2">
+        {completedStages.length > 0 ||
+        completedSearchSteps.length > 0 ||
+        activeSearchStep ||
+        activeStage ? (
+          <ChainOfThought defaultOpen className="space-y-3">
+            <ChainOfThoughtContent className="mt-0 space-y-3">
+              {completedStages.map((stage, index) => (
+                <ChainOfThoughtStep
+                  key={`stage-${index}-${stage.title}`}
+                  icon={BrainIcon}
+                  label={stage.title}
+                  status="complete"
+                  className="text-muted-foreground"
+                >
+                  {stage.body ? (
+                    <div className="text-muted-foreground/80 text-sm">
+                      <Streamdown remarkRehypeOptions={{ allowDangerousHtml: false }}>
+                        {stage.body}
+                      </Streamdown>
+                    </div>
+                  ) : null}
+                </ChainOfThoughtStep>
+              ))}
+              {completedSearchSteps.map((step) => (
+                <SearchReasoningStep key={step.key} step={step} defaultOpen={false} />
+              ))}
+              {activeSearchStep ? (
+                <SearchReasoningStep
+                  key={activeSearchStep.key}
+                  step={activeSearchStep}
+                  defaultOpen={false}
+                />
               ) : null}
-            </ChainOfThoughtStep>
-          ))}
-          {searchSteps.map((step) => (
-            <ChainOfThoughtStep
-              key={step.key}
-              icon={GlobeIcon}
-              label={step.label}
-              description={step.description}
-              status={step.status}
-            >
-              {step.content}
-            </ChainOfThoughtStep>
-          ))}
-        </ChainOfThoughtContent>
-        </ChainOfThought>
-      ) : null}
-
-      {activeStage?.body ? (
-        <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
-          <MessageResponse>{activeStage.body}</MessageResponse>
-        </div>
-      ) : null}
-    </div>
+              {activeStage ? (
+                <ChainOfThoughtStep
+                  icon={BrainIcon}
+                  label={
+                    <Shimmer as="span" duration={1.6}>
+                      {activeStage.title}
+                    </Shimmer>
+                  }
+                  status="active"
+                  className="text-muted-foreground"
+                >
+                  {activeStage.body ? (
+                    <div className="text-muted-foreground/80 text-sm">
+                      <Streamdown remarkRehypeOptions={{ allowDangerousHtml: false }}>
+                        {activeStage.body}
+                      </Streamdown>
+                    </div>
+                  ) : null}
+                </ChainOfThoughtStep>
+              ) : null}
+            </ChainOfThoughtContent>
+          </ChainOfThought>
+        ) : null}
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

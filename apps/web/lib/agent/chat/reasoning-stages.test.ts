@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   extractReasoningText,
   getCurrentReasoningStage,
+  isReasoningStreaming,
   parseReasoningStages,
 } from "./reasoning-stages";
 
@@ -62,6 +63,7 @@ describe("reasoning helpers", () => {
     const parts = [
       {
         type: "reasoning",
+        state: "streaming",
         text: "## Plan\nOutline the fix.\n\n## Verify\nRun typecheck.",
       },
       {
@@ -71,6 +73,7 @@ describe("reasoning helpers", () => {
     ] as any;
 
     expect(extractReasoningText(parts)).toContain("## Plan");
+    expect(isReasoningStreaming(parts)).toBe(true);
     expect(getCurrentReasoningStage(parts)).toEqual({
       title: "Verify",
       body: "Run typecheck.",

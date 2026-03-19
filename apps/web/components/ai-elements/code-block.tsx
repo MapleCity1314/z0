@@ -8,6 +8,7 @@ import {
   type ComponentProps,
   createContext,
   type HTMLAttributes,
+  type ReactNode,
   useContext,
   useEffect,
   useRef,
@@ -17,19 +18,33 @@ import { type BundledLanguage, codeToHtml, type ShikiTransformer } from "shiki";
 
 type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
   code: string;
-  language: BundledLanguage;
+  language: string;
   showLineNumbers?: boolean;
 };
 
 type CodeBlockContextType = {
   code: string;
-  language: BundledLanguage;
+  language: string;
 };
 
 const CodeBlockContext = createContext<CodeBlockContextType>({
   code: "",
   language: "typescript",
 });
+
+const LANGUAGE_ALIASES: Record<string, BundledLanguage> = {
+  js: "javascript",
+  jsx: "jsx",
+  ts: "typescript",
+  tsx: "tsx",
+  sh: "bash",
+  shell: "bash",
+  zsh: "bash",
+  yml: "yaml",
+  md: "markdown",
+  plaintext: "text" as BundledLanguage,
+  text: "text" as BundledLanguage,
+};
 
 const lineNumberTransformer: ShikiTransformer = {
   name: "line-numbers",
@@ -52,27 +67,88 @@ const lineNumberTransformer: ShikiTransformer = {
   },
 };
 
+const transparentBackgroundTransformer: ShikiTransformer = {
+  name: "transparent-background",
+  pre(node) {
+    const style = String(node.properties.style ?? "");
+    const nextStyle = style
+      .replace(/background-color:[^;]+;?/g, "")
+      .replace(/background:[^;]+;?/g, "")
+      .trim();
+
+    node.properties.style = nextStyle;
+  },
+};
+
 export async function highlightCode(
   code: string,
-  language: BundledLanguage,
+  language: string,
   showLineNumbers = false
 ) {
+  const normalizedLanguage = normalizeCodeLanguage(language);
   const transformers: ShikiTransformer[] = showLineNumbers
-    ? [lineNumberTransformer]
-    : [];
+    ? [transparentBackgroundTransformer, lineNumberTransformer]
+    : [transparentBackgroundTransformer];
 
   return await Promise.all([
     codeToHtml(code, {
-      lang: language,
+      lang: normalizedLanguage,
       theme: "one-light",
       transformers,
     }),
     codeToHtml(code, {
-      lang: language,
+      lang: normalizedLanguage,
       theme: "one-dark-pro",
       transformers,
     }),
   ]);
+}
+
+export function normalizeCodeLanguage(language: string): BundledLanguage {
+  const normalized = language.trim().toLowerCase();
+
+  if (!normalized) {
+    return "text" as BundledLanguage;
+  }
+
+  return (
+    LANGUAGE_ALIASES[normalized] ?? (normalized as BundledLanguage)
+  );
+}
+
+export function isInlineCodeNode(node?: {
+  position?: {
+    start?: { line?: number };
+    end?: { line?: number };
+  };
+}) {
+  const startLine = node?.position?.start?.line;
+  const endLine = node?.position?.end?.line;
+
+  return startLine !== undefined && startLine === endLine;
+}
+
+export function extractCodeText(children: ReactNode): string {
+  if (typeof children === "string") {
+    return children;
+  }
+
+  if (Array.isArray(children)) {
+    return children.map((child) => extractCodeText(child)).join("");
+  }
+
+  if (
+    children &&
+    typeof children === "object" &&
+    "props" in children &&
+    children.props &&
+    typeof children.props === "object" &&
+    "children" in children.props
+  ) {
+    return extractCodeText(children.props.children as ReactNode);
+  }
+
+  return "";
 }
 
 export const CodeBlock = ({
@@ -112,12 +188,12 @@ export const CodeBlock = ({
       >
         <div className="relative">
           <div
-            className="overflow-hidden dark:hidden [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
+            className="overflow-hidden dark:hidden [&>pre]:m-0 [&>pre]:overflow-x-auto [&>pre]:bg-muted! [&>pre]:p-4 [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
             // biome-ignore lint/security/noDangerouslySetInnerHtml: "this is needed."
             dangerouslySetInnerHTML={{ __html: html }}
           />
           <div
-            className="hidden overflow-hidden dark:block [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
+            className="hidden overflow-hidden dark:block [&>pre]:m-0 [&>pre]:overflow-x-auto [&>pre]:bg-zinc-900! [&>pre]:p-4 [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
             // biome-ignore lint/security/noDangerouslySetInnerHtml: "this is needed."
             dangerouslySetInnerHTML={{ __html: darkHtml }}
           />
@@ -203,7 +279,7 @@ export const CodeBlockExecuteButton = ({
 
   const handleExecute = () => {
     console.log("已触发 code executor");
-    openPanel(code, language);
+    openPanel(code, normalizeCodeLanguage(language));
     onExecute?.();
   };
 
@@ -237,7 +313,7 @@ export const CodeBlockExpandButton = ({
   }
 
   const handleExpand = () => {
-    openPanel(code, language);
+    openPanel(code, normalizeCodeLanguage(language));
   };
 
   return (

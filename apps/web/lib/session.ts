@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { verifyInternalAuthHeaders } from "@z0/backend";
+import { verifyInternalAuthHeaders } from "@z0/backend/auth";
 import { auth } from "./auth";
 
 async function getInternalActorFromHeaders() {

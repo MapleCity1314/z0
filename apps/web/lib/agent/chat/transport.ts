@@ -1,9 +1,9 @@
 import {
-  createInternalAuthHeaders,
   extractLatestUserQuery,
   type ChatRequestPayload,
   withTimeout,
-} from "@z0/backend";
+} from "@z0/backend/agent/request";
+import { createInternalAuthHeaders } from "@z0/backend/auth";
 import type { UIMessage } from "ai";
 import type { MemoryItem } from "@/lib/agent/memory/service";
 
@@ -49,39 +49,9 @@ export function summarizeHeaders(headers: HeadersInit) {
 
 export function logResponsePreview(
   stream: ReadableStream<Uint8Array> | null,
-  label: string,
+  _label: string,
 ) {
-  if (!stream) {
-    return stream;
-  }
-
-  const [previewStream, passthroughStream] = stream.tee();
-
-  void (async () => {
-    const reader = previewStream.getReader();
-    const decoder = new TextDecoder();
-    let preview = "";
-
-    try {
-      while (preview.length < 1200) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-
-        preview += decoder.decode(value, { stream: true });
-      }
-    } catch (error) {
-      console.error(`${label} preview failed`, error);
-      return;
-    } finally {
-      reader.releaseLock();
-    }
-
-    console.log(label, preview.slice(0, 1200));
-  })();
-
-  return passthroughStream;
+  return stream;
 }
 
 async function fetchMemoriesForPrompt(params: {

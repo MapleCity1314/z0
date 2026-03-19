@@ -1,11 +1,11 @@
 import type { UIMessage } from "ai";
-import type { AgentRunTelemetry } from "@z0/backend";
+import type { AgentRunTelemetry } from "@z0/backend/agent/telemetry";
 import {
   buildAgentRunRecord,
   buildToolCallRecords,
-  isFilePart,
-} from "@z0/backend";
-export { buildAgentRunRecord, buildToolCallRecords } from "@z0/backend";
+} from "@z0/backend/agent/telemetry";
+import { isFilePart } from "@z0/backend/agent/request";
+export { buildAgentRunRecord, buildToolCallRecords } from "@z0/backend/agent/telemetry";
 import type { DBMessage } from "@/lib/schema";
 import { extractMemoriesFromMessage } from "@/lib/agent/memory/service";
 import {

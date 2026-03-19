@@ -1,4 +1,4 @@
-import type { VersionRecord } from "@z0/backend";
+import type { VersionRecord } from "@z0/backend/modules/versions";
 import { apiFetch } from "@/lib/api";
 
 type LoaderActor = {

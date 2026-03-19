@@ -6,12 +6,15 @@ type EnvRoots = {
   workspaceRoot?: string;
 };
 
-function getDefaultRoots(): Required<EnvRoots> {
-  const packageRoot = process.cwd();
+const STATIC_PACKAGE_ROOT = resolve(
+  /* turbopackIgnore: true */ process.cwd(),
+);
+const STATIC_WORKSPACE_ROOT = resolve(STATIC_PACKAGE_ROOT, "../..");
 
+function getDefaultRoots(): Required<EnvRoots> {
   return {
-    packageRoot,
-    workspaceRoot: resolve(packageRoot, "../.."),
+    packageRoot: STATIC_PACKAGE_ROOT,
+    workspaceRoot: STATIC_WORKSPACE_ROOT,
   };
 }
 

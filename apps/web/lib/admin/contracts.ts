@@ -1,21 +1,23 @@
 import {
   type AdminChatDetail,
   type AdminChatListItem,
+  type DashboardStats,
+  type Paginated,
+  type RecentAdminChat,
+  type RecentAdminFeedback,
+  type RecentAdminUser,
   type AdminFeedbackDetail,
   type AdminProjectDetail,
   type AdminProjectListItem,
   type AdminUserDetail,
   type AdminUserListItem,
-  type DashboardStats,
   type FeedbackStats,
-  type Paginated,
-  type RecentAdminChat,
-  type RecentAdminFeedback,
-  type RecentAdminUser,
+} from "@z0/backend/modules/admin";
+import { type FeedbackRecord } from "@z0/backend/modules/feedback";
+import {
   createVersionInputSchema,
-  type FeedbackRecord,
   type VersionRecord,
-} from "@z0/backend";
+} from "@z0/backend/modules/versions";
 import { z } from "zod";
 
 export type FeedbackStatus = FeedbackRecord["status"];

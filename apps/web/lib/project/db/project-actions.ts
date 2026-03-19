@@ -5,7 +5,7 @@ import {
   updateProjectFilesInputSchema,
   updateProjectMetadataInputSchema,
   type ProjectRecord,
-} from "@z0/backend";
+} from "@z0/backend/modules/projects";
 import { z } from "zod";
 import { apiFetch } from "@/lib/api";
 import { requireAuth } from "@/lib/session";

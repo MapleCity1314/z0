@@ -2,7 +2,7 @@ import {
   createToolBridgeErrorResponse,
   type ToolBridgeErrorResponse,
   type ToolBridgeRequestPayload,
-} from "@z0/backend";
+} from "@z0/backend/agent/tool-bridge";
 
 export async function authorizeToolBridgeTargets(params: {
   actorUserId: string;

@@ -3,7 +3,7 @@
 import {
   warmPooledMcpServers,
   type AgentMcpServerMetadata,
-} from "@z0/backend";
+} from "@z0/backend/agent/mcp";
 import type {
   AddMcpServerRequest,
   AddSkillRequest,

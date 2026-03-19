@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getAgentCapabilityBoundarySnapshot } from "@z0/backend";
+import { getAgentCapabilityBoundarySnapshot } from "@z0/backend/agent/plugin-boundary";
 import { toSystemPluginMarketItems } from "./plugin-market";
 
 describe("toSystemPluginMarketItems", () => {

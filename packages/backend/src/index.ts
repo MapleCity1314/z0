@@ -25,6 +25,7 @@ export * from "./agent/model";
 export * from "./agent/title";
 export * from "./agent/persistence";
 export * from "./agent/message-parts";
+export * from "./agent/chat-errors";
 export * from "./agent/remote-tools";
 export * from "./agent/tool-bridge";
 export * from "./agent/tool-catalog";

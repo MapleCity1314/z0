@@ -1,8 +1,8 @@
 import {
-  mapAgentChatError,
   parseChatRequestBody,
   validateChatRequest,
-} from "@z0/backend";
+} from "@z0/backend/agent/request";
+import { mapAgentChatError } from "@z0/backend/agent/chat-errors";
 import { type NextRequest, NextResponse } from "next/server";
 import { getChatById } from "@/components/chat/actions";
 import {

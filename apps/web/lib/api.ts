@@ -54,7 +54,7 @@ async function getInternalHeaders(options?: ApiFetchOptions) {
     return {};
   }
 
-  const { createInternalAuthHeaders } = await import("@z0/backend");
+  const { createInternalAuthHeaders } = await import("@z0/backend/auth");
   return createInternalAuthHeaders({
     actor: {
       userId: options.actor.userId,

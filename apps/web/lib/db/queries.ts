@@ -1,3 +1,4 @@
+import "../server-env";
 import { eq } from "drizzle-orm";
 import { getDb, user, type User } from "@z0/db";
 export {
@@ -15,7 +16,7 @@ export {
   saveToolCalls,
   updateArtifactCode,
   updateChatProjectId,
-} from "@z0/backend";
+} from "@z0/backend/agent/persistence";
 
 const db = getDb();
 

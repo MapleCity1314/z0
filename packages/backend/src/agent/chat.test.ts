@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createAgentChatResponse,
-  mapAgentChatError,
   type AgentChatDependencies,
 } from "./chat";
+import { mapAgentChatError } from "./chat-errors";
 import type { ChatRequestPayload } from "./request";
 
 vi.mock("ai", () => ({

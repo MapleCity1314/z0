@@ -7,8 +7,8 @@ import {
   getToolBridgeErrorStatus,
   normalizeToolBridgeExecutionError,
   parseToolBridgeRequestBody,
-  verifyInternalAuthHeaders,
-} from "@z0/backend";
+} from "@z0/backend/agent/tool-bridge";
+import { verifyInternalAuthHeaders } from "@z0/backend/auth";
 import { buildAgentTools } from "@/lib/agent/chat/tools";
 import {
   authorizeToolBridgeTargets,

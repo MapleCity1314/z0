@@ -20,10 +20,13 @@ const withTimeout = vi.hoisted(() =>
   vi.fn(async (promise: Promise<unknown>) => promise),
 );
 
-vi.mock("@z0/backend", () => ({
-  createInternalAuthHeaders,
+vi.mock("@z0/backend/agent/request", () => ({
   extractLatestUserQuery,
   withTimeout,
+}));
+
+vi.mock("@z0/backend/auth", () => ({
+  createInternalAuthHeaders,
 }));
 
 describe("agent chat transport helpers", () => {
@@ -62,7 +65,13 @@ describe("agent chat transport helpers", () => {
       cookieHeader: "session=abc",
       processMessages: vi.fn(async () => processedMessages as never),
       getChatById: vi.fn(async () => ({ success: true, data: { id: "chat-1" } })),
-      getRelevantMemories: vi.fn(async () => [{ id: "memory-1" }]),
+      getRelevantMemories: vi.fn(async () => [
+        {
+          id: "memory-1",
+          memory: "stored memory",
+          createdAt: new Date("2026-03-19T00:00:00.000Z"),
+        },
+      ]),
       formatMemoriesForContext: vi.fn(() => "memory context"),
     });
 

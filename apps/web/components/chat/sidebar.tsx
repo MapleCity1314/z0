@@ -9,9 +9,7 @@ import {
   Plus,
   LogIn,
   Trash2,
-  FolderKanban,
   History,
-  Sparkles,
   SlidersHorizontal,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -82,27 +80,15 @@ export const Sidebar = ({
             App
           </div>
           <SidebarItem
-            icon={FolderKanban}
-            label="Projects"
-            href="/project"
+            icon={SlidersHorizontal}
+            label="Customize"
+            href="/settings"
             onClick={isMobile ? onClose : undefined}
           />
           <SidebarItem
             icon={History}
             label="All History"
             href="/recent"
-            onClick={isMobile ? onClose : undefined}
-          />
-          <SidebarItem
-            icon={Sparkles}
-            label="Versions"
-            href="/versions"
-            onClick={isMobile ? onClose : undefined}
-          />
-          <SidebarItem
-            icon={SlidersHorizontal}
-            label="Settings"
-            href="/settings"
             onClick={isMobile ? onClose : undefined}
           />
         </div>

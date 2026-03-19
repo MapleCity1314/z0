@@ -67,7 +67,6 @@ export function Terminal() {
             "[&::-webkit-scrollbar-track]:bg-transparent",
             "[&::-webkit-scrollbar-thumb]:bg-zinc-800 [&::-webkit-scrollbar-thumb]:rounded-full"
           )}
-          style={{ fontFamily: "'Fira Code', monospace" }}
         >
           {results.length === 0 ? (
             <div className="text-zinc-600 select-none">

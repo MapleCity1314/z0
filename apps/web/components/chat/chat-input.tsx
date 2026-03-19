@@ -32,6 +32,7 @@ import {
   addChatMcpServerAction,
   addChatSkillAction,
   getChatIntegrationsAction,
+  getUserIntegrationSettingsAction,
   getSystemIntegrationMarketAction,
   setChatMcpServerStateAction,
   setChatSkillStateAction,
@@ -337,6 +338,7 @@ export function ChatInput({
   const [mcpDialogOpen, setMcpDialogOpen] = useState(false);
   const [skillsDialogOpen, setSkillsDialogOpen] = useState(false);
   const [pluginsDialogOpen, setPluginsDialogOpen] = useState(false);
+  const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const [integrationsLoading, setIntegrationsLoading] = useState(false);
 
   const [mcpServers, setMcpServers] = useState<ConversationMcpServer[]>([]);
@@ -380,36 +382,38 @@ export function ChatInput({
     }
 
     setIntegrationsLoading(true);
-    const [chatResult, marketResult] = await Promise.all([
-      getChatIntegrationsAction(chatId),
+    const [integrationsResult, marketResult] = await Promise.all([
+      showWelcome
+        ? getUserIntegrationSettingsAction()
+        : getChatIntegrationsAction(chatId),
       getSystemIntegrationMarketAction(),
     ]);
     setIntegrationsLoading(false);
 
-    if (!chatResult.success || !chatResult.data) {
-      showActionError(chatResult.message);
+    if (!integrationsResult.success || !integrationsResult.data) {
+      showActionError(integrationsResult.message);
       return;
     }
 
     setMcpServers(
-      chatResult.data.mcpServers.map((item) => ({
+      integrationsResult.data.mcpServers.map((item) => ({
         userMcpServerId: item.userMcpServerId,
         systemServerId: item.systemServerId,
         name: item.systemServerName,
         endpoint: item.endpoint,
         sourceType: item.sourceType,
-        useInCurrentChat: item.enabledInChat,
+        useInCurrentChat: showWelcome ? item.useByDefault : item.enabledInChat,
         useByDefault: item.useByDefault,
       })),
     );
     setSkills(
-      chatResult.data.skills.map((item) => ({
+      integrationsResult.data.skills.map((item) => ({
         userSkillId: item.userSkillId,
         systemSkillId: item.systemSkillId,
         name: item.systemSkillName,
         directory: item.directory,
         sourceType: item.sourceType,
-        useInCurrentChat: item.enabledInChat,
+        useInCurrentChat: showWelcome ? item.useByDefault : item.enabledInChat,
         useByDefault: item.useByDefault,
       })),
     );
@@ -446,7 +450,7 @@ export function ChatInput({
     setSkillName("");
     setSkillDirectory("");
     void refreshChatIntegrations();
-  }, [chatId, user]);
+  }, [chatId, user, showWelcome]);
 
   const enabledMcpCount = useMemo(
     () => mcpServers.filter((server) => server.useInCurrentChat).length,
@@ -483,6 +487,11 @@ export function ChatInput({
 
   const toggleRowClassName =
     "flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800";
+
+  const handleModelSelect = (model: SelectableModelName) => {
+    onModelChange(model);
+    setModelSelectorOpen(false);
+  };
 
   useEffect(() => {
     if (!user) {
@@ -752,7 +761,10 @@ export function ChatInput({
                   </PromptInputActionMenuContent>
                 </PromptInputActionMenu>
 
-                <ModelSelector>
+                <ModelSelector
+                  open={modelSelectorOpen}
+                  onOpenChange={setModelSelectorOpen}
+                >
                   <ModelSelectorTrigger asChild>
                     <PromptInputButton
                       className={cn(
@@ -783,7 +795,7 @@ export function ChatInput({
                           <ModelSelectorItem
                             key={model.id}
                             value={model.id}
-                            onSelect={() => onModelChange(model.id)}
+                            onSelect={() => handleModelSelect(model.id)}
                             className={cn(
                               selectedModel === model.id && "bg-accent",
                             )}

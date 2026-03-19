@@ -361,12 +361,19 @@ export const MessageResponse = memo(
     };
 
     return (
-      <Streamdown
+        <Streamdown
         className={cn(
-          "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+          "size-full font-serif leading-7 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
           // Constrain code blocks width (max-w-2xl = 672px, slightly narrower than input)
           "[&>pre]:max-w-2xl [&>pre]:mx-auto [&>pre]:w-full",
           "[&>div:has(>pre)]:max-w-2xl [&>div:has(>pre)]:mx-auto [&>div:has(>pre)]:w-full",
+          "[&_h1]:font-sans [&_h1]:text-3xl [&_h1]:font-semibold",
+          "[&_h2]:font-sans [&_h2]:text-2xl [&_h2]:font-semibold",
+          "[&_h3]:font-sans [&_h3]:text-xl [&_h3]:font-semibold",
+          "[&_h4]:font-sans [&_h4]:text-lg [&_h4]:font-semibold",
+          "[&_h5]:font-sans [&_h5]:text-base [&_h5]:font-semibold",
+          "[&_h6]:font-sans [&_h6]:text-sm [&_h6]:font-semibold",
+          "[&_code]:font-mono [&_pre]:font-mono",
           className
         )}
         controls={{ code: true, table: true }}

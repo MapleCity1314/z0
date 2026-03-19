@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Sidebar } from "@/components/chat/sidebar";
+import { ContentSurface } from "@/components/chat/content-surface";
 import { SidebarToggle } from "@/components/chat/sidebar-toggle";
 import { HeaderActions } from "@/components/chat/header-actions";
 import { DataStreamProvider } from "@/components/provider/data-stream-provider";
@@ -93,33 +94,23 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <HeaderActions />
 
             {/* Main content area with chat and panels side by side */}
-            <div className="flex-1 flex overflow-hidden pt-14 gap-3 p-3">
+            <div className="relative flex flex-1 overflow-hidden gap-3 p-3 pt-14">
               {/* Chat area with custom scrollbar */}
               <div
                 className={cn(
-                  "flex-1 overflow-auto h-full transition-all duration-300 rounded-xl",
-                  "[&::-webkit-scrollbar]:w-1.5",
-                  "[&::-webkit-scrollbar-track]:bg-transparent",
-                  
-                  // Light scrollbar
-                  "[&::-webkit-scrollbar-thumb]:bg-zinc-300/60 [&::-webkit-scrollbar-thumb]:rounded-full",
-                  "[&::-webkit-scrollbar-thumb]:hover:bg-zinc-400/80",
-                  
-                  // Dark scrollbar
-                  "dark:[&::-webkit-scrollbar-thumb]:bg-zinc-800/60",
-                  "dark:[&::-webkit-scrollbar-thumb]:hover:bg-zinc-700/80",
-                  
-                  "[&::-webkit-scrollbar-thumb]:transition-colors",
+                  "relative z-10 flex-1 h-full transition-all duration-300",
                   isPanelOpen && !isMobile && "flex-[0.45]"
                 )}
               >
-                {children}
+                <ContentSurface>
+                  {children}
+                </ContentSurface>
               </div>
 
               {/* Panels - side by side on desktop, overlay on mobile */}
               {!isMobile && isPanelOpen && (
                 <div className={cn(
-                  "flex-[0.55] h-full rounded-xl backdrop-blur-sm shadow-2xl overflow-hidden border",
+                  "relative z-10 flex-[0.55] h-full rounded-xl backdrop-blur-sm shadow-2xl overflow-hidden border",
                   "bg-white/50 border-zinc-200", // Light
                   "dark:bg-zinc-950/50 dark:border-zinc-800/50" // Dark
                 )}>

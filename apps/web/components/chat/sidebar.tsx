@@ -82,7 +82,7 @@ export const Sidebar = ({
           <SidebarItem
             icon={SlidersHorizontal}
             label="Customize"
-            href="/settings"
+            href="/customize"
             onClick={isMobile ? onClose : undefined}
           />
           <SidebarItem

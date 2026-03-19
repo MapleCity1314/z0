@@ -110,6 +110,15 @@ export const pageMetadata = {
     },
   }),
 
+  customize: (): Metadata => ({
+    title: "Customize",
+    description: "Manage your z0 Agent skills, connectors, plugins, and subagent roles.",
+    openGraph: {
+      title: `Customize | ${appName}`,
+      description: "Manage your z0 Agent skills, connectors, plugins, and subagent roles.",
+    },
+  }),
+
   feedback: (): Metadata => ({
     title: "Feedback",
     description: "Share your feedback and help us improve z0 Agent.",

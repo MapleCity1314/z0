@@ -9,10 +9,11 @@ import {
   MessageContent,
 } from "@/components/ai-elements/message";
 import { renderMessagePart } from "@/components/chat/message-part-renderers";
+import { ThinkingVoid } from "@/components/chat/thinking-void";
 import { getMessageCopyText } from "@/lib/agent/chat/message-part-rendering";
 import { cn } from "@/lib/utils";
 import type { UIMessage } from "ai";
-import { CheckIcon, CopyIcon, Loader2Icon, RefreshCwIcon } from "lucide-react";
+import { CheckIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
 import { Fragment, useState, type ComponentProps, type ReactNode } from "react";
 
 export type MessageListProps = ComponentProps<"div"> & {
@@ -30,10 +31,7 @@ function AssistantLoadingIndicator({
   return (
     <Message from="assistant">
       <MessageContent>
-        <div className="flex items-center gap-2 py-1 text-sm text-zinc-500 dark:text-zinc-400">
-          <Loader2Icon className="size-4 animate-spin" />
-          <span>{optimistic ? "Thinking..." : "Generating response..."}</span>
-        </div>
+        <ThinkingVoid label={optimistic ? "Thinking" : "Synthesizing"} />
       </MessageContent>
     </Message>
   );

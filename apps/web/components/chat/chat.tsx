@@ -29,6 +29,7 @@ import {
 } from "@/lib/agent/chat/client-state";
 import { selectableModels, type SelectableModelName } from "@/lib/agent/model";
 import { useProjectStore } from "@/store/project";
+import { useUserStore } from "@/store/user";
 
 interface ChatProps {
   id: string;
@@ -61,6 +62,7 @@ export default function Chat({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { resolvedTheme } = useTheme();
+  const currentUserId = useUserStore((state) => state.user?.id ?? null);
   const setStoreProjectId = useProjectStore((s) => s.setProjectId);
   const setGenerating = useProjectStore((s) => s.setGenerating);
   const triggerFileUpdate = useProjectStore((s) => s.triggerFileUpdate);
@@ -294,6 +296,11 @@ export default function Chat({
     text: string;
     files: FileUIPart[];
   }) => {
+    if (isNewChat && !currentUserId) {
+      toast.error("Authentication required");
+      return;
+    }
+
     const uiMessage = buildOutgoingUserMessage(message);
 
     if (showWelcome) {

@@ -1,20 +1,23 @@
 "use client";
 
 import { nanoid } from "nanoid";
-import { useRef } from "react";
+import { useEffect, useState } from "react";
 import Chat from "@/components/chat/chat";
+import { useUserStore } from "@/store/user";
 
 export function ChatPage() {
-  const chatIdRef = useRef<string | null>(null);
+  const userId = useUserStore((state) => state.user?.id ?? null);
+  const [chatId, setChatId] = useState(() => nanoid());
 
-  if (!chatIdRef.current) {
-    chatIdRef.current = nanoid();
-  }
+  useEffect(() => {
+    setChatId(nanoid());
+  }, [userId]);
 
   return (
     <Chat
+      key={chatId}
       autoResume={false}
-      id={chatIdRef.current}
+      id={chatId}
       initialMessages={[]}
       isNewChat
     />

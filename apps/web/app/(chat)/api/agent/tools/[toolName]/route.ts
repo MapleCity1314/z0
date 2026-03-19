@@ -35,7 +35,7 @@ export async function POST(
   }
 
   const { toolName } = await context.params;
-  let body;
+  let body: ReturnType<typeof parseToolBridgeRequestBody>;
 
   try {
     body = parseToolBridgeRequestBody(await request.json());

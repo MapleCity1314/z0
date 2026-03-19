@@ -115,7 +115,6 @@ export function Logo({ size = 32, className, animated = false, glitch = false, .
             xChannelSelector="R" 
             yChannelSelector="G"
             animate={controls}
-            // @ts-ignore - Framer motion handles custom attributes via 'animate' control but TS complains about specific SVG attr mapping
             transition={{ type: "tween" }} 
           />
         </filter>

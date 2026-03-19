@@ -3,7 +3,6 @@
  * Web search, URL extraction, crawling, and site mapping
  */
 
-// biome-ignore assist/source/organizeImports: <explanation>
 import {
   tavilySearch,
   tavilyExtract,

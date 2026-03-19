@@ -191,12 +191,10 @@ export const ArtifactContent = ({
       <div className={cn("flex-1 overflow-auto", className)} {...props}>
         <div
           className="dark:hidden [&>pre]:m-0 [&>pre]:bg-transparent [&>pre]:p-4 [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: "needed for syntax highlighting"
           dangerouslySetInnerHTML={{ __html: html }}
         />
         <div
           className="hidden dark:block [&>pre]:m-0 [&>pre]:bg-transparent [&>pre]:p-4 [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: "needed for syntax highlighting"
           dangerouslySetInnerHTML={{ __html: darkHtml }}
         />
       </div>

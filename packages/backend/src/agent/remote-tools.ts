@@ -6,6 +6,8 @@ import {
   createToolBridgeErrorResponse,
   parseToolBridgeResponse,
   type ToolBridgeErrorCode,
+  type ToolBridgeErrorResponse,
+  type ToolBridgeSuccessResponse,
 } from "./tool-bridge";
 
 const passthroughInputSchema = z.object({}).passthrough();
@@ -94,7 +96,7 @@ export function createRemoteAgentTools(params: {
           }),
         );
 
-        let payload;
+        let payload: ToolBridgeSuccessResponse | ToolBridgeErrorResponse;
 
         try {
           payload = parseToolBridgeResponse(rawPayload);

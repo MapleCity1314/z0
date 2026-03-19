@@ -16,7 +16,7 @@ export async function parsePDF(buffer: Buffer): Promise<string> {
   try {
     // Dynamically import to avoid errors if not installed
     const pdfParse = await import('pdf-parse');
-    // @ts-ignore - pdf-parse has inconsistent type definitions
+    // @ts-expect-error - pdf-parse has inconsistent type definitions
     const pdf = typeof pdfParse === 'function' ? pdfParse : pdfParse.default;
     const data = await pdf(buffer);
     return data.text;

@@ -30,7 +30,7 @@ export type ToolBridgeRequestPayload = z.infer<
 
 export const toolBridgeSuccessResponseSchema = z.object({
   data: z.unknown(),
-}).refine((value) => Object.prototype.hasOwnProperty.call(value, "data"));
+}).refine((value) => Object.hasOwn(value, "data"));
 
 export type ToolBridgeSuccessResponse = z.infer<
   typeof toolBridgeSuccessResponseSchema
@@ -44,7 +44,7 @@ export const toolBridgeErrorResponseSchema = z.object({
     retryable: z.boolean().optional(),
     toolName: z.string().min(1).optional(),
   }),
-}).refine((value) => Object.prototype.hasOwnProperty.call(value, "error"));
+}).refine((value) => Object.hasOwn(value, "error"));
 
 export type ToolBridgeErrorResponse = z.infer<
   typeof toolBridgeErrorResponseSchema

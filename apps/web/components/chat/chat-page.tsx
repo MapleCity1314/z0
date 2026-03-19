@@ -1,23 +1,19 @@
 "use client";
 
 import { nanoid } from "nanoid";
-import { useEffect, useState } from "react";
+import { useRef } from "react";
 import Chat from "@/components/chat/chat";
-import { useUserStore } from "@/store/user";
 
 export function ChatPage() {
-  const userId = useUserStore((state) => state.user?.id ?? null);
-  const [chatId, setChatId] = useState(() => nanoid());
-
-  useEffect(() => {
-    setChatId(nanoid());
-  }, [userId]);
+  // Keep the draft chat id stable for the whole lifetime of the welcome page.
+  // Replacing it during user-store hydration can break the first send flow.
+  const chatIdRef = useRef<string>(nanoid());
 
   return (
     <Chat
-      key={chatId}
+      key={chatIdRef.current}
       autoResume={false}
-      id={chatId}
+      id={chatIdRef.current}
       initialMessages={[]}
       isNewChat
     />

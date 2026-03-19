@@ -6,6 +6,7 @@ describe("buildChatSystemPrompt", () => {
     const prompt = buildChatSystemPrompt({
       webSearchEnabled: false,
       projectId: null,
+      isReasoning: false,
     });
 
     expect(prompt).toContain("<tool_group name=\"Artifacts\">");
@@ -19,6 +20,7 @@ describe("buildChatSystemPrompt", () => {
     const prompt = buildChatSystemPrompt({
       webSearchEnabled: true,
       projectId: "project-1",
+      isReasoning: true,
       memoryContext: "[User Memory Context]\nPrefers TypeScript",
       skills: [
         {
@@ -38,5 +40,7 @@ describe("buildChatSystemPrompt", () => {
     expect(prompt).toContain("refactor-diff");
     expect(prompt).toContain("<memory_context>");
     expect(prompt).toContain("Prefers TypeScript");
+    expect(prompt).toContain("<reasoning_output_format>");
+    expect(prompt).toContain("## Phase Title");
   });
 });

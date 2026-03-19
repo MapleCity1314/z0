@@ -75,6 +75,7 @@ function renderToolSelectionPolicy(entries: AgentToolCatalogEntry[]) {
 export function buildChatSystemPrompt(params: {
   webSearchEnabled: boolean;
   projectId: string | null;
+  isReasoning: boolean;
   memoryContext?: string;
   skills?: AgentSkillMetadata[];
   mcpTools?: AgentMcpToolMetadata[];
@@ -86,6 +87,17 @@ export function buildChatSystemPrompt(params: {
 
   const memoryBlock = params.memoryContext?.trim()
     ? `\n<memory_context>\n${params.memoryContext.trim()}\n</memory_context>`
+    : "";
+  const reasoningFormatBlock = params.isReasoning
+    ? `
+<reasoning_output_format>
+When reasoning mode is enabled, structure your thinking in explicit phases.
+- Start every new reasoning phase with a Markdown H2 heading in the form: ## Phase Title
+- Keep each phase title short and stable so the UI can surface it live.
+- Put the working notes for that phase directly under its heading.
+- If you use web research tools, create a dedicated phase before or during the search, and continue with a new phase if the search changes your plan.
+- Do not use another heading level instead of ## for reasoning phase titles.
+</reasoning_output_format>`
     : "";
   const mcpBlock =
     params.mcpTools && params.mcpTools.length > 0
@@ -127,5 +139,5 @@ ${renderToolSelectionPolicy(enabledTools)}
 
 <tooling>
 ${renderToolSection(enabledTools)}
-</tooling>${mcpBlock}${buildSkillsPrompt(params.skills ?? [])}${memoryBlock}`;
+</tooling>${reasoningFormatBlock}${mcpBlock}${buildSkillsPrompt(params.skills ?? [])}${memoryBlock}`;
 }

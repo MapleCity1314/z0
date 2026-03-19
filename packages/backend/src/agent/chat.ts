@@ -159,7 +159,7 @@ export async function createAgentChatResponse(params: {
     payload.isReasoning,
   );
 
-  let result;
+  let result: ReturnType<typeof streamText>;
   try {
     result = streamText({
       model: dependencies.getModel(payload.model, {
@@ -168,6 +168,7 @@ export async function createAgentChatResponse(params: {
       system: buildChatSystemPrompt({
         webSearchEnabled: payload.webSearchEnabled,
         projectId: payload.projectId,
+        isReasoning: payload.isReasoning,
         memoryContext,
         skills: availableSkills,
         mcpTools: builtTools.mcpTools,

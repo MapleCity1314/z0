@@ -8,8 +8,10 @@ import {
   MessageAttachments,
   MessageContent,
 } from "@/components/ai-elements/message";
+import { AssistantReasoning } from "@/components/chat/assistant-reasoning";
 import { renderMessagePart } from "@/components/chat/message-part-renderers";
 import { ThinkingVoid } from "@/components/chat/thinking-void";
+import { getCurrentReasoningStage } from "@/lib/agent/chat/reasoning-stages";
 import { getMessageCopyText } from "@/lib/agent/chat/message-part-rendering";
 import { cn } from "@/lib/utils";
 import type { UIMessage } from "ai";
@@ -24,14 +26,18 @@ export type MessageListProps = ComponentProps<"div"> & {
 };
 
 function AssistantLoadingIndicator({
+  label,
   optimistic = false,
 }: {
+  label?: string;
   optimistic?: boolean;
 }) {
   return (
     <Message from="assistant">
       <MessageContent>
-        <ThinkingVoid label={optimistic ? "Thinking" : "Synthesizing"} />
+        <ThinkingVoid
+          label={label || (optimistic ? "Thinking" : "Synthesizing")}
+        />
       </MessageContent>
     </Message>
   );
@@ -135,7 +141,10 @@ function renderMessage(
   return (
     <Message key={index} from={role}>
       <MessageContent>
-        {parts.map((part, partIndex) => renderMessagePart(part, partIndex))}
+        <AssistantReasoning parts={parts} isStreaming={isStreaming} />
+        {parts
+          .filter((part) => part.type !== "reasoning")
+          .map((part, partIndex) => renderMessagePart(part, partIndex))}
       </MessageContent>
       <MessageActionButtons
         message={message}
@@ -175,11 +184,17 @@ export function MessageList({
           showAssistantLoading &&
           hasAssistantForCurrentTurn &&
           index === lastAssistantIndex;
+        const currentReasoningStage =
+          message.role === "assistant"
+            ? getCurrentReasoningStage(message.parts)
+            : null;
 
         return (
           <Fragment key={message.id || index}>
             {renderMessage(message, index, messageIsStreaming, onRetry)}
-            {showLoadingAfterThisMessage ? <AssistantLoadingIndicator /> : null}
+            {showLoadingAfterThisMessage ? (
+              <AssistantLoadingIndicator label={currentReasoningStage?.title} />
+            ) : null}
           </Fragment>
         );
       })}

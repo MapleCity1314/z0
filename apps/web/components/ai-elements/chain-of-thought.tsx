@@ -112,7 +112,7 @@ export type ChainOfThoughtStepProps = ComponentProps<"div"> & {
   icon?: LucideIcon;
   label: ReactNode;
   description?: ReactNode;
-  status?: "complete" | "active" | "pending";
+  status?: "complete" | "active" | "pending" | "error";
 };
 
 export const ChainOfThoughtStep = memo(
@@ -129,6 +129,7 @@ export const ChainOfThoughtStep = memo(
       complete: "text-muted-foreground",
       active: "text-foreground",
       pending: "text-muted-foreground/50",
+      error: "text-red-500",
     };
 
     return (

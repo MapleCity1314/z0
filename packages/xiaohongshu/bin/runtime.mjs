@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { delimiter, resolve } from "node:path";
+import { readArtifactManifest, resolveNativeBinary } from "./native-runtime.mjs";
 
 function ensureAbsolutePath(basePath, inputPath) {
   if (!inputPath) {
@@ -28,7 +29,7 @@ export function resolveXiaohongshuCommand(packageRoot, env = process.env) {
     return { command: explicitBin, args: [], cwd: packageRoot };
   }
 
-  const sourceRoot = ensureAbsolutePath(packageRoot, env.Z0_XIAOHONGSHU_SOURCE_ROOT ?? "../xiaohongshu-cli");
+  const sourceRoot = ensureAbsolutePath(packageRoot, env.Z0_XIAOHONGSHU_SOURCE_ROOT ?? "./legacy");
 
   if (sourceRoot && existsSync(sourceRoot) && commandExists("uv")) {
     return {
@@ -47,7 +48,7 @@ export function resolveXiaohongshuCommand(packageRoot, env = process.env) {
   }
 
   throw new Error(
-    "Xiaohongshu CLI bridge was not found. Set `Z0_XIAOHONGSHU_BIN` or make `packages/xiaohongshu-cli` available.",
+    "Xiaohongshu CLI bridge was not found. Set `Z0_XIAOHONGSHU_BIN` or provide a vendored legacy root via `Z0_XIAOHONGSHU_SOURCE_ROOT`.",
   );
 }
 
@@ -90,16 +91,27 @@ export function executeXiaohongshuCommand(packageRoot, cliArgs, env = process.en
 export function selfCheckXiaohongshuRuntime(packageRoot, env = process.env) {
   const sourceRoot = ensureAbsolutePath(
     packageRoot,
-    env.Z0_XIAOHONGSHU_SOURCE_ROOT ?? "../xiaohongshu-cli",
+    env.Z0_XIAOHONGSHU_SOURCE_ROOT ?? "./legacy",
   );
   const explicitBin = ensureAbsolutePath(process.cwd(), env.Z0_XIAOHONGSHU_BIN);
+  const nativeOverride = ensureAbsolutePath(process.cwd(), env.Z0_XIAOHONGSHU_CLI_BIN);
   const uvAvailable = commandExists("uv");
+  const artifactManifest = readArtifactManifest(packageRoot);
+  let nativeBinary = null;
+
+  try {
+    nativeBinary = resolveNativeBinary(packageRoot, env);
+  } catch {}
 
   try {
     const resolved = resolveXiaohongshuCommand(packageRoot, env);
     return {
       ok: true,
       resolution: resolved,
+      nativeBinary,
+      nativeBinaryPresent: Boolean(nativeBinary),
+      nativeBinaryOverridePresent: Boolean(nativeOverride && existsSync(nativeOverride)),
+      packagedArtifacts: artifactManifest.artifacts,
       explicitBinPresent: Boolean(explicitBin && existsSync(explicitBin)),
       legacyRootPresent: Boolean(sourceRoot && existsSync(sourceRoot)),
       uvAvailable,
@@ -108,6 +120,10 @@ export function selfCheckXiaohongshuRuntime(packageRoot, env = process.env) {
     return {
       ok: false,
       error: error instanceof Error ? error.message : String(error),
+      nativeBinary,
+      nativeBinaryPresent: Boolean(nativeBinary),
+      nativeBinaryOverridePresent: Boolean(nativeOverride && existsSync(nativeOverride)),
+      packagedArtifacts: artifactManifest.artifacts,
       explicitBinPresent: Boolean(explicitBin && existsSync(explicitBin)),
       legacyRootPresent: Boolean(sourceRoot && existsSync(sourceRoot)),
       uvAvailable,

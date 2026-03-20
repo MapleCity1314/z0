@@ -30,6 +30,18 @@ function readMessages(chunks) {
   return messages;
 }
 
+async function waitForMessages(chunks, count) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < 5000) {
+    if (readMessages(chunks).length >= count) {
+      return;
+    }
+
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 25));
+  }
+}
+
 test("bilibili MCP lists tools and returns a structured self-check result", async () => {
   const child = spawn(process.execPath, [resolve(process.cwd(), "bin/z0-bilibili-mcp.mjs")], {
     cwd: process.cwd(),
@@ -54,7 +66,7 @@ test("bilibili MCP lists tools and returns a structured self-check result", asyn
     }),
   );
 
-  await new Promise((resolvePromise) => setTimeout(resolvePromise, 150));
+  await waitForMessages(stdoutChunks, 3);
   child.kill();
   await new Promise((resolvePromise) => child.on("exit", resolvePromise));
 

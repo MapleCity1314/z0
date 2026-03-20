@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
+import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveNativeBinary } from "./native-runtime.mjs";
 import {
   executeXiaohongshuCommand,
   selfCheckXiaohongshuRuntime,
@@ -235,6 +237,35 @@ function executeTool(toolName, input) {
   }
 
   const args = tool.mapArgs ? tool.mapArgs(input ?? {}) : tool.args;
+  const nativeBinary = resolveNativeBinary(packageRoot);
+
+  if (nativeBinary) {
+    const nativeArgs = tool.runtimeSelfCheck ? ["runtime", "self-check"] : args;
+    const result = spawnSync(nativeBinary, nativeArgs, {
+      cwd: packageRoot,
+      encoding: "utf8",
+      env: process.env,
+    });
+
+    if (result.status !== 0) {
+      return {
+        error: true,
+        message: (result.stderr || result.stdout || "").trim() || "Xiaohongshu native CLI execution failed",
+        status: result.status ?? 1,
+      };
+    }
+
+    try {
+      return JSON.parse(result.stdout);
+    } catch (error) {
+      return {
+        error: true,
+        message: error instanceof Error ? error.message : String(error),
+        status: 1,
+      };
+    }
+  }
+
   if (tool.runtimeSelfCheck) {
     return selfCheckXiaohongshuRuntime(packageRoot, process.env);
   }

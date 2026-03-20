@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { delimiter, resolve } from "node:path";
+import { readArtifactManifest, resolveNativeBinary } from "./native-runtime.mjs";
 
 function ensureAbsolutePath(basePath, inputPath) {
   if (!inputPath) {
@@ -28,7 +29,7 @@ export function resolveBilibiliCommand(packageRoot, env = process.env) {
     return { command: explicitBin, args: [], cwd: packageRoot };
   }
 
-  const sourceRoot = ensureAbsolutePath(packageRoot, env.Z0_BILIBILI_SOURCE_ROOT ?? "../bilibili-cli");
+  const sourceRoot = ensureAbsolutePath(packageRoot, env.Z0_BILIBILI_SOURCE_ROOT ?? "./legacy");
 
   if (sourceRoot && existsSync(sourceRoot) && commandExists("uv")) {
     return {
@@ -47,7 +48,7 @@ export function resolveBilibiliCommand(packageRoot, env = process.env) {
   }
 
   throw new Error(
-    "Bilibili CLI bridge was not found. Set `Z0_BILIBILI_BIN` or make `packages/bilibili-cli` available.",
+    "Bilibili CLI bridge was not found. Set `Z0_BILIBILI_BIN` or provide a vendored legacy root via `Z0_BILIBILI_SOURCE_ROOT`.",
   );
 }
 
@@ -88,15 +89,26 @@ export function executeBilibiliCommand(packageRoot, cliArgs, env = process.env) 
 }
 
 export function selfCheckBilibiliRuntime(packageRoot, env = process.env) {
-  const sourceRoot = ensureAbsolutePath(packageRoot, env.Z0_BILIBILI_SOURCE_ROOT ?? "../bilibili-cli");
+  const sourceRoot = ensureAbsolutePath(packageRoot, env.Z0_BILIBILI_SOURCE_ROOT ?? "./legacy");
   const explicitBin = ensureAbsolutePath(process.cwd(), env.Z0_BILIBILI_BIN);
+  const nativeOverride = ensureAbsolutePath(process.cwd(), env.Z0_BILIBILI_CLI_BIN);
   const uvAvailable = commandExists("uv");
+  const artifactManifest = readArtifactManifest(packageRoot);
+  let nativeBinary = null;
+
+  try {
+    nativeBinary = resolveNativeBinary(packageRoot, env);
+  } catch {}
 
   try {
     const resolved = resolveBilibiliCommand(packageRoot, env);
     return {
       ok: true,
       resolution: resolved,
+      nativeBinary,
+      nativeBinaryPresent: Boolean(nativeBinary),
+      nativeBinaryOverridePresent: Boolean(nativeOverride && existsSync(nativeOverride)),
+      packagedArtifacts: artifactManifest.artifacts,
       explicitBinPresent: Boolean(explicitBin && existsSync(explicitBin)),
       legacyRootPresent: Boolean(sourceRoot && existsSync(sourceRoot)),
       uvAvailable,
@@ -105,6 +117,10 @@ export function selfCheckBilibiliRuntime(packageRoot, env = process.env) {
     return {
       ok: false,
       error: error instanceof Error ? error.message : String(error),
+      nativeBinary,
+      nativeBinaryPresent: Boolean(nativeBinary),
+      nativeBinaryOverridePresent: Boolean(nativeOverride && existsSync(nativeOverride)),
+      packagedArtifacts: artifactManifest.artifacts,
       explicitBinPresent: Boolean(explicitBin && existsSync(explicitBin)),
       legacyRootPresent: Boolean(sourceRoot && existsSync(sourceRoot)),
       uvAvailable,

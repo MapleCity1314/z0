@@ -22,21 +22,21 @@
   ],
   "scripts": {
     "build": "pnpm run build:ts && pnpm run build:native",
-    "build:ts": "tsc -p tsconfig.build.json",
+    "build:ts": "pnpm exec tsc -p tsconfig.build.json",
     "build:native": "node ./scripts/build-native.mjs",
     "build:native:target": "node ./scripts/build-native.mjs --target",
     "release:matrix": "node ./scripts/release-matrix.mjs",
     "lint": "biome lint .",
     "format": "biome format --write src test bin scripts",
-    "check-types": "tsc --noEmit",
+    "check-types": "pnpm exec tsc --noEmit",
     "prepack": "pnpm run build",
     "release:pack": "node ./scripts/release-package.mjs",
     "test:node": "node --test ./test/*.test.mjs",
     "test": "cargo test --manifest-path ./native/Cargo.toml && pnpm run test:node"
   },
   "devDependencies": {
-    "@biomejs/biome": "catalog:",
-    "@types/node": "catalog:",
-    "typescript": "catalog:"
+    "@biomejs/biome": "2.2.0",
+    "@types/node": "^24.5.2",
+    "typescript": "5.9.2"
   }
 }

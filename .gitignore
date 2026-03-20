@@ -27,9 +27,16 @@ coverage
 out/
 build
 dist
+target
+artifacts
 coverage
 *.tsbuildinfo
 pnpm-debug.log*
+
+# Native package build artifacts
+packages/*/native/target/
+packages/*/artifacts/
+packages/*/dist/
 
 
 # Debug

@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { chmodSync, mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { readArtifactManifest, stageNativeBinary } from "../bin/native-runtime.mjs";
 import { executeTwitterCommand, resolveTwitterCommand } from "../bin/runtime.mjs";
 import { selfCheckTwitterRuntime } from "../bin/runtime.mjs";
 
@@ -60,4 +61,23 @@ test("selfCheckTwitterRuntime reports a structured failure when unresolved", () 
 
   assert.equal(result.ok, false);
   assert.equal(result.legacyRootPresent, false);
+  assert.deepEqual(result.packagedArtifacts, []);
+});
+
+test("stageNativeBinary writes a manifest entry", () => {
+  const packageRoot = createPackageRoot();
+  const cargoBin = resolve(packageRoot, "native", "target", "release", "z0-twitter-cli");
+
+  mkdirSync(resolve(packageRoot, "native", "target", "release"), { recursive: true });
+  writeFileSync(cargoBin, "twitter-native", "utf8");
+  chmodSync(cargoBin, 0o755);
+
+  const staged = stageNativeBinary(packageRoot, { profile: "release" });
+  const manifest = readArtifactManifest(packageRoot);
+  const manifestPath = resolve(packageRoot, "dist", "native", "manifest.json");
+
+  assert.equal(staged, resolve(packageRoot, "dist", "native", `${process.platform}-${process.arch}`, "z0-twitter-cli"));
+  assert.equal(manifest.artifacts.length, 1);
+  assert.equal(manifest.artifacts[0].artifactKey, `${process.platform}-${process.arch}`);
+  assert.equal(JSON.parse(readFileSync(manifestPath, "utf8")).binaryName, "z0-twitter-cli");
 });

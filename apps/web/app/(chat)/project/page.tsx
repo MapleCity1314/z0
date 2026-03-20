@@ -6,7 +6,7 @@ import Link from "next/link";
 import { loadUserProjectsPage } from "@/lib/app/loaders";
 import { getCurrentUser } from "@/lib/session";
 import { ProjectList } from "@/components/project/project-list";
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 
 export default async function ProjectsPage() {
   const user = await getCurrentUser();

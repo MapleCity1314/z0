@@ -1,30 +1,49 @@
 "use client";
 
+import type { ChangeEvent } from "react";
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
+  BadgeInfo,
   Box,
+  CalendarDays,
+  Check,
+  ExternalLink,
+  Flame,
+  FolderKanban,
+  GitBranch,
   Globe,
+  HardDrive,
+  KeyRound,
   Link as LinkIcon,
+  Mail,
+  PenTool,
   Plus,
   Search,
   Server,
   Settings2,
   Store,
+  type LucideIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
+} from "@z0/ui/dialog";
+import { Input } from "@z0/ui/input";
+import { Switch } from "@z0/ui/switch";
 import { cn } from "@/lib/utils";
 import type {
   ConversationMcpServer,
   SystemMcpMarketItem,
+} from "@/lib/chat";
+import {
+  filterSystemMcpMarketItems,
+  groupSystemMcpMarketItems,
+  isDirectSystemMcpMarketItem,
 } from "@/lib/chat";
 
 type McpServerDialogProps = {
@@ -73,39 +92,19 @@ export function McpServerDialog({
   >("all");
   const [mobileTab, setMobileTab] = useState<"current" | "market">("market");
 
-  const filteredMarketServers = useMemo(() => {
-    const query = marketQuery.trim().toLowerCase();
+  const filteredMarketServers = useMemo(
+    () =>
+      filterSystemMcpMarketItems(marketServers, {
+        query: marketQuery,
+        source: marketSource,
+      }),
+    [marketQuery, marketServers, marketSource],
+  );
 
-    return marketServers.filter((item) => {
-      const sourceMatched =
-        marketSource === "all" ? true : item.sourceType === marketSource;
-      const queryMatched =
-        query.length === 0
-          ? true
-          : item.name.toLowerCase().includes(query) ||
-            item.endpoint.toLowerCase().includes(query);
-
-      return sourceMatched && queryMatched;
-    });
-  }, [marketQuery, marketServers, marketSource]);
-
-  const groupedMarketServers = useMemo(() => {
-    const groups: Record<string, SystemMcpMarketItem[]> = {
-      system: [],
-      market: [],
-      external: [],
-      other: [],
-    };
-
-    for (const item of filteredMarketServers) {
-      if (item.sourceType === "system") groups.system.push(item);
-      else if (item.sourceType === "market") groups.market.push(item);
-      else if (item.sourceType === "external") groups.external.push(item);
-      else groups.other.push(item);
-    }
-
-    return groups;
-  }, [filteredMarketServers]);
+  const groupedMarketServers = useMemo(
+    () => groupSystemMcpMarketItems(filteredMarketServers),
+    [filteredMarketServers],
+  );
 
   const sourceOptions: Array<"all" | "system" | "market" | "external"> = [
     "all",
@@ -113,6 +112,15 @@ export function McpServerDialog({
     "market",
     "external",
   ];
+  const connectedServerIds = useMemo(
+    () =>
+      new Set(
+        servers
+          .filter((server) => server.authStatus === "connected")
+          .map((server) => server.systemServerId),
+      ),
+    [servers],
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -186,13 +194,17 @@ export function McpServerDialog({
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <Input
                   value={mcpName}
-                  onChange={(event) => onMcpNameChange(event.target.value)}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                    onMcpNameChange(event.target.value)
+                  }
                   placeholder="Server name"
                   className="border-zinc-700 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-blue-500"
                 />
                 <Input
                   value={mcpEndpoint}
-                  onChange={(event) => onMcpEndpointChange(event.target.value)}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                    onMcpEndpointChange(event.target.value)
+                  }
                   placeholder="https://example.com/mcp"
                   className="border-zinc-700 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-blue-500"
                 />
@@ -247,7 +259,7 @@ export function McpServerDialog({
                         <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-300 hover:text-white">
                           <Switch
                             checked={server.useInCurrentChat}
-                            onCheckedChange={(checked) =>
+                            onCheckedChange={(checked: boolean) =>
                               void onServersChange({
                                 ...server,
                                 useInCurrentChat: checked,
@@ -259,7 +271,7 @@ export function McpServerDialog({
                         <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-300 hover:text-white">
                           <Switch
                             checked={server.useByDefault}
-                            onCheckedChange={(checked) =>
+                            onCheckedChange={(checked: boolean) =>
                               void onServersChange({
                                 ...server,
                                 useByDefault: checked,
@@ -297,7 +309,9 @@ export function McpServerDialog({
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
                   <Input
                     value={marketQuery}
-                    onChange={(event) => setMarketQuery(event.target.value)}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setMarketQuery(event.target.value)
+                    }
                     placeholder="Search by name or endpoint..."
                     className="border-zinc-800 bg-zinc-900/50 pl-9 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-blue-500"
                   />
@@ -342,8 +356,10 @@ export function McpServerDialog({
                 <div className="space-y-6 pb-2">
                   {(["system", "market", "external", "other"] as const).map(
                     (groupKey) => {
-                      const groupItems = groupedMarketServers[groupKey];
-                      if (!groupItems || groupItems.length === 0) {
+                      const categories = Object.entries(
+                        groupedMarketServers[groupKey],
+                      );
+                      if (categories.length === 0) {
                         return null;
                       }
 
@@ -359,36 +375,34 @@ export function McpServerDialog({
                             </p>
                             <div className="h-px flex-1 bg-zinc-800/50" />
                             <span className="text-[10px] text-zinc-600">
-                              {groupItems.length}
+                              {categories.reduce(
+                                (count, [, items]) => count + items.length,
+                                0,
+                              )}
                             </span>
                           </div>
 
-                          <div className="grid gap-2 2xl:grid-cols-2">
-                            {groupItems.map((server) => (
-                              <div
-                                key={server.systemServerId}
-                                className="group flex flex-col justify-between gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 transition-all hover:border-blue-500/50 hover:bg-blue-500/5 sm:flex-row sm:items-center"
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate font-medium text-sm text-zinc-200 group-hover:text-blue-100">
-                                    {server.name}
-                                  </p>
-                                  <p className="mt-1 truncate text-xs text-zinc-500 group-hover:text-blue-300/70">
-                                    {server.endpoint}
-                                  </p>
+                          <div className="space-y-4">
+                            {categories.map(([category, servers]) => (
+                              <div key={`${groupKey}-${category}`} className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="rounded-full border border-zinc-800 bg-zinc-900 px-2 py-1 text-[10px] uppercase tracking-wider text-zinc-400">
+                                    {category}
+                                  </span>
+                                  <div className="h-px flex-1 bg-zinc-800/40" />
                                 </div>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="secondary"
-                                  className="shrink-0 bg-white/5 text-zinc-300 hover:bg-blue-600 hover:text-white sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100"
-                                  onClick={() =>
-                                    void onQuickAddFromMarket(server)
-                                  }
-                                >
-                                  <Plus className="mr-1 h-3.5 w-3.5" />
-                                  Quick add
-                                </Button>
+                                <div className="grid gap-2 2xl:grid-cols-2">
+                                  {servers.map((server) => (
+                                    <MarketServerCard
+                                      key={server.systemServerId}
+                                      server={server}
+                                      isConnected={connectedServerIds.has(
+                                        server.systemServerId,
+                                      )}
+                                      onQuickAddFromMarket={onQuickAddFromMarket}
+                                    />
+                                  ))}
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -403,5 +417,122 @@ export function McpServerDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+const marketIcons: Record<string, LucideIcon> = {
+  excalidraw: PenTool,
+  notion: FolderKanban,
+  github: GitBranch,
+  gmail: Mail,
+  "google-calendar": CalendarDays,
+  "google-drive": HardDrive,
+  figma: PenTool,
+};
+
+function MarketServerCard({
+  server,
+  isConnected,
+  onQuickAddFromMarket,
+}: {
+  server: SystemMcpMarketItem;
+  isConnected: boolean;
+  onQuickAddFromMarket: (item: SystemMcpMarketItem) => Promise<void>;
+}) {
+  const Icon = marketIcons[server.icon] ?? BadgeInfo;
+  const canQuickAdd = server.requiresAuth || isDirectSystemMcpMarketItem(server);
+
+  return (
+    <div className="group flex flex-col justify-between gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 transition-all hover:border-blue-500/50 hover:bg-blue-500/5">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-200">
+          <Icon className="h-4.5 w-4.5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate font-medium text-sm text-zinc-200 group-hover:text-blue-100">
+              {server.name}
+            </p>
+            {server.recommended ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+                <Flame className="h-3 w-3" />
+                Recommended
+              </span>
+            ) : null}
+            {server.requiresSetup ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
+                <KeyRound className="h-3 w-3" />
+                Setup
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
+                <Check className="h-3 w-3" />
+                Direct
+              </span>
+            )}
+            {isConnected ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-300">
+                <Check className="h-3 w-3" />
+                Connected
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-1 text-xs text-zinc-400">{server.shortDescription}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <MarketTag label={server.provider} />
+            <MarketTag label={server.category} />
+            {server.tags.slice(0, 3).map((tag) => (
+              <MarketTag key={`${server.systemServerId}-${tag}`} label={tag} />
+            ))}
+          </div>
+          <p className="mt-2 truncate text-[11px] text-zinc-500 group-hover:text-blue-300/70">
+            {server.endpoint}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[11px] text-zinc-500">{server.setupLabel}</span>
+        <div className="flex items-center gap-2">
+          {server.docsUrl ? (
+            <Button
+              asChild
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-8 px-2 text-zinc-400 hover:bg-white/5 hover:text-white"
+            >
+              <Link href={server.docsUrl} target="_blank" rel="noreferrer">
+                <ExternalLink className="mr-1 h-3.5 w-3.5" />
+                Docs
+              </Link>
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={!canQuickAdd}
+            className="shrink-0 bg-white/5 text-zinc-300 hover:bg-blue-600 hover:text-white disabled:cursor-not-allowed disabled:bg-zinc-900 disabled:text-zinc-600"
+            onClick={() => void onQuickAddFromMarket(server)}
+          >
+            <Plus className="mr-1 h-3.5 w-3.5" />
+            {server.requiresAuth
+              ? isConnected
+                ? "Reconnect"
+                : "Connect"
+              : "Quick add"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MarketTag({ label }: { label: string }) {
+  return (
+    <span className="rounded-full border border-zinc-800 bg-zinc-950/70 px-2 py-0.5 text-[10px] text-zinc-400">
+      {label}
+    </span>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChangeEvent, FormEvent } from "react";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
@@ -9,18 +10,18 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@z0/ui/dialog";
+import { Button } from "@z0/ui/button";
+import { Input } from "@z0/ui/input";
+import { Label } from "@z0/ui/label";
+import { Textarea } from "@z0/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@z0/ui/select";
 import { toast } from "sonner";
 import { createProjectAction } from "@/app/(chat)/api/projects/actions";
 import type { Project } from "@/lib/schema";
@@ -36,7 +37,9 @@ const PROJECT_TYPES = [
   { value: "vue", label: "Vue" },
   { value: "nextjs", label: "Next.js" },
   { value: "vanilla", label: "Vanilla" },
-];
+] as const;
+
+type ProjectType = (typeof PROJECT_TYPES)[number]["value"];
 
 export function CreateProjectDialog({
   open,
@@ -47,10 +50,10 @@ export function CreateProjectDialog({
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    type: "react",
+    type: "react" as ProjectType,
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
@@ -63,7 +66,7 @@ export function CreateProjectDialog({
     const result = await createProjectAction({
       name: formData.name,
       description: formData.description || undefined,
-      type: formData.type as "react" | "vue" | "nextjs" | "vanilla",
+      type: formData.type,
     });
 
     if (result.success && result.data) {
@@ -95,7 +98,7 @@ export function CreateProjectDialog({
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) =>
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
                 setFormData({ ...formData, name: e.target.value })
               }
               placeholder="My Awesome Project"
@@ -110,7 +113,7 @@ export function CreateProjectDialog({
             </Label>
             <Select
               value={formData.type}
-              onValueChange={(value) =>
+              onValueChange={(value: ProjectType) =>
                 setFormData({ ...formData, type: value })
               }
             >
@@ -138,7 +141,7 @@ export function CreateProjectDialog({
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) =>
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
                 setFormData({ ...formData, description: e.target.value })
               }
               placeholder="Describe your project..."

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { RefreshCw, ExternalLink, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 import { toast } from "sonner";
 
 export interface WebViewProps {

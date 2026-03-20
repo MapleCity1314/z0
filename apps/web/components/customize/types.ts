@@ -9,6 +9,13 @@ export type UserMcpItem = {
   endpoint: string;
   sourceType: string;
   useByDefault: boolean;
+  connectorSlug: string | null;
+  requiresAuth: boolean;
+  authProvider: string | null;
+  authStatus: "not-required" | "not-connected" | "connected" | "expired";
+  privacyLevel: "low" | "high" | null;
+  connectedAt: string | null;
+  consentGrantedAt: string | null;
 };
 
 export type UserSkillItem = {

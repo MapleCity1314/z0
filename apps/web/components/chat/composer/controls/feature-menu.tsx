@@ -16,7 +16,7 @@ import {
   PromptInputActionMenuTrigger,
 } from "@/components/ai-elements/prompt-input";
 import { ProjectSelector } from "@/components/ai-elements/project-selector";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@z0/ui/switch";
 import type { ConversationMcpServer, ConversationSkill } from "@/lib/chat";
 
 type FeatureMenuProps = {

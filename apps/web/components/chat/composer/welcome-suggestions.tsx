@@ -13,7 +13,7 @@ import {
   PenSquare,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Suggestion,

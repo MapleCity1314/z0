@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 import {
   publishVersionAction,
   archiveVersionAction,

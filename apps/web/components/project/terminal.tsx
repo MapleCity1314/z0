@@ -1,9 +1,10 @@
 "use client";
 
+import type { MouseEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Terminal as TerminalIcon, Trash2, Copy, Check, ChevronUp, ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 import type { ConsoleLogEntry } from "@/lib/project/web-container-builder";
 
 export interface TerminalProps {
@@ -133,7 +134,7 @@ export function Terminal({
                 variant="ghost"
                 size="icon"
                 className="size-6 text-zinc-400 hover:text-white"
-                onClick={(e) => { e.stopPropagation(); handleCopy(); }}
+                onClick={(e: MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleCopy(); }}
                 title="Copy logs"
               >
                 {copied ? (
@@ -146,7 +147,7 @@ export function Terminal({
                 variant="ghost"
                 size="icon"
                 className="size-6 text-zinc-400 hover:text-red-400"
-                onClick={(e) => { e.stopPropagation(); onClear?.(); }}
+                onClick={(e: MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onClear?.(); }}
                 title="Clear logs"
               >
                 <Trash2 className="size-3" />
@@ -154,13 +155,13 @@ export function Terminal({
             </>
           )}
           {onToggleCollapse && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-6 text-zinc-400 hover:text-white"
-              onClick={(e) => { e.stopPropagation(); onToggleCollapse(); }}
-              title={collapsed ? "Expand terminal" : "Collapse terminal"}
-            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6 text-zinc-400 hover:text-white"
+                onClick={(e: MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onToggleCollapse(); }}
+                title={collapsed ? "Expand terminal" : "Collapse terminal"}
+              >
               {collapsed ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
             </Button>
           )}

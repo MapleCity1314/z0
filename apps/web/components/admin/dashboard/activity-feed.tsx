@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@z0/ui/avatar";
+import { Badge } from "@z0/ui/badge";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChangeEvent, FormEvent } from "react";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import {
@@ -8,11 +9,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@z0/ui/dialog";
+import { Button } from "@z0/ui/button";
+import { Input } from "@z0/ui/input";
+import { Label } from "@z0/ui/label";
+import { Textarea } from "@z0/ui/textarea";
 import { toast } from "sonner";
 import type { Project } from "@/lib/schema";
 import { updateProjectMetadataAction } from "@/app/(chat)/api/projects/actions";
@@ -43,7 +44,7 @@ export function EditProjectDialog({
     });
   }, [project]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
@@ -87,7 +88,7 @@ export function EditProjectDialog({
             <Input
               id="edit-name"
               value={formData.name}
-              onChange={(e) =>
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
                 setFormData({ ...formData, name: e.target.value })
               }
               placeholder="My Awesome Project"
@@ -103,7 +104,7 @@ export function EditProjectDialog({
             <Textarea
               id="edit-description"
               value={formData.description}
-              onChange={(e) =>
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
                 setFormData({ ...formData, description: e.target.value })
               }
               placeholder="Describe your project..."

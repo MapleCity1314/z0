@@ -11,6 +11,13 @@ export type ConversationMcpServer = {
   sourceType: string;
   useInCurrentChat: boolean;
   useByDefault: boolean;
+  connectorSlug: string | null;
+  requiresAuth: boolean;
+  authProvider: string | null;
+  authStatus: "not-required" | "not-connected" | "connected" | "expired";
+  privacyLevel: "low" | "high" | null;
+  connectedAt: string | null;
+  consentGrantedAt: string | null;
 };
 
 export type ConversationSkill = {
@@ -28,6 +35,21 @@ export type SystemMcpMarketItem = {
   name: string;
   endpoint: string;
   sourceType: string;
+  slug: string;
+  icon: string;
+  category: string;
+  provider: string;
+  shortDescription: string;
+  setupLabel: string;
+  docsUrl: string | null;
+  tags: string[];
+  recommended: boolean;
+  requiresSetup: boolean;
+  requiresAuth: boolean;
+  authProvider: string | null;
+  privacyLevel: "low" | "high" | null;
+  consentRequired: boolean;
+  scopes: string[];
 };
 
 export type SystemSkillMarketItem = {

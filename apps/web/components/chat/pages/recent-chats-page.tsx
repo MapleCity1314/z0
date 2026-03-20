@@ -24,7 +24,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@z0/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 interface RecentChatListProps {

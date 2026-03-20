@@ -1,7 +1,9 @@
 "use client";
 
 import { type ChatStatus, type FileUIPart } from "ai";
+import type { MouseEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   addChatMcpServerAction,
@@ -108,6 +110,8 @@ export function ChatComposer({
   >("idle");
   const [mcpWarmSummary, setMcpWarmSummary] = useState("");
   const user = useUserStore((state) => state.user);
+  const pathname = usePathname();
+  const router = useRouter();
 
   const showActionError = (message: string) => {
     if (shouldShowErrorToast(message)) {
@@ -149,6 +153,13 @@ export function ChatComposer({
         sourceType: item.sourceType,
         useInCurrentChat: showWelcome ? item.useByDefault : item.enabledInChat,
         useByDefault: item.useByDefault,
+        connectorSlug: item.connectorSlug,
+        requiresAuth: item.requiresAuth,
+        authProvider: item.authProvider,
+        authStatus: item.authStatus,
+        privacyLevel: item.privacyLevel,
+        connectedAt: item.connectedAt,
+        consentGrantedAt: item.consentGrantedAt,
       })),
     );
     setSkills(
@@ -170,6 +181,21 @@ export function ChatComposer({
           name: item.name,
           endpoint: item.endpoint,
           sourceType: item.sourceType,
+          slug: item.slug,
+          icon: item.icon,
+          category: item.category,
+          provider: item.provider,
+          shortDescription: item.shortDescription,
+          setupLabel: item.setupLabel,
+          docsUrl: item.docsUrl,
+          tags: item.tags,
+          recommended: item.recommended,
+          requiresSetup: item.requiresSetup,
+          requiresAuth: item.requiresAuth,
+          authProvider: item.authProvider,
+          privacyLevel: item.privacyLevel,
+          consentRequired: item.consentRequired,
+          scopes: item.scopes,
         })),
       );
       setSystemSkillMarket(
@@ -378,7 +404,7 @@ export function ChatComposer({
                     status === "submitted" ||
                     (!messagesLength && status === "streaming")
                   }
-                  onClick={(event) => {
+                  onClick={(event: MouseEvent<HTMLButtonElement>) => {
                     if (status === "streaming") {
                       event.preventDefault();
                       event.stopPropagation();
@@ -413,10 +439,19 @@ export function ChatComposer({
         warmSummary={mcpWarmSummary}
         marketServers={systemMcpMarket}
         onQuickAddFromMarket={async (marketItem) => {
+          if (marketItem.requiresAuth) {
+            router.push(
+              `/connectors/${marketItem.slug}?chatId=${encodeURIComponent(
+                chatId,
+              )}&returnTo=${encodeURIComponent(pathname || "/")}`,
+            );
+            return;
+          }
           const result = await addChatMcpServerAction({
             chatId,
             name: marketItem.name,
             endpoint: marketItem.endpoint,
+            sourceType: marketItem.sourceType,
           });
           if (!result.success) {
             showActionError(result.message);

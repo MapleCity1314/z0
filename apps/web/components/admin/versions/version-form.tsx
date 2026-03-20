@@ -1,18 +1,19 @@
 "use client";
 
+import type { ChangeEvent, FormEvent } from "react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@z0/ui/button";
+import { Input } from "@z0/ui/input";
+import { Textarea } from "@z0/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@z0/ui/select";
 import { createVersionAction } from "@/lib/admin/actions";
 
 interface VersionFormProps {
@@ -35,7 +36,7 @@ export function VersionForm({ initialData }: VersionFormProps) {
     type: initialData?.type || "patch",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     startTransition(async () => {
@@ -60,7 +61,7 @@ export function VersionForm({ initialData }: VersionFormProps) {
             <label className="text-sm font-medium">Version</label>
             <Input
               value={formData.version}
-              onChange={(e) =>
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
                 setFormData({ ...formData, version: e.target.value })
               }
               placeholder="1.0.0"
@@ -71,7 +72,7 @@ export function VersionForm({ initialData }: VersionFormProps) {
             <label className="text-sm font-medium">Type</label>
             <Select
               value={formData.type}
-              onValueChange={(value) =>
+              onValueChange={(value: string) =>
                 setFormData({ ...formData, type: value })
               }
             >
@@ -91,7 +92,7 @@ export function VersionForm({ initialData }: VersionFormProps) {
           <label className="text-sm font-medium">Title</label>
           <Input
             value={formData.title}
-            onChange={(e) =>
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
               setFormData({ ...formData, title: e.target.value })
             }
             placeholder="Version title"
@@ -103,7 +104,7 @@ export function VersionForm({ initialData }: VersionFormProps) {
           <label className="text-sm font-medium">Description</label>
           <Textarea
             value={formData.description}
-            onChange={(e) =>
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
               setFormData({ ...formData, description: e.target.value })
             }
             placeholder="Brief description of this version..."

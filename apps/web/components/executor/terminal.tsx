@@ -1,10 +1,11 @@
 "use client";
 
+import type { MouseEvent } from "react";
 import { cn } from "@/lib/utils";
 import { useExecutorStore, type ExecutionResult } from "@/store/executor";
 import { ChevronDownIcon, TerminalIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 
 export function Terminal() {
   const { results, isExecuting, clearResults, terminalCollapsed, toggleTerminal } = useExecutorStore();
@@ -41,7 +42,7 @@ export function Terminal() {
             variant="ghost"
             size="sm"
             className="h-6 px-2 text-zinc-500 hover:text-zinc-300"
-            onClick={(e) => {
+            onClick={(e: MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();
               clearResults();
             }}

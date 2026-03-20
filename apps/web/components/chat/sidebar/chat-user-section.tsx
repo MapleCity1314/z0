@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@z0/ui/avatar";
 import { useUserStore } from "@/store/user";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";

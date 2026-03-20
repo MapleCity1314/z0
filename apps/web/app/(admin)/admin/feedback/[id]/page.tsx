@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowLeft, User, Calendar, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@z0/ui/button";
+import { Badge } from "@z0/ui/badge";
 import { FeedbackActions } from "@/components/admin/feedback/feedback-actions";
 import { loadAdminFeedbackDetail } from "@/lib/admin/loaders";
 import { cn } from "@/lib/utils";

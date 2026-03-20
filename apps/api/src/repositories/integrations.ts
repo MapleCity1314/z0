@@ -15,6 +15,7 @@ import {
   userMcpServer,
   userSkill,
 } from "@z0/backend";
+import { mapIntegrationMcpServer, mapSystemMcpMarketItem } from "./mcp-market";
 import { db } from "./shared";
 
 function now() {
@@ -38,18 +39,12 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
         name: mcpServer.name,
         endpoint: mcpServer.endpoint,
         sourceType: mcpServer.sourceType,
+        metadata: mcpServer.metadata,
       })
       .from(mcpServer)
       .where(eq(mcpServer.isActive, true))
       .orderBy(desc(mcpServer.updatedAt))
-      .then((rows) =>
-        rows.map((row) => ({
-          systemServerId: row.systemServerId,
-          name: row.name,
-          endpoint: row.endpoint,
-          sourceType: row.sourceType ?? "external",
-        })),
-      );
+      .then((rows) => rows.map((row) => mapSystemMcpMarketItem(row)));
   }
 
   listSystemSkills(): Promise<SystemSkillMarketItemDto[]> {
@@ -87,6 +82,8 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
         useByDefault: userMcpServer.useByDefault,
         enabledInChat: chatMcpServer.enabled,
         linkedChatId: chatMcpServer.chatId,
+        metadata: userMcpServer.metadata,
+        systemMetadata: mcpServer.metadata,
       })
       .from(userMcpServer)
       .innerJoin(mcpServer, eq(userMcpServer.mcpServerId, mcpServer.id))
@@ -100,16 +97,20 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
       .where(eq(userMcpServer.userId, userId))
       .orderBy(desc(userMcpServer.updatedAt))
       .then((rows) =>
-        rows.map((row) => ({
-          userMcpServerId: row.userMcpServerId,
-          systemServerId: row.systemServerId,
-          systemServerName: row.systemServerName,
-          endpoint: row.endpoint,
-          sourceType: row.sourceType ?? "external",
-          useByDefault: row.useByDefault,
-          enabledInChat:
-            row.linkedChatId === chatId ? (row.enabledInChat ?? false) : false,
-        })),
+        rows.map((row) =>
+          mapIntegrationMcpServer({
+            userMcpServerId: row.userMcpServerId,
+            systemServerId: row.systemServerId,
+            systemServerName: row.systemServerName,
+            endpoint: row.endpoint,
+            sourceType: row.sourceType,
+            useByDefault: row.useByDefault,
+            enabledInChat:
+              row.linkedChatId === chatId ? (row.enabledInChat ?? false) : false,
+            metadata: row.metadata,
+            systemMetadata: row.systemMetadata,
+          }),
+        ),
       );
   }
 
@@ -156,21 +157,27 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
         endpoint: mcpServer.endpoint,
         sourceType: mcpServer.sourceType,
         useByDefault: userMcpServer.useByDefault,
+        metadata: userMcpServer.metadata,
+        systemMetadata: mcpServer.metadata,
       })
       .from(userMcpServer)
       .innerJoin(mcpServer, eq(userMcpServer.mcpServerId, mcpServer.id))
       .where(eq(userMcpServer.userId, userId))
       .orderBy(desc(userMcpServer.updatedAt))
       .then((rows) =>
-        rows.map((row) => ({
-          userMcpServerId: row.userMcpServerId,
-          systemServerId: row.systemServerId,
-          systemServerName: row.systemServerName,
-          endpoint: row.endpoint,
-          sourceType: row.sourceType ?? "external",
-          useByDefault: row.useByDefault,
-          enabledInChat: false,
-        })),
+        rows.map((row) =>
+          mapIntegrationMcpServer({
+            userMcpServerId: row.userMcpServerId,
+            systemServerId: row.systemServerId,
+            systemServerName: row.systemServerName,
+            endpoint: row.endpoint,
+            sourceType: row.sourceType,
+            useByDefault: row.useByDefault,
+            enabledInChat: false,
+            metadata: row.metadata,
+            systemMetadata: row.systemMetadata,
+          }),
+        ),
       );
   }
 

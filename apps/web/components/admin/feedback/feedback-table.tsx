@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { MessageCircle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@z0/ui/badge";
 import { DataTable } from "@/components/admin/data-table/data-table";
 import { cn } from "@/lib/utils";
 

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@z0/ui/avatar";
 import { DataTable } from "@/components/admin/data-table/data-table";
 import { Pagination } from "@/components/admin/data-table/pagination";
 

@@ -10,12 +10,12 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+} from "@z0/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@z0/ui/popover";
 import type { Project } from "@/lib/schema";
 import { getUserProjectsAction } from "@/app/(chat)/api/projects/actions";
 import { useUserStore } from "@/store/user";

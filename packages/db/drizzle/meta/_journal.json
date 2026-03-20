@@ -43,6 +43,20 @@
       "when": 1773732920496,
       "tag": "0005_solid_tana_nile",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774000000000,
+      "tag": "0006_mcp_market_connectors",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1774001000000,
+      "tag": "0007_user_mcp_metadata",
+      "breakpoints": true
     }
   ]
 }

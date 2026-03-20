@@ -14,7 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ChatPageShell } from "@/components/chat/layout";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@z0/ui/avatar";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { useUserStore } from "@/store/user";

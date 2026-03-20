@@ -12,6 +12,13 @@ export interface IntegrationMcpServerDto {
   sourceType: string;
   useByDefault: boolean;
   enabledInChat: boolean;
+  connectorSlug: string | null;
+  requiresAuth: boolean;
+  authProvider: string | null;
+  authStatus: "not-required" | "not-connected" | "connected" | "expired";
+  privacyLevel: "low" | "high" | null;
+  connectedAt: string | null;
+  consentGrantedAt: string | null;
 }
 
 export interface IntegrationSkillDto {
@@ -29,6 +36,21 @@ export interface SystemMcpMarketItemDto {
   name: string;
   endpoint: string;
   sourceType: string;
+  slug: string;
+  icon: string;
+  category: string;
+  provider: string;
+  shortDescription: string;
+  setupLabel: string;
+  docsUrl: string | null;
+  tags: string[];
+  recommended: boolean;
+  requiresSetup: boolean;
+  requiresAuth: boolean;
+  authProvider: string | null;
+  privacyLevel: "low" | "high" | null;
+  consentRequired: boolean;
+  scopes: string[];
 }
 
 export interface SystemSkillMarketItemDto {
@@ -73,6 +95,7 @@ export interface SystemIntegrationMarketDto {
 export interface AddMcpServerRequest {
   name: string;
   endpoint: string;
+  sourceType?: string;
 }
 
 export interface AddSkillRequest {

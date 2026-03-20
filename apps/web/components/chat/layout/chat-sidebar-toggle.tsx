@@ -3,13 +3,13 @@
 import { motion } from "framer-motion";
 import { PanelLeftClose } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@z0/ui/tooltip";
 
 interface SidebarToggleProps {
   isOpen: boolean;

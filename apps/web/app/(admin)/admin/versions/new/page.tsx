@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 import { VersionForm } from "@/components/admin/versions/version-form";
 
 export default function NewVersionPage() {

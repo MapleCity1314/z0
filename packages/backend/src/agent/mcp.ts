@@ -6,6 +6,12 @@ import {
 } from "@ai-sdk/mcp";
 import type { ToolSet } from "ai";
 import { and, desc, eq } from "drizzle-orm";
+import {
+  getConnectorAuthStatus,
+  getConnectorCatalogItem,
+  type ConnectorAuthMetadata,
+} from "../connectors/catalog";
+import { refreshConnectorAccessToken } from "../connectors/oauth";
 import { chatMcpServer, getDb, mcpServer, userMcpServer } from "@z0/db";
 
 export type AgentMcpServerMetadata = {
@@ -273,6 +279,98 @@ function createTransport(
   return new NpmBootMcpTransport(connection);
 }
 
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function buildConnectorRuntimeEndpoint(params: {
+  connectorSlug: string;
+  metadata: ConnectorAuthMetadata | null;
+}) {
+  const connector = getConnectorCatalogItem(params.connectorSlug);
+  if (!connector) {
+    return null;
+  }
+
+  if (!connector.requiresAuth) {
+    return connector.endpoint;
+  }
+
+  if (getConnectorAuthStatus(connector, params.metadata) !== "connected") {
+    return null;
+  }
+
+  const accessToken = params.metadata?.accessToken;
+  if (!accessToken) {
+    return null;
+  }
+
+  const search = new URLSearchParams();
+  search.append("args", params.connectorSlug);
+  search.append("args", "server");
+  search.append("env.Z0_CONNECTOR_KIND", params.connectorSlug);
+  search.append("env.Z0_CONNECTOR_ACCESS_TOKEN", accessToken);
+  if (params.metadata?.refreshToken) {
+    search.append("env.Z0_CONNECTOR_REFRESH_TOKEN", params.metadata.refreshToken);
+  }
+
+  return `npm:@z0/connectors-mcp?${search.toString()}`;
+}
+
+async function refreshExpiredConnectorMetadata(params: {
+  userMcpServerId: string;
+  connectorSlug: string;
+  metadata: ConnectorAuthMetadata | null;
+}) {
+  const connector = getConnectorCatalogItem(params.connectorSlug);
+  if (!connector?.requiresAuth || !params.metadata?.refreshToken) {
+    return params.metadata;
+  }
+
+  if (getConnectorAuthStatus(connector, params.metadata) !== "expired") {
+    return params.metadata;
+  }
+
+  const provider = connector.authProvider ?? params.metadata.authProvider;
+  if (!provider) {
+    return params.metadata;
+  }
+
+  try {
+    const refreshed = await refreshConnectorAccessToken({
+      provider,
+      refreshToken: params.metadata.refreshToken,
+    });
+
+    const nextMetadata: ConnectorAuthMetadata = {
+      ...params.metadata,
+      connectorSlug: params.connectorSlug,
+      provider: connector.provider,
+      authProvider: provider,
+      accessToken: refreshed.accessToken,
+      refreshToken: refreshed.refreshToken ?? params.metadata.refreshToken,
+      scope: refreshed.scope ?? params.metadata.scope,
+      tokenType: refreshed.tokenType ?? params.metadata.tokenType,
+      expiresAt: refreshed.expiresAt ?? params.metadata.expiresAt,
+      providerAccountId:
+        refreshed.providerAccountId ?? params.metadata.providerAccountId,
+      connectedAt: params.metadata.connectedAt ?? new Date().toISOString(),
+    };
+
+    await getDb()
+      .update(userMcpServer)
+      .set({
+        metadata: nextMetadata,
+        updatedAt: new Date(),
+      })
+      .where(eq(userMcpServer.id, params.userMcpServerId));
+
+    return nextMetadata;
+  } catch {
+    return params.metadata;
+  }
+}
+
 function mergeMcpToolMetadata(
   toolSet: ToolSet,
   server: AgentMcpServerMetadata,
@@ -441,9 +539,12 @@ export async function getConfiguredMcpServers(params: {
   const rows = await db
     .select({
       id: mcpServer.id,
+      userMcpServerId: userMcpServer.id,
       name: mcpServer.name,
       endpoint: mcpServer.endpoint,
       sourceType: mcpServer.sourceType,
+      systemMetadata: mcpServer.metadata,
+      userMetadata: userMcpServer.metadata,
     })
     .from(chatMcpServer)
     .innerJoin(
@@ -461,12 +562,48 @@ export async function getConfiguredMcpServers(params: {
     )
     .orderBy(desc(userMcpServer.updatedAt));
 
-  return rows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    endpoint: row.endpoint,
-    sourceType: row.sourceType ?? "external",
-  }));
+  const servers: AgentMcpServerMetadata[] = [];
+
+  for (const row of rows) {
+    const initialMetadata =
+      isObjectRecord(row.userMetadata)
+        ? (row.userMetadata as ConnectorAuthMetadata)
+        : null;
+    const connectorSlug =
+      typeof initialMetadata?.connectorSlug === "string"
+        ? initialMetadata.connectorSlug
+        : isObjectRecord(row.systemMetadata) &&
+            typeof row.systemMetadata.slug === "string"
+          ? row.systemMetadata.slug
+          : null;
+    const userMetadata = connectorSlug
+      ? await refreshExpiredConnectorMetadata({
+          userMcpServerId: row.userMcpServerId,
+          connectorSlug,
+          metadata: initialMetadata,
+        })
+      : initialMetadata;
+    const endpoint =
+      connectorSlug
+        ? buildConnectorRuntimeEndpoint({
+            connectorSlug,
+            metadata: userMetadata,
+          }) ?? null
+        : row.endpoint;
+
+    if (!endpoint) {
+      continue;
+    }
+
+    servers.push({
+      id: row.id,
+      name: row.name,
+      endpoint,
+      sourceType: row.sourceType ?? "external",
+    });
+  }
+
+  return servers;
 }
 
 export async function createConfiguredMcpToolRuntime(params: {

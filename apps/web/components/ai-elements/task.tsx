@@ -4,7 +4,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "@z0/ui/collapsible";
 import { cn } from "@/lib/utils";
 import {
   ChevronRightIcon,

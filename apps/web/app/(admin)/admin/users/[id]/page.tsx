@@ -7,8 +7,8 @@ import {
   MessageCircle,
   Brain,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@z0/ui/avatar";
+import { Button } from "@z0/ui/button";
 import { loadAdminUserDetail } from "@/lib/admin/loaders";
 
 interface PageProps {

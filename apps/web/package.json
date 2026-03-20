@@ -40,6 +40,7 @@
     "@xyflow/react": "^12.9.3",
     "@z0/backend": "workspace:*",
     "@z0/db": "workspace:*",
+    "@z0/ui": "workspace:*",
     "ai": "^6.0.116",
     "archiver": "^7.0.1",
     "bcryptjs": "^3.0.3",

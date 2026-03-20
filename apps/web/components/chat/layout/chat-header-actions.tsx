@@ -1,14 +1,14 @@
 "use client";
 
 import { Zap, MoreHorizontal } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@z0/ui/dropdown-menu";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 

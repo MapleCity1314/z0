@@ -68,7 +68,7 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 import { CHAT_MESSAGE_FRAME_CLASS } from "@/components/chat/layout";
 import {
   getDataPartName,

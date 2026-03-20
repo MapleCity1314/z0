@@ -98,6 +98,21 @@ describe("IntegrationsService", () => {
         name: "Docs",
         endpoint: "https://example.com/mcp",
         sourceType: "external",
+        slug: "docs",
+        icon: "docs",
+        category: "Knowledge Base",
+        provider: "Docs",
+        shortDescription: "Docs search",
+        setupLabel: "Quick add",
+        docsUrl: "https://example.com/docs",
+        tags: ["search"],
+        recommended: true,
+        requiresSetup: false,
+        requiresAuth: false,
+        authProvider: null,
+        privacyLevel: null,
+        consentRequired: false,
+        scopes: [],
       },
     ]);
     vi.mocked(repository.listSystemSkills).mockResolvedValueOnce([
@@ -115,6 +130,14 @@ describe("IntegrationsService", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.mcpServers).toHaveLength(1);
+      expect(result.data.mcpServers[0]).toEqual(
+        expect.objectContaining({
+          slug: "docs",
+          category: "Knowledge Base",
+          recommended: true,
+          requiresSetup: false,
+        }),
+      );
       expect(result.data.skills).toHaveLength(1);
       expect(result.data.plugins).toEqual(
         expect.arrayContaining([

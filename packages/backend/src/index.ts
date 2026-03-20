@@ -32,6 +32,8 @@ export * from "./agent/tool-catalog";
 export * from "./agent/mcp";
 export * from "./agent/chat";
 export * from "./agent/plugin-boundary";
+export * from "./connectors/catalog";
+export * from "./connectors/oauth";
 export * from "./modules/admin";
 export * from "./modules/feedback";
 export * from "./modules/integrations";

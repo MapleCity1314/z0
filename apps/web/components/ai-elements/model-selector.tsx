@@ -9,13 +9,13 @@ import {
   CommandList,
   CommandSeparator,
   CommandShortcut,
-} from "@/components/ui/command";
+} from "@z0/ui/command";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@z0/ui/dialog";
 import { cn } from "@/lib/utils";
 
 const PROVIDER_LOGO_ALIASES: Record<string, string> = {

@@ -18,14 +18,14 @@
     "@z0/db": "workspace:*",
     "@z0/shared-types": "workspace:*",
     "hono": "^4.9.7",
-    "zod": "catalog:",
+    "zod": "^4.1.13",
     "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "catalog:",
-    "@types/node": "catalog:",
-    "tsx": "catalog:",
-    "typescript": "catalog:",
+    "@biomejs/biome": "2.2.0",
+    "@types/node": "^24.5.2",
+    "tsx": "^4.21.0",
+    "typescript": "5.9.2",
     "vitest": "^3.2.4"
   }
 }

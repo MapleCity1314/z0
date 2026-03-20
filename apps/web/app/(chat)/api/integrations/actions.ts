@@ -18,6 +18,7 @@ import type {
 import { apiFetch } from "@/lib/api";
 import { AUTHENTICATION_REQUIRED_MESSAGE } from "@/lib/api-errors";
 import { getActionErrorMessage } from "@/lib/auth-errors";
+import { disconnectOAuthMcpServerForUser } from "@/lib/db/integrations";
 import { getCurrentUser } from "@/lib/session";
 
 type ActionResult<T = unknown> = {
@@ -72,6 +73,7 @@ export async function addChatMcpServerAction(params: {
   chatId: string;
   name: string;
   endpoint: string;
+  sourceType?: string;
 }) {
   try {
     await apiFetch<{ userMcpServerId: string }>(
@@ -81,6 +83,7 @@ export async function addChatMcpServerAction(params: {
         body: JSON.stringify({
           name: params.name,
           endpoint: params.endpoint,
+          sourceType: params.sourceType,
         } satisfies AddMcpServerRequest),
       },
       { actor: await getActor() },
@@ -203,6 +206,7 @@ export async function getSystemIntegrationMarketAction(): Promise<
 export async function addUserMcpServerAction(params: {
   name: string;
   endpoint: string;
+  sourceType?: string;
 }) {
   try {
     await apiFetch<{ userMcpServerId: string }>(
@@ -212,6 +216,7 @@ export async function addUserMcpServerAction(params: {
         body: JSON.stringify({
           name: params.name,
           endpoint: params.endpoint,
+          sourceType: params.sourceType,
         } satisfies AddMcpServerRequest),
       },
       { actor: await getActor() },
@@ -262,6 +267,21 @@ export async function setUserMcpDefaultAction(params: {
     return { success: true, message: "Default MCP setting updated" } as const;
   } catch (error) {
     return toActionError(error, "Failed to update MCP default");
+  }
+}
+
+export async function disconnectUserMcpServerAction(params: {
+  userMcpServerId: string;
+}) {
+  try {
+    const user = await requireUser();
+    await disconnectOAuthMcpServerForUser({
+      userId: user.id,
+      userMcpServerId: params.userMcpServerId,
+    });
+    return { success: true, message: "Connector disconnected" } as const;
+  } catch (error) {
+    return toActionError(error, "Failed to disconnect connector");
   }
 }
 

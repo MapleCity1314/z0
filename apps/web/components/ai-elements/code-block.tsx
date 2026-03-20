@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 import { cn } from "@/lib/utils";
 import { CheckIcon, CopyIcon, MaximizeIcon, PlayIcon } from "lucide-react";
 import { useExecutorStore } from "@/store/executor";

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -9,31 +9,31 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from "@/components/ui/command";
+} from "@z0/ui/command";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@z0/ui/dropdown-menu";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
-} from "@/components/ui/hover-card";
+} from "@z0/ui/hover-card";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupTextarea,
-} from "@/components/ui/input-group";
+} from "@z0/ui/input-group";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@z0/ui/select";
 import { cn } from "@/lib/utils";
 import type { ChatStatus, FileUIPart } from "ai";
 import {
@@ -59,6 +59,7 @@ import {
   Fragment,
   type HTMLAttributes,
   type KeyboardEventHandler,
+  type MouseEvent,
   type PropsWithChildren,
   type ReactNode,
   type RefObject,
@@ -322,7 +323,7 @@ export function PromptInputAttachment({
                 "hover:bg-zinc-300 text-zinc-500 hover:text-zinc-900", // Light
                 "dark:hover:bg-zinc-700 dark:text-zinc-300 dark:hover:text-white" // Dark
               )}
-              onClick={(e) => {
+              onClick={(e: MouseEvent<HTMLButtonElement>) => {
                 e.stopPropagation();
                 attachments.remove(data.id);
               }}
@@ -420,7 +421,7 @@ export const PromptInputActionAddAttachments = ({
   return (
     <DropdownMenuItem
       {...props}
-      onSelect={(e) => {
+      onSelect={(e: Event) => {
         e.preventDefault();
         attachments.openFileDialog();
       }}

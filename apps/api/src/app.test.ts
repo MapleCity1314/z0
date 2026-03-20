@@ -234,6 +234,13 @@ describe("createApp", () => {
             sourceType: "external",
             useByDefault: true,
             enabledInChat: false,
+            connectorSlug: null,
+            requiresAuth: false,
+            authProvider: null,
+            authStatus: "not-required",
+            privacyLevel: null,
+            connectedAt: null,
+            consentGrantedAt: null,
           },
         ],
         skills: [],
@@ -288,7 +295,29 @@ describe("createApp", () => {
   it("returns the authenticated integrations market", async () => {
     services.integrationsService.getSystemIntegrationMarket.mockResolvedValue(
       ok({
-        mcpServers: [],
+        mcpServers: [
+          {
+            systemServerId: "mcp-market-1",
+            name: "Notion",
+            endpoint: "setup://notion",
+            sourceType: "market",
+            slug: "notion",
+            icon: "notion",
+            category: "Knowledge Base",
+            provider: "Notion",
+            shortDescription: "Search and update workspace pages.",
+            setupLabel: "Requires external setup",
+            docsUrl: "https://www.notion.so/product",
+            tags: ["docs", "wiki"],
+            recommended: true,
+            requiresSetup: true,
+            requiresAuth: true,
+            authProvider: "notion",
+            privacyLevel: "high",
+            consentRequired: true,
+            scopes: [],
+          },
+        ],
         skills: [],
         plugins: [
           {
@@ -318,6 +347,13 @@ describe("createApp", () => {
 
     expect(response.status).toBe(200);
     expect(payload.data.plugins[0].pluginId).toBe("@z0/plugin-project");
+    expect(payload.data.mcpServers[0]).toEqual(
+      expect.objectContaining({
+        slug: "notion",
+        category: "Knowledge Base",
+        requiresSetup: true,
+      }),
+    );
   });
 
   it("returns the authenticated user's projects", async () => {

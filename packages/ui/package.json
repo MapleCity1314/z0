@@ -1,0 +1,179 @@
+{
+  "name": "@z0/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./alert": {
+      "types": "./src/components/alert.tsx",
+      "default": "./src/components/alert.tsx"
+    },
+    "./avatar": {
+      "types": "./src/components/avatar.tsx",
+      "default": "./src/components/avatar.tsx"
+    },
+    "./badge": {
+      "types": "./src/components/badge.tsx",
+      "default": "./src/components/badge.tsx"
+    },
+    "./button": {
+      "types": "./src/components/button.tsx",
+      "default": "./src/components/button.tsx"
+    },
+    "./button-group": {
+      "types": "./src/components/button-group.tsx",
+      "default": "./src/components/button-group.tsx"
+    },
+    "./card": {
+      "types": "./src/components/card.tsx",
+      "default": "./src/components/card.tsx"
+    },
+    "./carousel": {
+      "types": "./src/components/carousel.tsx",
+      "default": "./src/components/carousel.tsx"
+    },
+    "./collapsible": {
+      "types": "./src/components/collapsible.tsx",
+      "default": "./src/components/collapsible.tsx"
+    },
+    "./command": {
+      "types": "./src/components/command.tsx",
+      "default": "./src/components/command.tsx"
+    },
+    "./dialog": {
+      "types": "./src/components/dialog.tsx",
+      "default": "./src/components/dialog.tsx"
+    },
+    "./dropdown-menu": {
+      "types": "./src/components/dropdown-menu.tsx",
+      "default": "./src/components/dropdown-menu.tsx"
+    },
+    "./form": {
+      "types": "./src/components/form.tsx",
+      "default": "./src/components/form.tsx"
+    },
+    "./hover-card": {
+      "types": "./src/components/hover-card.tsx",
+      "default": "./src/components/hover-card.tsx"
+    },
+    "./input": {
+      "types": "./src/components/input.tsx",
+      "default": "./src/components/input.tsx"
+    },
+    "./input-group": {
+      "types": "./src/components/input-group.tsx",
+      "default": "./src/components/input-group.tsx"
+    },
+    "./label": {
+      "types": "./src/components/label.tsx",
+      "default": "./src/components/label.tsx"
+    },
+    "./popover": {
+      "types": "./src/components/popover.tsx",
+      "default": "./src/components/popover.tsx"
+    },
+    "./progress": {
+      "types": "./src/components/progress.tsx",
+      "default": "./src/components/progress.tsx"
+    },
+    "./resizable": {
+      "types": "./src/components/resizable.tsx",
+      "default": "./src/components/resizable.tsx"
+    },
+    "./scroll-area": {
+      "types": "./src/components/scroll-area.tsx",
+      "default": "./src/components/scroll-area.tsx"
+    },
+    "./select": {
+      "types": "./src/components/select.tsx",
+      "default": "./src/components/select.tsx"
+    },
+    "./separator": {
+      "types": "./src/components/separator.tsx",
+      "default": "./src/components/separator.tsx"
+    },
+    "./sheet": {
+      "types": "./src/components/sheet.tsx",
+      "default": "./src/components/sheet.tsx"
+    },
+    "./skeleton": {
+      "types": "./src/components/skeleton.tsx",
+      "default": "./src/components/skeleton.tsx"
+    },
+    "./sonner": {
+      "types": "./src/components/sonner.tsx",
+      "default": "./src/components/sonner.tsx"
+    },
+    "./switch": {
+      "types": "./src/components/switch.tsx",
+      "default": "./src/components/switch.tsx"
+    },
+    "./tabs": {
+      "types": "./src/components/tabs.tsx",
+      "default": "./src/components/tabs.tsx"
+    },
+    "./textarea": {
+      "types": "./src/components/textarea.tsx",
+      "default": "./src/components/textarea.tsx"
+    },
+    "./tooltip": {
+      "types": "./src/components/tooltip.tsx",
+      "default": "./src/components/tooltip.tsx"
+    },
+    "./lib/cn": {
+      "types": "./src/lib/cn.ts",
+      "default": "./src/lib/cn.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.11",
+    "@radix-ui/react-collapsible": "^1.1.12",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-hover-card": "^1.1.15",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-popover": "^1.1.15",
+    "@radix-ui/react-progress": "^1.1.8",
+    "@radix-ui/react-scroll-area": "^1.2.10",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-switch": "^1.2.6",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "embla-carousel-react": "^8.6.0",
+    "lucide-react": "^0.555.0",
+    "next-themes": "^0.4.6",
+    "react-hook-form": "^7.68.0",
+    "react-resizable-panels": "^4.0.14",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.4.0"
+  },
+  "peerDependencies": {
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

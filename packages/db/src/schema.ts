@@ -184,6 +184,7 @@ export const userMcpServer = pgTable(
     mcpServerId: uuid("mcpServerId")
       .notNull()
       .references(() => mcpServer.id, { onDelete: "cascade" }),
+    metadata: jsonb("metadata").notNull().default("{}"),
     useByDefault: boolean("useByDefault").notNull().default(false),
     createdAt: timestamp("createdAt").notNull(),
     updatedAt: timestamp("updatedAt").notNull(),

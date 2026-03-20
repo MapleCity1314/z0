@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChangeEvent } from "react";
 import { useMemo, useState } from "react";
 import {
   Search,
@@ -12,16 +13,16 @@ import {
   Terminal,
   Link as LinkIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
+} from "@z0/ui/dialog";
+import { Input } from "@z0/ui/input";
+import { Switch } from "@z0/ui/switch";
 import { cn } from "@/lib/utils";
 import type {
   ConversationSkill,
@@ -170,13 +171,15 @@ export function SkillsDialog({
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <Input
                   value={skillName}
-                  onChange={(event) => onSkillNameChange(event.target.value)}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                    onSkillNameChange(event.target.value)
+                  }
                   placeholder="技能名称 (如: My Script)"
                   className="border-zinc-700 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-yellow-500/50"
                 />
                 <Input
                   value={skillDirectory}
-                  onChange={(event) =>
+                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
                     onSkillDirectoryChange(event.target.value)
                   }
                   placeholder=".agents/skills/my-skill"
@@ -236,7 +239,7 @@ export function SkillsDialog({
                         <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-300 hover:text-white">
                           <Switch
                             checked={skill.useInCurrentChat}
-                            onCheckedChange={(checked) =>
+                            onCheckedChange={(checked: boolean) =>
                               void onSkillsChange({
                                 ...skill,
                                 useInCurrentChat: checked,
@@ -248,7 +251,7 @@ export function SkillsDialog({
                         <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-300 hover:text-white">
                           <Switch
                             checked={skill.useByDefault}
-                            onCheckedChange={(checked) =>
+                            onCheckedChange={(checked: boolean) =>
                               void onSkillsChange({
                                 ...skill,
                                 useByDefault: checked,
@@ -288,7 +291,9 @@ export function SkillsDialog({
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
                   <Input
                     value={marketQuery}
-                    onChange={(event) => setMarketQuery(event.target.value)}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setMarketQuery(event.target.value)
+                    }
                     placeholder="搜索名称或目录..."
                     className="border-zinc-800 bg-zinc-900/50 pl-9 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-yellow-500/50"
                   />

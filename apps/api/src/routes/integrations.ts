@@ -25,6 +25,7 @@ export function registerIntegrationRoutes(app: Hono, services: AppServices) {
         chatId: c.req.param("chatId"),
         name: body.name,
         endpoint: body.endpoint,
+        sourceType: body.sourceType,
       }),
       201,
     );
@@ -103,6 +104,7 @@ export function registerIntegrationRoutes(app: Hono, services: AppServices) {
         userId: actor.userId,
         name: body.name,
         endpoint: body.endpoint,
+        sourceType: body.sourceType,
       }),
       201,
     );

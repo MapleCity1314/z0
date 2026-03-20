@@ -1,6 +1,7 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
+import type { ChangeEvent } from "react";
+import { Input } from "@z0/ui/input";
 import { Search } from "lucide-react";
 
 interface SearchInputProps {
@@ -19,7 +20,7 @@ export function SearchInput({
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       <Input
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         placeholder={placeholder}
         className="pl-9 w-64"
       />

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { FileTree } from "./file-tree";
 import { CodeEditor, getLanguageFromFilename } from "./code-editor";
 import { X, Save, RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 
 export interface ProjectEditorProps {
   files: Record<string, string>;

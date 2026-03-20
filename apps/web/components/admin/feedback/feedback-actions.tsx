@@ -1,16 +1,17 @@
 "use client";
 
+import type { ChangeEvent } from "react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@z0/ui/button";
+import { Textarea } from "@z0/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@z0/ui/select";
 import {
   updateFeedbackStatusAction,
   addFeedbackResponseAction,
@@ -97,7 +98,7 @@ export function FeedbackActions({
         <label className="text-sm text-muted-foreground">Add Response</label>
         <Textarea
           value={response}
-          onChange={(e) => setResponse(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setResponse(e.target.value)}
           placeholder="Write a response to this feedback..."
           rows={4}
         />

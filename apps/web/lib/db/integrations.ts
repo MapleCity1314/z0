@@ -1,4 +1,9 @@
 import { and, desc, eq } from "drizzle-orm";
+import {
+  getConnectorAuthStatus,
+  getConnectorCatalogItem,
+  type ConnectorAuthMetadata,
+} from "@z0/backend";
 import { db } from "./index";
 import {
   chat,
@@ -32,6 +37,13 @@ export type ChatMCPView = {
   sourceType: string;
   useByDefault: boolean;
   enabledInChat: boolean;
+  connectorSlug: string | null;
+  requiresAuth: boolean;
+  authProvider: string | null;
+  authStatus: "not-required" | "not-connected" | "connected" | "expired";
+  privacyLevel: "low" | "high" | null;
+  connectedAt: string | null;
+  consentGrantedAt: string | null;
 };
 
 export type ChatSkillView = {
@@ -49,7 +61,82 @@ export type SystemMCPView = {
   name: string;
   endpoint: string;
   sourceType: string;
+  slug: string;
+  icon: string;
+  category: string;
+  provider: string;
+  shortDescription: string;
+  setupLabel: string;
+  docsUrl: string | null;
+  tags: string[];
+  recommended: boolean;
+  requiresSetup: boolean;
+  requiresAuth: boolean;
+  authProvider: string | null;
+  privacyLevel: "low" | "high" | null;
+  consentRequired: boolean;
+  scopes: string[];
 };
+
+function mapSystemMcpRow(row: {
+  systemServerId: string;
+  name: string;
+  endpoint: string;
+  sourceType: string | null;
+  metadata: unknown;
+}): SystemMCPView {
+  const metadata =
+    typeof row.metadata === "object" && row.metadata !== null
+      ? (row.metadata as Record<string, unknown>)
+      : {};
+  const slug =
+    typeof metadata.slug === "string" ? metadata.slug : row.name.toLowerCase();
+  const connector = row.sourceType === "market" ? getConnectorCatalogItem(slug) ?? null : null;
+  const runtimeReadyWithoutAuth =
+    connector !== null &&
+    connector.requiresAuth === false &&
+    connector.endpoint.startsWith("npm:");
+  const requiresSetup =
+    (typeof metadata.requiresSetup === "boolean"
+      ? metadata.requiresSetup
+      : !(row.endpoint.startsWith("http://") || row.endpoint.startsWith("https://"))) &&
+    !runtimeReadyWithoutAuth;
+
+  return {
+    systemServerId: row.systemServerId,
+    name: row.name,
+    endpoint: row.endpoint,
+    sourceType: row.sourceType ?? "external",
+    slug,
+    icon: typeof metadata.icon === "string" ? metadata.icon : slug,
+    category:
+      typeof metadata.category === "string" ? metadata.category : "General",
+    provider:
+      typeof metadata.provider === "string" ? metadata.provider : row.name,
+    shortDescription:
+      typeof metadata.shortDescription === "string"
+        ? metadata.shortDescription
+        : `${row.name} tools for your agent workflows.`,
+    setupLabel:
+      typeof metadata.setupLabel === "string"
+        ? metadata.setupLabel
+        : requiresSetup
+          ? "Requires external setup"
+          : "Quick add",
+    docsUrl: typeof metadata.docsUrl === "string" ? metadata.docsUrl : null,
+    tags:
+      Array.isArray(metadata.tags)
+        ? metadata.tags.filter((item): item is string => typeof item === "string")
+        : [],
+    recommended: Boolean(metadata.recommended),
+    requiresSetup,
+    requiresAuth: connector?.requiresAuth ?? false,
+    authProvider: connector?.authProvider ?? null,
+    privacyLevel: connector?.privacyLevel ?? null,
+    consentRequired: connector?.consentRequired ?? false,
+    scopes: connector?.scopes ?? [],
+  };
+}
 
 export type SystemSkillView = {
   systemSkillId: string;
@@ -65,17 +152,18 @@ export async function getSystemMcpServers(): Promise<SystemMCPView[]> {
       name: mcpServer.name,
       endpoint: mcpServer.endpoint,
       sourceType: mcpServer.sourceType,
+      metadata: mcpServer.metadata,
     })
     .from(mcpServer)
     .where(eq(mcpServer.isActive, true))
     .orderBy(desc(mcpServer.updatedAt));
 
-  return rows.map((row) => ({
-    systemServerId: row.systemServerId,
-    name: row.name,
-    endpoint: row.endpoint,
-    sourceType: row.sourceType ?? "external",
-  }));
+  return rows.map((row) => mapSystemMcpRow(row));
+}
+
+export async function getSystemMcpServerBySlug(slug: string) {
+  const rows = await getSystemMcpServers();
+  return rows.find((row) => row.slug === slug) ?? null;
 }
 
 export async function getSystemSkills(): Promise<SystemSkillView[]> {
@@ -112,6 +200,8 @@ export async function getChatMcpServers(
       useByDefault: userMcpServer.useByDefault,
       enabledInChat: chatMcpServer.enabled,
       linkedChatId: chatMcpServer.chatId,
+      metadata: userMcpServer.metadata,
+      systemMetadata: mcpServer.metadata,
     })
     .from(userMcpServer)
     .innerJoin(mcpServer, eq(userMcpServer.mcpServerId, mcpServer.id))
@@ -125,16 +215,41 @@ export async function getChatMcpServers(
     .where(eq(userMcpServer.userId, userId))
     .orderBy(desc(userMcpServer.updatedAt));
 
-  return rows.map((row) => ({
-    userMcpServerId: row.userMcpServerId,
-    systemServerId: row.systemServerId,
-    systemServerName: row.systemServerName,
-    endpoint: row.endpoint,
-    sourceType: row.sourceType ?? "external",
-    useByDefault: row.useByDefault,
-    enabledInChat:
-      row.linkedChatId === chatId ? (row.enabledInChat ?? false) : false,
-  }));
+  return rows.map((row) => {
+    const metadata =
+      typeof row.metadata === "object" && row.metadata !== null
+        ? (row.metadata as ConnectorAuthMetadata)
+        : null;
+    const connector =
+      row.sourceType === "market" || metadata?.connectorSlug
+        ? getConnectorCatalogItem(
+            metadata?.connectorSlug ??
+              (typeof row.systemMetadata === "object" &&
+              row.systemMetadata !== null &&
+              typeof (row.systemMetadata as { slug?: unknown }).slug === "string"
+                ? ((row.systemMetadata as { slug: string }).slug)
+                : ""),
+          ) ?? null
+        : null;
+
+    return {
+      userMcpServerId: row.userMcpServerId,
+      systemServerId: row.systemServerId,
+      systemServerName: row.systemServerName,
+      endpoint: row.endpoint,
+      sourceType: row.sourceType ?? "external",
+      useByDefault: row.useByDefault,
+      enabledInChat:
+        row.linkedChatId === chatId ? (row.enabledInChat ?? false) : false,
+      connectorSlug: connector?.slug ?? null,
+      requiresAuth: connector?.requiresAuth ?? false,
+      authProvider: connector?.authProvider ?? null,
+      authStatus: getConnectorAuthStatus(connector, metadata),
+      privacyLevel: connector?.privacyLevel ?? null,
+      connectedAt: metadata?.connectedAt ?? null,
+      consentGrantedAt: metadata?.consentGrantedAt ?? null,
+    } satisfies ChatMCPView;
+  });
 }
 
 export async function getUserMcpServers(
@@ -148,21 +263,48 @@ export async function getUserMcpServers(
       endpoint: mcpServer.endpoint,
       sourceType: mcpServer.sourceType,
       useByDefault: userMcpServer.useByDefault,
+      metadata: userMcpServer.metadata,
+      systemMetadata: mcpServer.metadata,
     })
     .from(userMcpServer)
     .innerJoin(mcpServer, eq(userMcpServer.mcpServerId, mcpServer.id))
     .where(eq(userMcpServer.userId, userId))
     .orderBy(desc(userMcpServer.updatedAt));
 
-  return rows.map((row) => ({
-    userMcpServerId: row.userMcpServerId,
-    systemServerId: row.systemServerId,
-    systemServerName: row.systemServerName,
-    endpoint: row.endpoint,
-    sourceType: row.sourceType ?? "external",
-    useByDefault: row.useByDefault,
-    enabledInChat: false,
-  }));
+  return rows.map((row) => {
+    const metadata =
+      typeof row.metadata === "object" && row.metadata !== null
+        ? (row.metadata as ConnectorAuthMetadata)
+        : null;
+    const connector =
+      row.sourceType === "market" || metadata?.connectorSlug
+        ? getConnectorCatalogItem(
+            metadata?.connectorSlug ??
+              (typeof row.systemMetadata === "object" &&
+              row.systemMetadata !== null &&
+              typeof (row.systemMetadata as { slug?: unknown }).slug === "string"
+                ? ((row.systemMetadata as { slug: string }).slug)
+                : ""),
+          ) ?? null
+        : null;
+
+    return {
+      userMcpServerId: row.userMcpServerId,
+      systemServerId: row.systemServerId,
+      systemServerName: row.systemServerName,
+      endpoint: row.endpoint,
+      sourceType: row.sourceType ?? "external",
+      useByDefault: row.useByDefault,
+      enabledInChat: false,
+      connectorSlug: connector?.slug ?? null,
+      requiresAuth: connector?.requiresAuth ?? false,
+      authProvider: connector?.authProvider ?? null,
+      authStatus: getConnectorAuthStatus(connector, metadata),
+      privacyLevel: connector?.privacyLevel ?? null,
+      connectedAt: metadata?.connectedAt ?? null,
+      consentGrantedAt: metadata?.consentGrantedAt ?? null,
+    } satisfies ChatMCPView;
+  });
 }
 
 export async function addMcpServerForUser(params: {
@@ -170,8 +312,9 @@ export async function addMcpServerForUser(params: {
   name: string;
   endpoint: string;
   sourceType?: string;
+  metadata?: Record<string, unknown>;
 }) {
-  const { userId, name, endpoint, sourceType = "external" } = params;
+  const { userId, name, endpoint, sourceType = "external", metadata = {} } = params;
 
   const [systemRecord] = await db
     .insert(mcpServer)
@@ -198,16 +341,128 @@ export async function addMcpServerForUser(params: {
     .values({
       userId,
       mcpServerId: systemRecord.id,
+      metadata,
       createdAt: now(),
       updatedAt: now(),
     })
     .onConflictDoUpdate({
       target: [userMcpServer.userId, userMcpServer.mcpServerId],
-      set: { updatedAt: now() },
+      set: { metadata, updatedAt: now() },
     })
     .returning({ id: userMcpServer.id });
 
   return userRecord.id;
+}
+
+export async function connectOAuthMcpServerForUser(params: {
+  userId: string;
+  systemServerId: string;
+  metadata: ConnectorAuthMetadata;
+  chatId?: string | null;
+}) {
+  const timestamp = now();
+  const [userRecord] = await db
+    .insert(userMcpServer)
+    .values({
+      userId: params.userId,
+      mcpServerId: params.systemServerId,
+      metadata: params.metadata,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    .onConflictDoUpdate({
+      target: [userMcpServer.userId, userMcpServer.mcpServerId],
+      set: {
+        metadata: params.metadata,
+        updatedAt: now(),
+      },
+    })
+    .returning({ id: userMcpServer.id });
+
+  if (params.chatId) {
+    await db
+      .insert(chatMcpServer)
+      .values({
+        chatId: params.chatId,
+        userMcpServerId: userRecord.id,
+        enabled: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      .onConflictDoUpdate({
+        target: [chatMcpServer.chatId, chatMcpServer.userMcpServerId],
+        set: {
+          enabled: true,
+          updatedAt: now(),
+        },
+      });
+  }
+
+  return userRecord.id;
+}
+
+export async function disconnectOAuthMcpServerForUser(params: {
+  userId: string;
+  userMcpServerId: string;
+}) {
+  const [record] = await db
+    .select({
+      id: userMcpServer.id,
+      metadata: userMcpServer.metadata,
+      systemMetadata: mcpServer.metadata,
+    })
+    .from(userMcpServer)
+    .innerJoin(mcpServer, eq(userMcpServer.mcpServerId, mcpServer.id))
+    .where(
+      and(
+        eq(userMcpServer.id, params.userMcpServerId),
+        eq(userMcpServer.userId, params.userId),
+      ),
+    )
+    .limit(1);
+
+  if (!record) {
+    throw new Error("Connector not found or access denied");
+  }
+
+  const existingMetadata =
+    typeof record.metadata === "object" && record.metadata !== null
+      ? (record.metadata as ConnectorAuthMetadata)
+      : {};
+  const systemSlug =
+    typeof record.systemMetadata === "object" &&
+    record.systemMetadata !== null &&
+    typeof (record.systemMetadata as { slug?: unknown }).slug === "string"
+      ? (record.systemMetadata as { slug: string }).slug
+      : undefined;
+
+  const nextMetadata: ConnectorAuthMetadata = {
+    connectorSlug: existingMetadata.connectorSlug ?? systemSlug,
+    provider: existingMetadata.provider,
+    authProvider: existingMetadata.authProvider,
+  };
+
+  await db
+    .update(userMcpServer)
+    .set({
+      metadata: nextMetadata,
+      useByDefault: false,
+      updatedAt: now(),
+    })
+    .where(
+      and(
+        eq(userMcpServer.id, params.userMcpServerId),
+        eq(userMcpServer.userId, params.userId),
+      ),
+    );
+
+  await db
+    .update(chatMcpServer)
+    .set({
+      enabled: false,
+      updatedAt: now(),
+    })
+    .where(eq(chatMcpServer.userMcpServerId, params.userMcpServerId));
 }
 
 export async function addMcpServerForChat(params: {

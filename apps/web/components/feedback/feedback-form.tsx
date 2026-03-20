@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChangeEvent, FormEvent } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,18 +13,21 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@z0/ui/select";
 
 export function FeedbackForm() {
+  type FeedbackType = "bug" | "feature" | "improvement";
+  type FeedbackCategory = "ui" | "ai" | "performance";
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    type: "feature" as const,
+    type: "feature" as FeedbackType,
     title: "",
     content: "",
-    category: "ui"
+    category: "ui" as FeedbackCategory,
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.content.trim()) return;
 
@@ -62,7 +66,12 @@ export function FeedbackForm() {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <FormLabel>Type</FormLabel>
-            <Select value={formData.type} onValueChange={(v: any) => setFormData({ ...formData, type: v })}>
+            <Select
+              value={formData.type}
+              onValueChange={(value: FeedbackType) =>
+                setFormData({ ...formData, type: value })
+              }
+            >
               <SelectTrigger className="h-12 rounded-full border-white/5 bg-white/5 px-6 text-zinc-300 focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
@@ -75,7 +84,12 @@ export function FeedbackForm() {
           </div>
           <div className="space-y-2">
             <FormLabel>Category</FormLabel>
-            <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
+            <Select
+              value={formData.category}
+              onValueChange={(value: FeedbackCategory) =>
+                setFormData({ ...formData, category: value })
+              }
+            >
               <SelectTrigger className="h-12 rounded-full border-white/5 bg-white/5 px-6 text-zinc-300 focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
@@ -92,7 +106,9 @@ export function FeedbackForm() {
           <FormLabel>Title</FormLabel>
           <input
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setFormData({ ...formData, title: e.target.value })
+            }
             className="h-12 w-full rounded-full border border-white/5 bg-white/5 px-6 text-sm text-white outline-none transition-all focus:bg-white/10"
             placeholder="What's on your mind?"
           />
@@ -102,7 +118,9 @@ export function FeedbackForm() {
           <FormLabel>Description</FormLabel>
           <textarea
             value={formData.content}
-            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+              setFormData({ ...formData, content: e.target.value })
+            }
             className="min-h-[120px] w-full rounded-[2rem] border border-white/5 bg-white/5 p-6 text-sm text-white outline-none transition-all focus:bg-white/10"
             placeholder="Tell us more..."
           />

@@ -10,7 +10,7 @@ import {
   Sparkles,
   Wrench,
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@z0/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { SystemPluginMarketItem } from "@/lib/chat";
 

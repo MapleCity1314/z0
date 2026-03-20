@@ -1,51 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { LucideIcon } from "lucide-react";
-import {
-  Bot,
-  Cable,
-  ChevronRight,
-  PlugZap,
-  Sparkles,
-} from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import { NAV_ITEMS } from "@/components/customize/nav";
 import { GlassCard, StatTile } from "@/components/customize/shared";
 import type { CustomizeSection } from "@/components/customize/types";
 import { cn } from "@/lib/utils";
-
-type NavItem = {
-  id: CustomizeSection;
-  label: string;
-  description: string;
-  icon: LucideIcon;
-};
-
-export const NAV_ITEMS: NavItem[] = [
-  {
-    id: "skills",
-    label: "Skills",
-    description: "Domain expertise & procedures",
-    icon: Sparkles,
-  },
-  {
-    id: "connectors",
-    label: "Connectors",
-    description: "Remote MCP servers",
-    icon: Cable,
-  },
-  {
-    id: "plugins",
-    label: "Plugins",
-    description: "Capability surface plans",
-    icon: PlugZap,
-  },
-  {
-    id: "subagents",
-    label: "Subagents",
-    description: "Specialist role routing",
-    icon: Bot,
-  },
-];
 
 export function CustomizeSidebar({
   activeTab,

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@z0/ui/button";
 import { VersionsTable } from "@/components/admin/versions/versions-table";
 import { loadAdminVersionsPage } from "@/lib/admin/loaders";
 

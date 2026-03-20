@@ -13,8 +13,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@z0/ui/button";
+import { ScrollArea } from "@z0/ui/scroll-area";
 import { ChatSidebarItem } from "./chat-sidebar-item";
 import { ChatUserSection } from "./chat-user-section";
 import { deleteChat, getRecentChats } from "@/lib/chat";

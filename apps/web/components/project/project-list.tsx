@@ -1,6 +1,7 @@
 // components/project/project-list.tsx
 "use client";
 
+import type { ChangeEvent } from "react";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,14 +17,15 @@ import {
   Layout,
   Box,
   Terminal,
-  Plus
+  Plus,
+  type LucideIcon,
 } from "lucide-react";
 
 import type { Project } from "@/lib/schema";
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { Input } from "@z0/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@z0/ui/tabs";
+import { Button } from "@z0/ui/button";
 
 // --- Constants & Config ---
 
@@ -34,7 +36,7 @@ const STATUS_STYLES = {
   draft: { label: "Draft", color: "text-zinc-400", bg: "bg-zinc-500/10", border: "border-zinc-500/20", dot: "bg-zinc-500" },
 };
 
-const TYPE_ICONS: Record<string, any> = {
+const TYPE_ICONS: Record<string, LucideIcon> = {
   react: Code2,
   nextjs: Box,
   vue: Layout,
@@ -104,7 +106,7 @@ export function ProjectList({ projects }: ProjectListProps) {
             placeholder="Search projects..." 
             className="pl-9 h-9 bg-zinc-900/50 border-zinc-800 text-zinc-200 focus-visible:ring-zinc-700"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>

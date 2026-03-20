@@ -1,0 +1,14 @@
+/Users/presto/code/work/z0/packages/boss/native/target/release/deps/serde-acaab985b6331b10.d: /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/presto/code/work/z0/packages/boss/native/target/release/build/serde-52ba48f4c6d16176/out/private.rs
+
+/Users/presto/code/work/z0/packages/boss/native/target/release/deps/libserde-acaab985b6331b10.rlib: /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/presto/code/work/z0/packages/boss/native/target/release/build/serde-52ba48f4c6d16176/out/private.rs
+
+/Users/presto/code/work/z0/packages/boss/native/target/release/deps/libserde-acaab985b6331b10.rmeta: /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/presto/code/work/z0/packages/boss/native/target/release/build/serde-52ba48f4c6d16176/out/private.rs
+
+/Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/Users/presto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/Users/presto/code/work/z0/packages/boss/native/target/release/build/serde-52ba48f4c6d16176/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/presto/code/work/z0/packages/boss/native/target/release/build/serde-52ba48f4c6d16176/out

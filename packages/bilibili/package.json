@@ -1,0 +1,37 @@
+{
+  "name": "@z0/bilibili",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "z0-bilibili-mcp": "./bin/z0-bilibili-mcp.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "README.md",
+    "SKILL.md",
+    "bin",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "biome lint .",
+    "format": "biome format --write src test bin scripts",
+    "check-types": "tsc --noEmit",
+    "prepack": "pnpm run build",
+    "release:pack": "node ./scripts/release-package.mjs",
+    "test": "node --test ./test/*.test.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

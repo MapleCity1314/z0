@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createConfiguredMcpToolRuntime,
   getOrCreatePooledMcpToolRuntime,
+  resolveMcpConnection,
   warmMcpServers,
   warmPooledMcpServers,
 } from "./mcp";
@@ -67,6 +68,60 @@ describe("createConfiguredMcpToolRuntime", () => {
 
     expect(result).toEqual({ value: "demo" });
     await runtime.close();
+  });
+
+  it("supports npm booting transport resolution", () => {
+    expect(
+      resolveMcpConnection({
+        id: "server-1",
+        name: "Boss",
+        endpoint:
+          "npm:@z0/boss?args=--workspace&args=packages/boss&env.NODE_ENV=test",
+        sourceType: "npm-package",
+      }),
+    ).toEqual({
+      kind: "npm",
+      command: expect.stringMatching(/npm(\.cmd)?$/),
+      args: ["exec", "--yes", "@z0/boss", "--workspace", "packages/boss"],
+      env: {
+        NODE_ENV: "test",
+      },
+      cwd: undefined,
+    });
+  });
+
+  it("rejects unsupported endpoint formats", () => {
+    expect(() =>
+      resolveMcpConnection({
+        id: "server-1",
+        name: "Broken",
+        endpoint: "ssh://example.com",
+        sourceType: "external",
+      }),
+    ).toThrow("Unsupported MCP endpoint");
+  });
+
+  it("passes stdio transport through for npm servers", async () => {
+    const { createMCPClient } = await import("@ai-sdk/mcp");
+
+    await createConfiguredMcpToolRuntime({
+      servers: [
+        {
+          id: "server-1",
+          name: "Boss",
+          endpoint: "npm:@z0/boss",
+          sourceType: "npm-package",
+        },
+      ],
+    });
+
+    expect(vi.mocked(createMCPClient)).toHaveBeenCalledWith({
+      transport: expect.objectContaining({
+        start: expect.any(Function),
+        send: expect.any(Function),
+        close: expect.any(Function),
+      }),
+    });
   });
 
   it("skips unreachable MCP servers", async () => {

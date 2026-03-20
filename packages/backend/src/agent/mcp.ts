@@ -1,4 +1,9 @@
-import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
+import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import {
+  createMCPClient,
+  type MCPClient,
+  type MCPTransport,
+} from "@ai-sdk/mcp";
 import type { ToolSet } from "ai";
 import { and, desc, eq } from "drizzle-orm";
 import { chatMcpServer, getDb, mcpServer, userMcpServer } from "@z0/db";
@@ -51,6 +56,19 @@ type PooledMcpRuntimeEntry = {
 
 const pooledMcpRuntimes = new Map<string, Promise<PooledMcpRuntimeEntry>>();
 
+export type AgentResolvedMcpConnection =
+  | {
+      kind: "http";
+      url: string;
+    }
+  | {
+      kind: "npm";
+      command: string;
+      args: string[];
+      env?: Record<string, string>;
+      cwd?: string;
+    };
+
 function slugifySegment(value: string) {
   const slug = value
     .trim()
@@ -63,6 +81,196 @@ function slugifySegment(value: string) {
 
 function buildQualifiedToolName(serverName: string, toolName: string) {
   return `mcp_${slugifySegment(serverName)}_${slugifySegment(toolName)}`;
+}
+
+function getNpmCommand() {
+  return process.platform === "win32" ? "npm.cmd" : "npm";
+}
+
+function parseNpmEndpoint(endpoint: string): AgentResolvedMcpConnection | null {
+  if (!endpoint.startsWith("npm:")) {
+    return null;
+  }
+
+  const raw = endpoint.slice("npm:".length).trim();
+  const [packageSpec, query = ""] = raw.split("?", 2);
+
+  if (packageSpec.length === 0) {
+    throw new Error("npm MCP endpoint requires a package spec");
+  }
+
+  const params = new URLSearchParams(query);
+  const args = ["exec", "--yes", packageSpec, ...params.getAll("args")];
+  const envEntries = [...params.entries()]
+    .filter(([key]) => key.startsWith("env."))
+    .map(([key, value]) => [key.slice(4), value] as const);
+  const cwd = params.get("cwd") || undefined;
+
+  return {
+    kind: "npm",
+    command: getNpmCommand(),
+    args,
+    env:
+      envEntries.length > 0
+        ? Object.fromEntries(envEntries)
+        : undefined,
+    cwd,
+  };
+}
+
+export function resolveMcpConnection(
+  server: AgentMcpServerMetadata,
+): AgentResolvedMcpConnection {
+  const npmTransport = parseNpmEndpoint(server.endpoint);
+
+  if (npmTransport) {
+    return npmTransport;
+  }
+
+  if (
+    server.endpoint.startsWith("http://") ||
+    server.endpoint.startsWith("https://")
+  ) {
+    return {
+      kind: "http",
+      url: server.endpoint,
+    };
+  }
+
+  throw new Error(`Unsupported MCP endpoint: ${server.endpoint}`);
+}
+
+class NpmBootMcpTransport implements MCPTransport {
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+  onmessage?: (message: unknown) => void;
+
+  #child: ChildProcessWithoutNullStreams | null = null;
+  #buffer = Buffer.alloc(0);
+
+  constructor(
+    private readonly config: Extract<AgentResolvedMcpConnection, { kind: "npm" }>,
+  ) {}
+
+  async start() {
+    if (this.#child) {
+      return;
+    }
+
+    const child = spawn(this.config.command, this.config.args, {
+      stdio: "pipe",
+      cwd: this.config.cwd,
+      env: {
+        ...process.env,
+        ...this.config.env,
+      },
+    });
+
+    this.#child = child;
+    child.stdout.on("data", (chunk) => {
+      this.#buffer = Buffer.concat([this.#buffer, Buffer.from(chunk)]);
+      this.#drainBuffer();
+    });
+    child.stderr.on("data", (chunk) => {
+      const message = Buffer.from(chunk).toString("utf8").trim();
+
+      if (message.length > 0) {
+        this.onerror?.(new Error(message));
+      }
+    });
+    child.on("error", (error) => {
+      this.onerror?.(error);
+    });
+    child.on("close", () => {
+      this.#child = null;
+      this.onclose?.();
+    });
+  }
+
+  async send(message: unknown) {
+    if (!this.#child) {
+      throw new Error("MCP stdio transport has not been started");
+    }
+
+    const payload = Buffer.from(JSON.stringify(message), "utf8");
+    const frame = Buffer.concat([
+      Buffer.from(`Content-Length: ${payload.length}\r\n\r\n`, "utf8"),
+      payload,
+    ]);
+
+    await new Promise<void>((resolve, reject) => {
+      this.#child?.stdin.write(frame, (error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
+
+  async close() {
+    if (!this.#child) {
+      return;
+    }
+
+    const child = this.#child;
+    this.#child = null;
+    child.kill();
+  }
+
+  #drainBuffer() {
+    while (true) {
+      const headerEnd = this.#buffer.indexOf("\r\n\r\n");
+
+      if (headerEnd === -1) {
+        return;
+      }
+
+      const headerText = this.#buffer.slice(0, headerEnd).toString("utf8");
+      const contentLengthMatch = headerText.match(/Content-Length:\s*(\d+)/iu);
+
+      if (!contentLengthMatch) {
+        this.onerror?.(new Error("Missing Content-Length header in MCP stdio transport"));
+        this.#buffer = Buffer.alloc(0);
+        return;
+      }
+
+      const contentLength = Number(contentLengthMatch[1]);
+      const bodyStart = headerEnd + 4;
+
+      if (this.#buffer.length < bodyStart + contentLength) {
+        return;
+      }
+
+      const body = this.#buffer
+        .slice(bodyStart, bodyStart + contentLength)
+        .toString("utf8");
+      this.#buffer = this.#buffer.slice(bodyStart + contentLength);
+
+      try {
+        this.onmessage?.(JSON.parse(body));
+      } catch (error) {
+        this.onerror?.(
+          error instanceof Error ? error : new Error(String(error)),
+        );
+      }
+    }
+  }
+}
+
+function createTransport(
+  connection: AgentResolvedMcpConnection,
+): { type: "http"; url: string } | MCPTransport {
+  if (connection.kind === "http") {
+    return {
+      type: "http",
+      url: connection.url,
+    };
+  }
+
+  return new NpmBootMcpTransport(connection);
 }
 
 function mergeMcpToolMetadata(
@@ -161,11 +369,9 @@ async function createRuntimeWithWarmResults(params: {
 
   for (const server of params.servers) {
     try {
+      const transport = createTransport(resolveMcpConnection(server));
       const client = await createMCPClient({
-        transport: {
-          type: "http",
-          url: server.endpoint,
-        },
+        transport,
       });
 
       const serverTools = await client.tools();

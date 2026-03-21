@@ -38,7 +38,7 @@ const SERVICE_MARK_ALIASES: Record<ServiceMarkKey, readonly string[]> = {
 
 const SERVICE_MARK_SURFACES: Record<ServiceMarkKey, string> = {
   boss:
-    "border-zinc-700 bg-zinc-950 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
+    "border-zinc-300/80 bg-white text-[#00B7A8] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
   twitter:
     "border-zinc-300/80 bg-white text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
   bilibili:
@@ -62,6 +62,7 @@ const SERVICE_MARK_SURFACES: Record<ServiceMarkKey, string> = {
 };
 
 const SERVICE_MARK_ASSETS: Partial<Record<ServiceMarkKey, string>> = {
+  boss: "/brand/services/boss.svg",
   twitter: "/brand/services/x.svg",
   bilibili: "/brand/services/bilibili.svg",
   xiaohongshu: "/brand/services/xiaohongshu.svg",

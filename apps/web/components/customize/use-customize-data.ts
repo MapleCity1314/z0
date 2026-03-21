@@ -225,26 +225,45 @@ export function useCustomizeData(activeTab: CustomizeSection) {
   };
 
   const toggleSkillDefault = async (userSkillId: string, next: boolean) => {
-    setSavingSkillDefaultId(userSkillId);
-    const result = await setUserSkillDefaultAction({ userSkillId, useByDefault: next });
-    setSavingSkillDefaultId(null);
-
-    if (!result.success) {
-      showActionError(result.message);
-      return;
-    }
+    const previousSkill =
+      skills.find((item) => item.userSkillId === userSkillId) ?? null;
 
     setSkills((current) =>
       current.map((item) =>
         item.userSkillId === userSkillId ? { ...item, useByDefault: next } : item,
       ),
     );
+    setSavingSkillDefaultId(userSkillId);
+    const result = await setUserSkillDefaultAction({ userSkillId, useByDefault: next });
+    setSavingSkillDefaultId(null);
+
+    if (!result.success) {
+      if (previousSkill) {
+        setSkills((current) =>
+          current.map((item) =>
+            item.userSkillId === userSkillId ? previousSkill : item,
+          ),
+        );
+      }
+      showActionError(result.message);
+      return;
+    }
   };
 
   const toggleConnectorDefault = async (
     userMcpServerId: string,
     next: boolean,
   ) => {
+    const previousConnector =
+      connectors.find((item) => item.userMcpServerId === userMcpServerId) ?? null;
+
+    setConnectors((current) =>
+      current.map((item) =>
+        item.userMcpServerId === userMcpServerId
+          ? { ...item, useByDefault: next }
+          : item,
+      ),
+    );
     setSavingConnectorDefaultId(userMcpServerId);
     const result = await setUserMcpDefaultAction({
       userMcpServerId,
@@ -253,17 +272,16 @@ export function useCustomizeData(activeTab: CustomizeSection) {
     setSavingConnectorDefaultId(null);
 
     if (!result.success) {
+      if (previousConnector) {
+        setConnectors((current) =>
+          current.map((item) =>
+            item.userMcpServerId === userMcpServerId ? previousConnector : item,
+          ),
+        );
+      }
       showActionError(result.message);
       return;
     }
-
-    setConnectors((current) =>
-      current.map((item) =>
-        item.userMcpServerId === userMcpServerId
-          ? { ...item, useByDefault: next }
-          : item,
-        ),
-    );
   };
 
   const disconnectConnector = async (userMcpServerId: string) => {

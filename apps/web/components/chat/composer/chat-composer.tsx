@@ -531,6 +531,19 @@ export function ChatComposer({
           await refreshChatIntegrations();
         }}
         onServersChange={async (nextServer) => {
+          const previousServer =
+            mcpServers.find(
+              (item) => item.userMcpServerId === nextServer.userMcpServerId,
+            ) ?? null;
+
+          setMcpServers((prev) =>
+            prev.map((item) =>
+              item.userMcpServerId === nextServer.userMcpServerId
+                ? nextServer
+                : item,
+            ),
+          );
+
           const result = showWelcome
             ? await setUserMcpDefaultAction({
                 userMcpServerId: nextServer.userMcpServerId,
@@ -543,16 +556,18 @@ export function ChatComposer({
                 useByDefault: nextServer.useByDefault,
               });
           if (!result.success) {
+            if (previousServer) {
+              setMcpServers((prev) =>
+                prev.map((item) =>
+                  item.userMcpServerId === previousServer.userMcpServerId
+                    ? previousServer
+                    : item,
+                ),
+              );
+            }
             showActionError(result.message);
             return;
           }
-          setMcpServers((prev) =>
-            prev.map((item) =>
-              item.userMcpServerId === nextServer.userMcpServerId
-                ? nextServer
-                : item,
-            ),
-          );
         }}
       />
 
@@ -588,6 +603,16 @@ export function ChatComposer({
           await refreshChatIntegrations();
         }}
         onSkillsChange={async (nextSkill) => {
+          const previousSkill =
+            skills.find((item) => item.userSkillId === nextSkill.userSkillId) ??
+            null;
+
+          setSkills((prev) =>
+            prev.map((item) =>
+              item.userSkillId === nextSkill.userSkillId ? nextSkill : item,
+            ),
+          );
+
           const result = showWelcome
             ? await setUserSkillDefaultAction({
                 userSkillId: nextSkill.userSkillId,
@@ -600,14 +625,18 @@ export function ChatComposer({
                 useByDefault: nextSkill.useByDefault,
               });
           if (!result.success) {
+            if (previousSkill) {
+              setSkills((prev) =>
+                prev.map((item) =>
+                  item.userSkillId === previousSkill.userSkillId
+                    ? previousSkill
+                    : item,
+                ),
+              );
+            }
             showActionError(result.message);
             return;
           }
-          setSkills((prev) =>
-            prev.map((item) =>
-              item.userSkillId === nextSkill.userSkillId ? nextSkill : item,
-            ),
-          );
         }}
       />
 

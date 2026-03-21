@@ -11,6 +11,13 @@ function maskHeaderValue(value: string) {
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
+function normalizeEnvValue(value?: string) {
+  if (!value) return undefined;
+
+  const normalized = value.trim().replace(/^['"]|['"]$/g, "");
+  return normalized.length > 0 ? normalized : undefined;
+}
+
 function summarizeHeaders(headers: RequestInit["headers"] | undefined) {
   const entries = new Headers(headers).entries();
   return Object.fromEntries(
@@ -26,23 +33,39 @@ function summarizeHeaders(headers: RequestInit["headers"] | undefined) {
 function createLoggedFetch(provider: string): typeof fetch {
   return async (input, init) => {
     const request = input instanceof Request ? input : new Request(input, init);
+    const isAnthropicProxyRequest =
+      provider === "anthropic" &&
+      !request.url.startsWith("https://api.anthropic.com/");
+
+    const forwardedHeaders = new Headers(request.headers);
+
+    // Some Anthropic-compatible proxies reject Anthropic beta headers that the AI SDK
+    // adds automatically for tool streaming / structured outputs. Claude Code may not
+    // send the same beta combination, so normalize proxy requests to a safer baseline.
+    if (isAnthropicProxyRequest) {
+      forwardedHeaders.delete("anthropic-beta");
+    }
+
+    const forwardedRequest = new Request(request, {
+      headers: forwardedHeaders,
+    });
 
     if (process.env.NODE_ENV !== "production") {
       console.log(`[Model:${provider}] Outbound request`, {
-        method: request.method,
-        url: request.url,
-        headers: summarizeHeaders(request.headers),
+        method: forwardedRequest.method,
+        url: forwardedRequest.url,
+        headers: summarizeHeaders(forwardedRequest.headers),
       });
     }
 
-    const response = await fetch(request);
+    const response = await fetch(forwardedRequest);
 
     if (!response.ok && process.env.NODE_ENV !== "production") {
       const body = await response.clone().text().catch(() => "");
       console.error(`[Model:${provider}] Outbound response failed`, {
         status: response.status,
         statusText: response.statusText,
-        url: request.url,
+        url: forwardedRequest.url,
         body: body.slice(0, 500),
       });
     }
@@ -52,10 +75,24 @@ function createLoggedFetch(provider: string): typeof fetch {
 }
 
 function normalizeAnthropicBaseURL(baseURL?: string) {
-  if (!baseURL) return undefined;
+  const cleaned = normalizeEnvValue(baseURL);
+  if (!cleaned) return undefined;
 
-  let normalized = baseURL.trim().replace(/\/+$/, "");
+  let normalized = cleaned.replace(/\/+$/, "");
   normalized = normalized.replace(/\/messages$/, "");
+
+  if (!normalized.endsWith("/v1")) {
+    normalized = `${normalized}/v1`;
+  }
+
+  return normalized;
+}
+
+function normalizeOpenAICompatibleBaseURL(baseURL?: string) {
+  const cleaned = normalizeEnvValue(baseURL);
+  if (!cleaned) return undefined;
+
+  let normalized = cleaned.replace(/\/+$/, "");
 
   if (!normalized.endsWith("/v1")) {
     normalized = `${normalized}/v1`;
@@ -66,7 +103,7 @@ function normalizeAnthropicBaseURL(baseURL?: string) {
 
 function getGoogleProvider() {
   return createGoogleGenerativeAI({
-    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "",
+    apiKey: normalizeEnvValue(process.env.GOOGLE_GENERATIVE_AI_API_KEY) ?? "",
     fetch: createLoggedFetch("google"),
   });
 }
@@ -74,9 +111,22 @@ function getGoogleProvider() {
 function getKimiProvider() {
   return createOpenAICompatible({
     name: "kimi",
-    apiKey: process.env.KIMI_API_KEY ?? "",
-    baseURL: process.env.KIMI_BASE_URL ?? "",
+    apiKey: normalizeEnvValue(process.env.KIMI_API_KEY) ?? "",
+    baseURL:
+      normalizeOpenAICompatibleBaseURL(process.env.KIMI_BASE_URL) ??
+      "https://api.moonshot.cn/v1",
     fetch: createLoggedFetch("kimi"),
+  });
+}
+
+function getOpenAIProvider() {
+  return createOpenAICompatible({
+    name: "openai",
+    apiKey: normalizeEnvValue(process.env.OPENAI_API_KEY) ?? "",
+    baseURL:
+      normalizeOpenAICompatibleBaseURL(process.env.OPENAI_BASE_URL) ??
+      "https://api.openai.com/v1",
+    fetch: createLoggedFetch("openai"),
   });
 }
 
@@ -87,7 +137,10 @@ function getAnthropicProvider() {
     ) ?? "https://api.anthropic.com/v1";
 
   return createAnthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY ?? process.env.CLAUDE_API_KEY ?? "",
+    apiKey:
+      normalizeEnvValue(process.env.ANTHROPIC_API_KEY) ??
+      normalizeEnvValue(process.env.CLAUDE_API_KEY) ??
+      "",
     baseURL: anthropicBaseURL,
     fetch: createLoggedFetch("anthropic"),
   });
@@ -96,11 +149,15 @@ function getAnthropicProvider() {
 function createRegistry() {
   const kimi = getKimiProvider();
   const google = getGoogleProvider();
+  const openai = getOpenAIProvider();
   const anthropic = getAnthropicProvider();
 
   const kimiProvider = customProvider({
     languageModels: {
       "k2.5": kimi(process.env.KIMI_CHAT_MODEL ?? "kimi-k2.5"),
+      "k2-0905-preview": kimi(
+        process.env.KIMI_PRO_MODEL ?? "kimi-k2-0905-preview",
+      ),
       thinking: kimi(process.env.KIMI_THINKING_MODEL ?? "kimi-thinking"),
       vision: kimi(
         process.env.KIMI_VISION_MODEL ?? "moonshot-v1-32k-vision-preview",
@@ -117,6 +174,14 @@ function createRegistry() {
     fallbackProvider: google,
   });
 
+  const openAIProvider = customProvider({
+    languageModels: {
+      codex53: openai(process.env.OPENAI_Z0_PRO_MODEL ?? "gpt-5.3"),
+      codex54: openai(process.env.OPENAI_Z0_MAX_MODEL ?? "gpt-5.4"),
+    },
+    fallbackProvider: openai,
+  });
+
   const claudeProvider = customProvider({
     languageModels: {
       sonnet46: anthropic(process.env.CLAUDE_SONNET_MODEL ?? "claude-sonnet-4-6"),
@@ -129,6 +194,7 @@ function createRegistry() {
     {
       kimi: kimiProvider,
       google: googleProvider,
+      openai: openAIProvider,
       claude: claudeProvider,
     },
     { separator: ":" },
@@ -141,12 +207,12 @@ export const Z0_MODEL_MAP = {
     thinking: "kimi:thinking",
   },
   "z0-pro": {
-    standard: "claude:sonnet46",
-    thinking: "claude:opus46",
+    standard: "kimi:k2-0905-preview",
+    thinking: "kimi:k2-0905-preview",
   },
   "z0-max": {
-    standard: "claude:sonnet46",
-    thinking: "claude:opus46",
+    standard: "kimi:k2.5",
+    thinking: "kimi:k2.5",
   },
 } as const;
 
@@ -169,6 +235,7 @@ type LanguageModel = ReturnType<ProviderRegistry["languageModel"]>;
 type ProviderLanguageModelId =
   | `google:${string}`
   | `kimi:${string}`
+  | `openai:${string}`
   | `claude:${string}`;
 
 type RegistryAdapter = {

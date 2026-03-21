@@ -491,6 +491,7 @@ export function ChatComposer({
       <McpServerDialog
         open={mcpDialogOpen}
         onOpenChange={setMcpDialogOpen}
+        showWelcome={showWelcome}
         mcpName={mcpName}
         mcpEndpoint={mcpEndpoint}
         onMcpNameChange={setMcpName}

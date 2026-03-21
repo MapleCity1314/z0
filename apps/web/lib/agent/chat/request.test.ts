@@ -68,11 +68,7 @@ describe("agent chat request helpers", () => {
   });
 
   it("enables anthropic reasoning only for supported models", () => {
-    expect(getAnthropicReasoningOptions("z0-pro", true)).toEqual({
-      anthropic: {
-        thinking: { type: "enabled", budgetTokens: 12000 },
-      },
-    });
+    expect(getAnthropicReasoningOptions("z0-pro", true)).toBeUndefined();
     expect(getAnthropicReasoningOptions("z0-mini", true)).toBeUndefined();
     expect(buildZ0MaxErrorHint("service unavailable")).toContain(
       "z0-max config hint",

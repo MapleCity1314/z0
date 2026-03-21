@@ -10,7 +10,10 @@ import {
   getRelevantMemories,
 } from "@/lib/agent/memory/service";
 import { processAllMessageFiles } from "@/lib/agent/chat/attachments";
-import { runDeferredPersistence } from "@/lib/agent/chat/persistence";
+import {
+  persistNewChatShell,
+  runDeferredPersistence,
+} from "@/lib/agent/chat/persistence";
 import {
   logResponsePreview,
   prepareChatForwardRequest,
@@ -55,6 +58,16 @@ export async function POST(request: NextRequest) {
       getRelevantMemories,
       formatMemoriesForContext,
     });
+
+    if (forwardedRequest.persistence.isNewChat) {
+      await persistNewChatShell({
+        chatId: forwardedRequest.persistence.chatId,
+        userId: forwardedRequest.persistence.userId,
+        messages: forwardedRequest.persistence.messages,
+        projectId: forwardedRequest.persistence.projectId,
+      });
+      forwardedRequest.persistence.isNewChat = false;
+    }
 
     runDeferredPersistence(forwardedRequest.persistence).catch(() => undefined);
 

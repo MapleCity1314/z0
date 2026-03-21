@@ -165,15 +165,7 @@ export function getAnthropicReasoningOptions(
   model: ModelName,
   isReasoning: boolean,
 ): { anthropic: AnthropicLanguageModelOptions } | undefined {
-  if (!isReasoning || (model !== "z0-pro" && model !== "z0-max")) {
-    return undefined;
-  }
-
-  return {
-    anthropic: {
-      thinking: { type: "enabled", budgetTokens: 12000 },
-    },
-  };
+  return undefined;
 }
 
 export function addMessageMetadata(
@@ -206,12 +198,9 @@ export function isFilePart(part: unknown): part is FilePart {
 }
 
 export function buildZ0MaxErrorHint(cause: string) {
-  const sonnetModel = process.env.CLAUDE_SONNET_MODEL ?? "claude-sonnet-4-6";
-  const opusModel = process.env.CLAUDE_OPUS_MODEL ?? "claude-opus-4-6";
-  const anthropicBase =
-    process.env.ANTHROPIC_BASE_URL ??
-    process.env.CLAUDE_BASE_URL ??
-    "(default)";
+  const proModel = process.env.KIMI_PRO_MODEL ?? "kimi-k2-0905-preview";
+  const maxModel = process.env.KIMI_CHAT_MODEL ?? "kimi-k2.5";
+  const kimiBase = process.env.KIMI_BASE_URL ?? "(default)";
 
-  return `${cause}. z0-max config hint: verify ANTHROPIC_BASE_URL points to a healthy Anthropic-compatible /v1 endpoint, and verify model IDs exist and are enabled on that endpoint. Current sonnet="${sonnetModel}", opus="${opusModel}", base="${anthropicBase}".`;
+  return `${cause}. z0-max config hint: verify KIMI_BASE_URL points to a healthy OpenAI-compatible /v1 endpoint, verify KIMI_API_KEY is valid, and verify model IDs exist and are enabled on that endpoint. Current pro="${proModel}", max="${maxModel}", base="${kimiBase}".`;
 }

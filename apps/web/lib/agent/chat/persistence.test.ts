@@ -117,6 +117,38 @@ describe("agent chat persistence helpers", () => {
     });
   });
 
+  it("persists the new chat shell before deferred work", async () => {
+    actions.generateTitleFromUserMessage.mockResolvedValue({
+      success: true,
+      data: "New title",
+    });
+    actions.saveChat.mockResolvedValue({ success: true });
+
+    const { persistNewChatShell } = await import(
+      "@/lib/agent/chat/persistence"
+    );
+
+    await persistNewChatShell({
+      chatId: "chat-1",
+      userId: "user-1",
+      messages: [
+        {
+          id: "m1",
+          role: "user",
+          parts: [{ type: "text", text: "draw a flow" }],
+        },
+      ],
+      projectId: null,
+    });
+
+    expect(actions.saveChat).toHaveBeenCalledWith({
+      id: "chat-1",
+      title: "New title",
+      userId: "user-1",
+      projectId: undefined,
+    });
+  });
+
   it("persists new chats and extracts memories", async () => {
     actions.generateTitleFromUserMessage.mockResolvedValue({
       success: true,

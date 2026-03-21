@@ -53,6 +53,7 @@ import {
 type McpServerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  showWelcome?: boolean;
   mcpName: string;
   mcpEndpoint: string;
   onMcpNameChange: (value: string) => void;
@@ -87,6 +88,7 @@ const sourceConfig = {
 export function McpServerDialog({
   open,
   onOpenChange,
+  showWelcome = false,
   mcpName,
   mcpEndpoint,
   onMcpNameChange,
@@ -238,7 +240,7 @@ export function McpServerDialog({
               <div className="flex shrink-0 items-center justify-between border-zinc-800 border-b bg-zinc-900/40 px-4 py-3">
                 <h3 className="flex items-center gap-2 font-medium text-sm text-zinc-200">
                   <Settings2 className="h-4 w-4 text-zinc-400" />
-                  Linked to this chat
+                  {showWelcome ? "Saved for new chats" : "Linked to this chat"}
                 </h3>
                 <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
                   {servers.length} items
@@ -246,6 +248,12 @@ export function McpServerDialog({
               </div>
 
               <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+                {showWelcome ? (
+                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200">
+                    This draft chat is not persisted yet. MCPs saved here will be
+                    applied automatically when you send the first message.
+                  </div>
+                ) : null}
                 {loading ? (
                   <div className="flex h-32 items-center justify-center text-sm text-zinc-500">
                     <span className="animate-pulse">Loading...</span>
@@ -334,9 +342,17 @@ export function McpServerDialog({
                         </div>
 
                         <div className="flex shrink-0 items-center gap-4 rounded-lg bg-zinc-950/50 p-2 sm:bg-transparent sm:p-0">
-                          <div className="flex items-center gap-2 text-xs text-zinc-300 hover:text-white">
+                          <div
+                            className={cn(
+                              "flex items-center gap-2 text-xs",
+                              showWelcome
+                                ? "cursor-not-allowed text-zinc-500"
+                                : "text-zinc-300 hover:text-white",
+                            )}
+                          >
                             <Switch
                               checked={server.useInCurrentChat}
+                              disabled={showWelcome}
                               onCheckedChange={(checked: boolean) =>
                                 void onServersChange({
                                   ...server,
@@ -344,7 +360,9 @@ export function McpServerDialog({
                                 })
                               }
                             />
-                            Current chat
+                            {showWelcome
+                              ? "Current chat after first message"
+                              : "Current chat"}
                           </div>
                           <div className="flex items-center gap-2 text-xs text-zinc-300 hover:text-white">
                             <Switch

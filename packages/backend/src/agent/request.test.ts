@@ -82,11 +82,7 @@ describe("agent request helpers", () => {
   });
 
   it("builds reasoning options and z0-max hint", () => {
-    expect(getAnthropicReasoningOptions("z0-pro", true)).toEqual({
-      anthropic: {
-        thinking: { type: "enabled", budgetTokens: 12000 },
-      },
-    });
+    expect(getAnthropicReasoningOptions("z0-pro", true)).toBeUndefined();
     expect(buildZ0MaxErrorHint("503")).toContain("z0-max config hint");
   });
 });

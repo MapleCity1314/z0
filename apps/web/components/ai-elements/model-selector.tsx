@@ -87,7 +87,14 @@ export const ModelSelectorContent = ({
   title = "Model Selector",
   ...props
 }: ModelSelectorContentProps) => (
-  <DialogContent className={cn("p-0", className)} {...props}>
+  <DialogContent
+    className={cn(
+      "w-[min(26rem,calc(100vw-1rem))] max-w-[min(26rem,calc(100vw-1rem))] overflow-hidden rounded-2xl border border-zinc-200/80 p-0 shadow-xl dark:border-zinc-800/80",
+      className,
+    )}
+    showCloseButton={false}
+    {...props}
+  >
     <DialogTitle className="sr-only">{title}</DialogTitle>
     <Command className="**:data-[slot=command-input-wrapper]:h-auto">
       {children}
@@ -107,7 +114,10 @@ export const ModelSelectorInput = ({
   className,
   ...props
 }: ModelSelectorInputProps) => (
-  <CommandInput className={cn("h-auto py-3.5", className)} {...props} />
+  <CommandInput
+    className={cn("h-auto border-zinc-200/80 py-3.5 dark:border-zinc-800/80", className)}
+    {...props}
+  />
 );
 
 export type ModelSelectorListProps = ComponentProps<typeof CommandList>;

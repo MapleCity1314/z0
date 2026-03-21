@@ -97,6 +97,34 @@ export async function persistAssistantMessage(params: {
   }
 }
 
+export async function persistNewChatShell(params: {
+  chatId: string;
+  userId: string;
+  messages: UIMessage[];
+  projectId: string | null;
+}) {
+  const firstUserMessage = params.messages.find(
+    (message) => message.role === "user",
+  );
+  const titleResult = firstUserMessage
+    ? await generateTitleFromUserMessage({ message: firstUserMessage })
+    : { success: false, data: "New Chat" };
+
+  const title =
+    titleResult.success && titleResult.data ? titleResult.data : "New Chat";
+
+  const saveChatResult = await saveChat({
+    id: params.chatId,
+    title,
+    userId: params.userId,
+    projectId: params.projectId ?? undefined,
+  });
+
+  if (!saveChatResult.success) {
+    throw new Error(saveChatResult.message);
+  }
+}
+
 export async function runDeferredPersistence(params: {
   chatId: string;
   userId: string;
@@ -108,27 +136,17 @@ export async function runDeferredPersistence(params: {
   const { chatId, userId, messages, projectId, isNewChat, userQuery } = params;
 
   if (isNewChat) {
-    const firstUserMessage = messages.find(
-      (message) => message.role === "user",
-    );
-    const titleResult = firstUserMessage
-      ? await generateTitleFromUserMessage({ message: firstUserMessage })
-      : { success: false, data: "New Chat" };
-
-    const title =
-      titleResult.success && titleResult.data ? titleResult.data : "New Chat";
-
-    const saveChatResult = await saveChat({
-      id: chatId,
-      title,
-      userId,
-      projectId: projectId ?? undefined,
-    });
-
-    if (!saveChatResult.success) {
+    try {
+      await persistNewChatShell({
+        chatId,
+        userId,
+        messages,
+        projectId,
+      });
+    } catch (error) {
       console.error(
         "[Server][Deferred] Failed to save chat:",
-        saveChatResult.message,
+        error instanceof Error ? error.message : String(error),
       );
     }
   }

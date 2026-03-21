@@ -91,10 +91,10 @@ export function ToggleCard({
           </p>
         </div>
       </div>
-      <label className="flex flex-none items-center gap-3 rounded-full bg-white/70 px-4 py-2 text-[10px] font-bold uppercase text-zinc-500 transition-colors group-hover:bg-white group-hover:text-zinc-900 dark:bg-white/5 dark:text-zinc-400 dark:group-hover:bg-white/10 dark:group-hover:text-zinc-200">
+      <div className="flex flex-none items-center gap-3 rounded-full bg-white/70 px-4 py-2 text-[10px] font-bold uppercase text-zinc-500 transition-colors group-hover:bg-white group-hover:text-zinc-900 dark:bg-white/5 dark:text-zinc-400 dark:group-hover:bg-white/10 dark:group-hover:text-zinc-200">
         <span>Default</span>
         <Switch checked={checked} disabled={disabled} onCheckedChange={onCheckedChange} />
-      </label>
+      </div>
     </GlassCard>
   );
 }
@@ -258,14 +258,14 @@ export function ConnectorCard({
           ) : null}
         </div>
 
-        <label className="flex flex-none items-center gap-3 rounded-full bg-white/70 px-4 py-2 text-[10px] font-bold uppercase text-zinc-500 transition-colors group-hover:bg-white group-hover:text-zinc-900 dark:bg-white/5 dark:text-zinc-400 dark:group-hover:bg-white/10 dark:group-hover:text-zinc-200">
+        <div className="flex flex-none items-center gap-3 rounded-full bg-white/70 px-4 py-2 text-[10px] font-bold uppercase text-zinc-500 transition-colors group-hover:bg-white group-hover:text-zinc-900 dark:bg-white/5 dark:text-zinc-400 dark:group-hover:bg-white/10 dark:group-hover:text-zinc-200">
           <span>Default</span>
           <Switch
             checked={connector.useByDefault}
             disabled={defaultDisabled}
             onCheckedChange={onCheckedChange}
           />
-        </label>
+        </div>
       </div>
     </GlassCard>
   );

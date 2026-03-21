@@ -254,7 +254,7 @@ export function SkillsDialog({
                       </div>
 
                       <div className="flex shrink-0 items-center gap-4 rounded-lg bg-zinc-950/50 p-2 sm:bg-transparent sm:p-0">
-                        <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-300 hover:text-white">
+                        <div className="flex items-center gap-2 text-xs text-zinc-300 hover:text-white">
                           <Switch
                             checked={skill.useInCurrentChat}
                             onCheckedChange={(checked: boolean) =>
@@ -265,8 +265,8 @@ export function SkillsDialog({
                             }
                           />
                           当前对话
-                        </label>
-                        <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-300 hover:text-white">
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-zinc-300 hover:text-white">
                           <Switch
                             checked={skill.useByDefault}
                             onCheckedChange={(checked: boolean) =>
@@ -277,7 +277,7 @@ export function SkillsDialog({
                             }
                           />
                           新对话默认
-                        </label>
+                        </div>
                       </div>
                     </div>
                   ))

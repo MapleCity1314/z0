@@ -334,7 +334,7 @@ export function McpServerDialog({
                         </div>
 
                         <div className="flex shrink-0 items-center gap-4 rounded-lg bg-zinc-950/50 p-2 sm:bg-transparent sm:p-0">
-                          <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-300 hover:text-white">
+                          <div className="flex items-center gap-2 text-xs text-zinc-300 hover:text-white">
                             <Switch
                               checked={server.useInCurrentChat}
                               onCheckedChange={(checked: boolean) =>
@@ -345,8 +345,8 @@ export function McpServerDialog({
                               }
                             />
                             Current chat
-                          </label>
-                          <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-300 hover:text-white">
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-zinc-300 hover:text-white">
                             <Switch
                               checked={server.useByDefault}
                               onCheckedChange={(checked: boolean) =>
@@ -357,7 +357,7 @@ export function McpServerDialog({
                               }
                             />
                             Default for new chats
-                          </label>
+                          </div>
                         </div>
                       </div>
                     );

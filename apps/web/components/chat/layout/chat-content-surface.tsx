@@ -14,7 +14,7 @@ export function ChatContentSurface({
   return (
     <div
       className={cn(
-        "relative h-full overflow-hidden rounded-xl",
+        "relative isolate h-full overflow-hidden rounded-xl",
         className,
       )}
     >

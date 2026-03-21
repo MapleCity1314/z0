@@ -56,6 +56,67 @@ describe("agent chat persistence helpers", () => {
     ]);
   });
 
+  it("builds and persists assistant error messages", async () => {
+    actions.saveMessages.mockResolvedValue({ success: true });
+
+    const {
+      buildPersistableAssistantMessage,
+      persistAssistantMessage,
+    } = await import("@/lib/agent/chat/persistence");
+
+    const assistantMessage = {
+      id: "assistant-error-1",
+      role: "assistant",
+      parts: [
+        {
+          type: "data-error",
+          data: {
+            title: "Error",
+            message: "Something went wrong. Please try again later.",
+            cause: "Agent API returned 500",
+            timestamp: "2026-03-21T12:00:00.000Z",
+          },
+        },
+      ],
+    } as const;
+
+    const persistable = buildPersistableAssistantMessage(
+      "chat-1",
+      assistantMessage as any,
+    );
+
+    expect(persistable).toMatchObject({
+      id: "assistant-error-1",
+      chatId: "chat-1",
+      role: "assistant",
+      attachments: [],
+      parts: [
+        {
+          kind: "data",
+          version: 1,
+          payload: {
+            type: "data-error",
+            data: {
+              title: "Error",
+              message: "Something went wrong. Please try again later.",
+              cause: "Agent API returned 500",
+              timestamp: "2026-03-21T12:00:00.000Z",
+            },
+          },
+        },
+      ],
+    });
+
+    await persistAssistantMessage({
+      chatId: "chat-1",
+      message: assistantMessage as any,
+    });
+
+    expect(actions.saveMessages).toHaveBeenCalledWith({
+      messages: [expect.objectContaining({ id: "assistant-error-1" })],
+    });
+  });
+
   it("persists new chats and extracts memories", async () => {
     actions.generateTitleFromUserMessage.mockResolvedValue({
       success: true,

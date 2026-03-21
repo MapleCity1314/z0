@@ -19,7 +19,7 @@ export function ThemedFluidBackground({
   const isDark = resolvedTheme === "dark";
 
   return (
-    <div className={cn("absolute inset-0 z-0", className)}>
+    <div className={cn("pointer-events-none absolute inset-0 z-0 overflow-hidden", className)}>
       <FluidBackground isDark={isDark} />
       <div
         className={cn(

@@ -13,7 +13,7 @@ vi.mock("@/lib/api", () => ({
   apiFetch,
 }));
 
-vi.mock("@z0/backend", () => ({
+vi.mock("@z0/backend/agent/mcp", () => ({
   warmPooledMcpServers,
 }));
 

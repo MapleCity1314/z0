@@ -54,6 +54,7 @@ import {
   type ClipboardEventHandler,
   type ComponentProps,
   createContext,
+  forwardRef,
   type FormEvent,
   type FormEventHandler,
   Fragment,
@@ -918,17 +919,16 @@ export const PromptInputTools = ({
 );
 
 export type PromptInputButtonProps = ComponentProps<typeof InputGroupButton>;
-export const PromptInputButton = ({
-  variant = "ghost",
-  className,
-  size,
-  ...props
-}: PromptInputButtonProps) => {
+export const PromptInputButton = forwardRef<
+  HTMLButtonElement,
+  PromptInputButtonProps
+>(({ variant = "ghost", className, size, ...props }, ref) => {
   const newSize = size ?? (Children.count(props.children) > 1 ? "sm" : "icon-sm");
   return (
     <InputGroupButton
+      ref={ref}
       className={cn(
-        "rounded-full transition-all duration-200", 
+        "rounded-full transition-all duration-200",
         // Light
         "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100",
         // Dark
@@ -941,7 +941,9 @@ export const PromptInputButton = ({
       {...props}
     />
   );
-};
+});
+
+PromptInputButton.displayName = "PromptInputButton";
 
 export type PromptInputActionMenuProps = ComponentProps<typeof DropdownMenu>;
 export const PromptInputActionMenu = (props: PromptInputActionMenuProps) => (
@@ -968,17 +970,20 @@ export const PromptInputActionMenuContent = ({
   className,
   ...props
 }: PromptInputActionMenuContentProps) => (
-  <DropdownMenuContent 
-    align="start" 
+  <DropdownMenuContent
+    align="start"
+    side="bottom"
+    sideOffset={8}
+    collisionPadding={12}
     className={cn(
       "rounded-xl",
       // Light
       "bg-white border-zinc-200 text-zinc-700",
       // Dark
-      "dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300", 
+      "dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300",
       className
-    )} 
-    {...props} 
+    )}
+    {...props}
   />
 );
 

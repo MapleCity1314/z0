@@ -104,7 +104,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   isPanelOpen && !isMobile && "flex-[0.45]"
                 )}
               >
-                <ChatContentSurface>
+                <ChatContentSurface key={pathname}>
                   {children}
                 </ChatContentSurface>
               </div>

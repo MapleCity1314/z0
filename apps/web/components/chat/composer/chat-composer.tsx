@@ -8,9 +8,13 @@ import { toast } from "sonner";
 import {
   addChatMcpServerAction,
   addChatSkillAction,
+  addUserMcpServerAction,
+  addUserSkillAction,
   getChatIntegrationsAction,
   getSystemIntegrationMarketAction,
   getUserIntegrationSettingsAction,
+  setUserMcpDefaultAction,
+  setUserSkillDefaultAction,
   setChatMcpServerStateAction,
   setChatSkillStateAction,
   warmChatMcpServersAction,
@@ -65,6 +69,19 @@ interface ChatComposerProps {
   onStop: () => void;
 }
 
+type McpWarmStatusItem = {
+  state: "booting" | "ready" | "error";
+  summary?: string;
+};
+
+const getMcpWarmStatusKey = (server: { name: string; endpoint: string }) =>
+  `${server.name}::${server.endpoint}`;
+
+const supportsMcpWarmup = (endpoint: string) =>
+  endpoint.startsWith("http://") ||
+  endpoint.startsWith("https://") ||
+  endpoint.startsWith("npm:");
+
 export function ChatComposer({
   chatId,
   onSubmit,
@@ -109,6 +126,9 @@ export function ChatComposer({
     "idle" | "booting" | "ready" | "error"
   >("idle");
   const [mcpWarmSummary, setMcpWarmSummary] = useState("");
+  const [mcpWarmStatuses, setMcpWarmStatuses] = useState<
+    Record<string, McpWarmStatusItem>
+  >({});
   const user = useUserStore((state) => state.user);
   const pathname = usePathname();
   const router = useRouter();
@@ -230,7 +250,8 @@ export function ChatComposer({
   );
   const mcpWarmTargets = useMemo(() => {
     const targets = mcpServers.filter((server) =>
-      showWelcome ? server.useByDefault : server.useInCurrentChat,
+      (showWelcome ? server.useByDefault : server.useInCurrentChat) &&
+      supportsMcpWarmup(server.endpoint),
     );
 
     return targets.map((server) => ({
@@ -252,12 +273,14 @@ export function ChatComposer({
     if (!user) {
       setMcpWarmState("idle");
       setMcpWarmSummary("");
+      setMcpWarmStatuses({});
       return;
     }
 
     if (mcpWarmTargets.length === 0) {
       setMcpWarmState("idle");
       setMcpWarmSummary("");
+      setMcpWarmStatuses({});
       return;
     }
 
@@ -265,6 +288,17 @@ export function ChatComposer({
     setMcpWarmState("booting");
     setMcpWarmSummary(
       `Booting ${mcpWarmTargets.length} MCP server${mcpWarmTargets.length > 1 ? "s" : ""}...`,
+    );
+    setMcpWarmStatuses(
+      Object.fromEntries(
+        mcpWarmTargets.map((server) => [
+          getMcpWarmStatusKey(server),
+          {
+            state: "booting" as const,
+            summary: "Booting runtime...",
+          },
+        ]),
+      ),
     );
 
     void (async () => {
@@ -280,8 +314,33 @@ export function ChatComposer({
       if (!result.success || !result.data) {
         setMcpWarmState("error");
         setMcpWarmSummary("MCP boot failed");
+        setMcpWarmStatuses(
+          Object.fromEntries(
+            mcpWarmTargets.map((server) => [
+              getMcpWarmStatusKey(server),
+              {
+                state: "error" as const,
+                summary: "Boot failed",
+              },
+            ]),
+          ),
+        );
         return;
       }
+
+      setMcpWarmStatuses(
+        Object.fromEntries(
+          result.data.results.map((item) => [
+            getMcpWarmStatusKey(item),
+            {
+              state: item.success ? "ready" : "error",
+              summary: item.success
+                ? `${item.toolCount} tool${item.toolCount === 1 ? "" : "s"} ready`
+                : item.error || "Warm failed",
+            },
+          ]),
+        ),
+      );
 
       if (result.data.failed > 0) {
         setMcpWarmState("error");
@@ -304,7 +363,9 @@ export function ChatComposer({
     if (!name || !endpoint) return;
 
     void (async () => {
-      const result = await addChatMcpServerAction({ chatId, name, endpoint });
+      const result = showWelcome
+        ? await addUserMcpServerAction({ name, endpoint })
+        : await addChatMcpServerAction({ chatId, name, endpoint });
       if (!result.success) {
         showActionError(result.message);
         return;
@@ -321,7 +382,9 @@ export function ChatComposer({
     if (!name || !directory) return;
 
     void (async () => {
-      const result = await addChatSkillAction({ chatId, name, directory });
+      const result = showWelcome
+        ? await addUserSkillAction({ name, directory })
+        : await addChatSkillAction({ chatId, name, directory });
       if (!result.success) {
         showActionError(result.message);
         return;
@@ -437,6 +500,7 @@ export function ChatComposer({
         servers={mcpServers}
         warmState={mcpWarmState}
         warmSummary={mcpWarmSummary}
+        warmStatuses={mcpWarmStatuses}
         marketServers={systemMcpMarket}
         onQuickAddFromMarket={async (marketItem) => {
           if (marketItem.requiresAuth) {
@@ -447,12 +511,18 @@ export function ChatComposer({
             );
             return;
           }
-          const result = await addChatMcpServerAction({
-            chatId,
-            name: marketItem.name,
-            endpoint: marketItem.endpoint,
-            sourceType: marketItem.sourceType,
-          });
+          const result = showWelcome
+            ? await addUserMcpServerAction({
+                name: marketItem.name,
+                endpoint: marketItem.endpoint,
+                sourceType: marketItem.sourceType,
+              })
+            : await addChatMcpServerAction({
+                chatId,
+                name: marketItem.name,
+                endpoint: marketItem.endpoint,
+                sourceType: marketItem.sourceType,
+              });
           if (!result.success) {
             showActionError(result.message);
             return;
@@ -461,12 +531,17 @@ export function ChatComposer({
           await refreshChatIntegrations();
         }}
         onServersChange={async (nextServer) => {
-          const result = await setChatMcpServerStateAction({
-            chatId,
-            userMcpServerId: nextServer.userMcpServerId,
-            enabledInChat: nextServer.useInCurrentChat,
-            useByDefault: nextServer.useByDefault,
-          });
+          const result = showWelcome
+            ? await setUserMcpDefaultAction({
+                userMcpServerId: nextServer.userMcpServerId,
+                useByDefault: nextServer.useByDefault,
+              })
+            : await setChatMcpServerStateAction({
+                chatId,
+                userMcpServerId: nextServer.userMcpServerId,
+                enabledInChat: nextServer.useInCurrentChat,
+                useByDefault: nextServer.useByDefault,
+              });
           if (!result.success) {
             showActionError(result.message);
             return;
@@ -493,12 +568,18 @@ export function ChatComposer({
         skills={skills}
         marketSkills={systemSkillMarket}
         onQuickAddFromMarket={async (marketItem) => {
-          const result = await addChatSkillAction({
-            chatId,
-            name: marketItem.name,
-            directory: marketItem.directory,
-            sourceType: marketItem.sourceType,
-          });
+          const result = showWelcome
+            ? await addUserSkillAction({
+                name: marketItem.name,
+                directory: marketItem.directory,
+                sourceType: marketItem.sourceType,
+              })
+            : await addChatSkillAction({
+                chatId,
+                name: marketItem.name,
+                directory: marketItem.directory,
+                sourceType: marketItem.sourceType,
+              });
           if (!result.success) {
             showActionError(result.message);
             return;
@@ -507,12 +588,17 @@ export function ChatComposer({
           await refreshChatIntegrations();
         }}
         onSkillsChange={async (nextSkill) => {
-          const result = await setChatSkillStateAction({
-            chatId,
-            userSkillId: nextSkill.userSkillId,
-            enabledInChat: nextSkill.useInCurrentChat,
-            useByDefault: nextSkill.useByDefault,
-          });
+          const result = showWelcome
+            ? await setUserSkillDefaultAction({
+                userSkillId: nextSkill.userSkillId,
+                useByDefault: nextSkill.useByDefault,
+              })
+            : await setChatSkillStateAction({
+                chatId,
+                userSkillId: nextSkill.userSkillId,
+                enabledInChat: nextSkill.useInCurrentChat,
+                useByDefault: nextSkill.useByDefault,
+              });
           if (!result.success) {
             showActionError(result.message);
             return;

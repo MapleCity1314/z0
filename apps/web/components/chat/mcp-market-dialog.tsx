@@ -62,10 +62,20 @@ type McpServerDialogProps = {
   servers: ConversationMcpServer[];
   warmState?: "idle" | "booting" | "ready" | "error";
   warmSummary?: string;
+  warmStatuses?: Record<
+    string,
+    {
+      state: "booting" | "ready" | "error";
+      summary?: string;
+    }
+  >;
   marketServers: SystemMcpMarketItem[];
   onQuickAddFromMarket: (item: SystemMcpMarketItem) => Promise<void>;
   onServersChange: (nextServer: ConversationMcpServer) => Promise<void>;
 };
+
+const getWarmStatusKey = (server: { name: string; endpoint: string }) =>
+  `${server.name}::${server.endpoint}`;
 
 const sourceConfig = {
   all: { label: "All", icon: Box },
@@ -86,6 +96,7 @@ export function McpServerDialog({
   servers,
   warmState = "idle",
   warmSummary = "",
+  warmStatuses = {},
   marketServers,
   onQuickAddFromMarket,
   onServersChange,
@@ -265,12 +276,60 @@ export function McpServerDialog({
                             />
                           ) : null}
                           <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium text-sm text-zinc-100">
-                              {server.name}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="truncate font-medium text-sm text-zinc-100">
+                                {server.name}
+                              </p>
+                              {(() => {
+                                const warmStatus =
+                                  warmStatuses[getWarmStatusKey(server)];
+
+                                if (!warmStatus) {
+                                  return null;
+                                }
+
+                                return (
+                                  <span
+                                    className={cn(
+                                      "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em]",
+                                      warmStatus.state === "booting"
+                                        ? "bg-amber-500/15 text-amber-300"
+                                        : warmStatus.state === "ready"
+                                          ? "bg-emerald-500/15 text-emerald-300"
+                                          : "bg-rose-500/15 text-rose-300",
+                                    )}
+                                  >
+                                    {warmStatus.state}
+                                  </span>
+                                );
+                              })()}
+                            </div>
                             <p className="mt-1 truncate text-xs text-zinc-400">
                               {server.endpoint}
                             </p>
+                            {(() => {
+                              const warmStatus =
+                                warmStatuses[getWarmStatusKey(server)];
+
+                              if (!warmStatus?.summary) {
+                                return null;
+                              }
+
+                              return (
+                                <p
+                                  className={cn(
+                                    "mt-1 truncate text-[11px]",
+                                    warmStatus.state === "booting"
+                                      ? "text-amber-300"
+                                      : warmStatus.state === "ready"
+                                        ? "text-emerald-300"
+                                        : "text-rose-300",
+                                  )}
+                                >
+                                  {warmStatus.summary}
+                                </p>
+                              );
+                            })()}
                           </div>
                         </div>
 

@@ -1,9 +1,5 @@
 "use server";
 
-import {
-  warmPooledMcpServers,
-  type AgentMcpServerMetadata,
-} from "@z0/backend/agent/mcp";
 import type {
   AddMcpServerRequest,
   AddSkillRequest,
@@ -25,6 +21,24 @@ type ActionResult<T = unknown> = {
   success: boolean;
   message: string;
   data?: T;
+};
+
+type WarmChatMcpServerInput = {
+  id: string;
+  name: string;
+  endpoint: string;
+};
+
+type WarmChatMcpServerResult = {
+  id: string;
+  name: string;
+  endpoint: string;
+  sourceType: string;
+  availability: "available" | "unavailable";
+  toolCount: number;
+  retryable: boolean;
+  error?: string;
+  success: boolean;
 };
 
 async function requireUser() {
@@ -312,17 +326,18 @@ export async function setUserSkillDefaultAction(params: {
 
 export async function warmChatMcpServersAction(params: {
   chatId: string;
-  servers: Array<Pick<AgentMcpServerMetadata, "id" | "name" | "endpoint">>;
+  servers: WarmChatMcpServerInput[];
 }): Promise<
   ActionResult<{
     total: number;
     ready: number;
     failed: number;
-    results: Awaited<ReturnType<typeof warmPooledMcpServers>>;
+    results: WarmChatMcpServerResult[];
   }>
 > {
   try {
     await requireUser();
+    const { warmPooledMcpServers } = await import("@z0/backend/agent/mcp");
 
     const results = await warmPooledMcpServers({
       chatId: params.chatId,

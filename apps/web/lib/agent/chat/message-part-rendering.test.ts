@@ -55,6 +55,33 @@ describe("message-part-rendering", () => {
     expect(getMessageCopyText(message)).toBe("hello\nworld");
   });
 
+  it("includes data-error parts in copied text", () => {
+    const message = {
+      id: "m2",
+      role: "assistant",
+      parts: [
+        { type: "text", text: "Partial response" },
+        {
+          type: "data-error",
+          data: {
+            title: "Error",
+            message: "Something went wrong. Please try again later.",
+            cause: "Agent API returned 500",
+            timestamp: "2026-03-21T12:00:00.000Z",
+          },
+        },
+      ],
+    } as UIMessage;
+
+    expect(getMessageCopyText(message)).toBe(
+      [
+        "Partial response",
+        "Error: Something went wrong. Please try again later.",
+        "Cause: Agent API returned 500",
+      ].join("\n"),
+    );
+  });
+
   it("maps tool state to task status", () => {
     expect(getToolTaskStatus("input-streaming")).toBe("running");
     expect(getToolTaskStatus("output-error")).toBe("error");
@@ -134,6 +161,7 @@ describe("message-part-rendering", () => {
     expect(resolveToolRendererKind("readArtifact", {})).toBe("inspector");
     expect(resolveToolRendererKind("runBuild", {})).toBe("task");
     expect(resolveDataRendererKind("plan")).toBe("plan");
+    expect(resolveDataRendererKind("error")).toBe("error");
     expect(resolveDataRendererKind("custom")).toBe("json");
   });
 

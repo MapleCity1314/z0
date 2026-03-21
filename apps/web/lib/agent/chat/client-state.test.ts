@@ -119,4 +119,95 @@ describe("agent chat client state helpers", () => {
       ),
     ).toBe(false);
   });
+
+  it("appends an assistant error part to the last assistant message", async () => {
+    const {
+      buildAssistantErrorPart,
+      upsertAssistantErrorMessage,
+    } = await import("@/lib/agent/chat/client-state");
+
+    const errorPart = buildAssistantErrorPart({
+      message: "Something went wrong. Please try again later.",
+      cause: "Agent API returned 500",
+      timestamp: "2026-03-21T12:00:00.000Z",
+    });
+
+    const result = upsertAssistantErrorMessage({
+      messages: [
+        {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text: "hello" }],
+        },
+        {
+          id: "assistant-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "working on it" }],
+        },
+      ],
+      errorPart,
+    });
+
+    expect(result.errorMessage).toEqual({
+      id: "assistant-1",
+      role: "assistant",
+      parts: [
+        { type: "text", text: "working on it" },
+        {
+          type: "data-error",
+          data: {
+            title: "Error",
+            message: "Something went wrong. Please try again later.",
+            cause: "Agent API returned 500",
+            timestamp: "2026-03-21T12:00:00.000Z",
+          },
+        },
+      ],
+    });
+  });
+
+  it("creates a new assistant error placeholder when no assistant message exists", async () => {
+    const {
+      buildAssistantErrorPart,
+      upsertAssistantErrorMessage,
+    } = await import("@/lib/agent/chat/client-state");
+
+    const errorPart = buildAssistantErrorPart({
+      message: "Unknown error occurred",
+      timestamp: "2026-03-21T12:00:00.000Z",
+    });
+
+    const result = upsertAssistantErrorMessage({
+      messages: [
+        {
+          id: "user-1",
+          role: "user",
+          parts: [{ type: "text", text: "hello" }],
+        },
+      ],
+      errorPart,
+    });
+
+    expect(result.messages).toEqual([
+      {
+        id: "user-1",
+        role: "user",
+        parts: [{ type: "text", text: "hello" }],
+      },
+      {
+        id: "generated-id",
+        role: "assistant",
+        parts: [
+          {
+            type: "data-error",
+            data: {
+              title: "Error",
+              message: "Unknown error occurred",
+              timestamp: "2026-03-21T12:00:00.000Z",
+            },
+          },
+        ],
+      },
+    ]);
+  });
 });

@@ -258,7 +258,7 @@ export default function FluidBackground({ isDark }: FluidBackgroundProps) {
   return (
     <canvas
       ref={canvasRef}
-      className="h-full w-full"
+      className="pointer-events-none absolute inset-0 block h-full w-full select-none"
       aria-hidden="true"
     />
   );

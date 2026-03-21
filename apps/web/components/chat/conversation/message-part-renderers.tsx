@@ -686,6 +686,27 @@ const dataPartRenderers: Record<DataRendererKind, DataPartRenderer> = {
       </InlineCitation>
     );
   },
+  error: (part, index) => {
+    const errorData = (part as any).data ?? {};
+
+    return (
+      <div key={index} className={CHAT_MESSAGE_FRAME_CLASS}>
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-50">
+          <div className="text-sm font-medium text-red-300">
+            {errorData.title || "Error"}
+          </div>
+          <div className="mt-1 whitespace-pre-wrap break-words text-sm text-red-100">
+            {errorData.message}
+          </div>
+          {errorData.cause ? (
+            <div className="mt-2 whitespace-pre-wrap break-words text-xs text-red-200/80">
+              Cause: {errorData.cause}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  },
   json: (part, index) => {
     const dataPart = part as any;
     const dataStr =

@@ -31,6 +31,16 @@ type ToolLikePart = {
   output?: { success?: boolean; projectId?: string };
 };
 
+export type AgentErrorPart = {
+  type: "data-error";
+  data: {
+    title: string;
+    message: string;
+    cause?: string;
+    timestamp: string;
+  };
+};
+
 function getToolName(part: ToolLikePart) {
   return part.toolName || part.type?.replace("tool-", "") || "";
 }
@@ -57,6 +67,53 @@ export function buildOutgoingUserMessage(message: {
     id: generateUUID(),
     role: "user",
     parts,
+  };
+}
+
+export function buildAssistantErrorPart(params: {
+  message: string;
+  cause?: string;
+  timestamp?: string;
+}): AgentErrorPart {
+  return {
+    type: "data-error",
+    data: {
+      title: "Error",
+      message: params.message,
+      cause: params.cause,
+      timestamp: params.timestamp ?? new Date().toISOString(),
+    },
+  };
+}
+
+export function upsertAssistantErrorMessage(params: {
+  messages: UIMessage[];
+  errorPart: AgentErrorPart;
+}): { messages: UIMessage[]; errorMessage: UIMessage } {
+  const { messages, errorPart } = params;
+  const lastMessage = messages[messages.length - 1];
+
+  if (lastMessage?.role === "assistant") {
+    const updatedMessage: UIMessage = {
+      ...lastMessage,
+      parts: [...lastMessage.parts, errorPart],
+    };
+
+    return {
+      messages: [...messages.slice(0, -1), updatedMessage],
+      errorMessage: updatedMessage,
+    };
+  }
+
+  const errorMessage: UIMessage = {
+    id: generateUUID(),
+    role: "assistant",
+    parts: [errorPart],
+  };
+
+  return {
+    messages: [...messages, errorMessage],
+    errorMessage,
   };
 }
 

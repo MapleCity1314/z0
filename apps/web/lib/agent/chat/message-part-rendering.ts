@@ -12,6 +12,7 @@ export type DataRendererKind =
   | "plan"
   | "chain-of-thought"
   | "inline-citation"
+  | "error"
   | "json";
 export type MessageRendererKind =
   | "text"
@@ -45,8 +46,22 @@ export function isDataPart(
 
 export function getMessageCopyText(message: UIMessage) {
   return message.parts
-    .filter((part) => part.type === "text")
-    .map((part) => part.text)
+    .flatMap((part) => {
+      if (part.type === "text") {
+        return [part.text];
+      }
+
+      if (part.type === "data-error") {
+        const errorData = (part as any).data ?? {};
+        const errorLines = [`Error: ${errorData.message ?? ""}`];
+        if (typeof errorData.cause === "string" && errorData.cause) {
+          errorLines.push(`Cause: ${errorData.cause}`);
+        }
+        return [errorLines.join("\n")];
+      }
+
+      return [];
+    })
     .join("\n");
 }
 
@@ -112,6 +127,7 @@ export function resolveDataRendererKind(dataType: string): DataRendererKind {
     "plan",
     "chain-of-thought",
     "inline-citation",
+    "error",
   ]);
 
   return knownKinds.has(dataType as DataRendererKind)

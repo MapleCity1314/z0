@@ -27,10 +27,13 @@ import {
 import FluidBackground from "@/components/fluid-background";
 import {
   buildOutgoingUserMessage,
+  buildAssistantErrorPart,
   getChatToolEffects,
   isProjectGenerationActive,
+  upsertAssistantErrorMessage,
 } from "@/lib/agent/chat/client-state";
 import { selectableModels, type SelectableModelName } from "@/lib/agent/model";
+import { persistAssistantMessageAction } from "@/lib/chat/actions";
 import { useProjectStore } from "@/store/project";
 import { useUserStore } from "@/store/user";
 
@@ -104,6 +107,7 @@ export function ChatScreen({
   const studioModeRef = useRef(studioModeEnabled);
   const modelRef = useRef(selectedModel);
   const projectIdRef = useRef(selectedProjectId);
+  const messagesRef = useRef<UIMessage[]>(initialMessages);
 
   useEffect(() => {
     webSearchRef.current = webSearchEnabled;
@@ -208,17 +212,39 @@ export function ChatScreen({
 
     onError: (error) => {
       console.error("Chat error:", error);
+      const isKnownError = error instanceof ChatSDKError;
+      const message = isKnownError ? error.message : "Unknown error occurred";
+      const cause =
+        isKnownError && typeof error.cause === "string" && error.cause.length > 0
+          ? error.cause
+          : undefined;
+      const errorPart = buildAssistantErrorPart({ message, cause });
+      const nextState = upsertAssistantErrorMessage({
+        messages: messagesRef.current,
+        errorPart,
+      });
+
+      messagesRef.current = nextState.messages;
+      setMessages(nextState.messages);
+      void persistAssistantMessageAction({
+        chatId: id,
+        message: nextState.errorMessage,
+      }).catch((persistError) => {
+        console.error("Failed to persist assistant error message:", persistError);
+      });
+
       if (error instanceof ChatSDKError) {
-        const causeText =
-          typeof error.cause === "string" && error.cause.length > 0
-            ? ` (${error.cause})`
-            : "";
+        const causeText = cause ? ` (${cause})` : "";
         toast.error(`${error.message}${causeText}`);
         return;
       }
       toast.error("Unknown error occurred");
     },
   });
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const query = searchParams.get("query");
   const [hasAppendedQuery, setHasAppendedQuery] = useState(false);
@@ -345,7 +371,7 @@ export function ChatScreen({
   );
 
   return (
-    <div className="relative h-full w-full flex flex-col bg-zinc-50 dark:bg-black text-foreground antialiased overflow-hidden group/chat-page transition-colors duration-300">
+    <div className="relative isolate h-full w-full flex flex-col bg-zinc-50 dark:bg-black text-foreground antialiased overflow-hidden group/chat-page transition-colors duration-300">
       <AnimatePresence mode="wait">
         {showWelcome ? (
           /* ================= WELCOME LAYOUT ================= */
@@ -356,7 +382,7 @@ export function ChatScreen({
             transition={{ duration: 0.3 }}
             className="relative flex h-full w-full flex-col overflow-hidden px-4"
           >
-            <div className="pointer-events-none absolute inset-0">
+            <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
               <FluidBackground isDark={isDarkTheme} />
               <div className="absolute inset-0 bg-zinc-50/35 dark:bg-black/45" />
             </div>

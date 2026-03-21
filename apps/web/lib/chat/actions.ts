@@ -9,6 +9,7 @@ import {
   type ToolCall,
 } from "@/lib/schema";
 import { generateText, type UIMessage } from "ai";
+import { isFilePart } from "@z0/backend/agent/request";
 import * as queries from "@/lib/db/queries";
 import { extractTextFromImage } from "@/lib/agent/ocr";
 import {
@@ -21,6 +22,7 @@ import {
   detectAndConvert,
   extractMetadata,
 } from "@/lib/utils/file-parser";
+import { normalizeMessagePartsForStorage } from "@/lib/utils/message-parts";
 import { linkUserDefaultIntegrationsToChat } from "@/lib/db/integrations";
 
 type ActionResult<T = unknown> = {
@@ -192,6 +194,33 @@ export async function saveMessages({
         error instanceof Error ? error.message : "Failed to save messages",
     };
   }
+}
+
+export async function persistAssistantMessageAction({
+  chatId,
+  message,
+}: {
+  chatId: string;
+  message: UIMessage;
+}): Promise<ActionResult> {
+  const fileAttachments = message.parts.filter(isFilePart).map((file) => ({
+    url: file.url,
+    mediaType: file.mediaType,
+    filename: file.filename,
+  }));
+
+  return saveMessages({
+    messages: [
+      {
+        id: message.id,
+        chatId,
+        role: message.role,
+        parts: normalizeMessagePartsForStorage(message.parts),
+        attachments: fileAttachments,
+        createdAt: new Date(),
+      },
+    ],
+  });
 }
 
 export async function saveAgentRun({

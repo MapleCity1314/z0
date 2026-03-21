@@ -183,3 +183,22 @@
     animation: none;
     mix-blend-mode: normal;
 }
+
+body > [data-radix-popper-content-wrapper] {
+  z-index: 120 !important;
+}
+
+[data-slot="dropdown-menu-content"],
+[data-slot="hover-card-content"],
+[data-slot="popover-content"],
+[data-slot="select-content"] {
+  z-index: 120 !important;
+}
+
+[data-slot="dialog-overlay"] {
+  z-index: 140 !important;
+}
+
+[data-slot="dialog-content"] {
+  z-index: 150 !important;
+}

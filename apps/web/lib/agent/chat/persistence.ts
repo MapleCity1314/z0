@@ -64,6 +64,39 @@ export function buildPersistableUserMessages(
     });
 }
 
+export function buildPersistableAssistantMessage(
+  chatId: string,
+  message: UIMessage,
+): DBMessage {
+  const fileAttachments = message.parts.filter(isFilePart).map((file) => ({
+    url: file.url,
+    mediaType: file.mediaType,
+    filename: file.filename,
+  }));
+
+  return {
+    id: message.id,
+    chatId,
+    role: message.role,
+    parts: normalizeMessagePartsForStorage(message.parts),
+    attachments: fileAttachments,
+    createdAt: new Date(),
+  };
+}
+
+export async function persistAssistantMessage(params: {
+  chatId: string;
+  message: UIMessage;
+}) {
+  const saveResult = await saveMessages({
+    messages: [buildPersistableAssistantMessage(params.chatId, params.message)],
+  });
+
+  if (!saveResult.success) {
+    throw new Error(saveResult.message);
+  }
+}
+
 export async function runDeferredPersistence(params: {
   chatId: string;
   userId: string;

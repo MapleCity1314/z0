@@ -35,6 +35,10 @@ import {
 } from "@z0/ui/dialog";
 import { Input } from "@z0/ui/input";
 import { Switch } from "@z0/ui/switch";
+import {
+  resolveServiceMarkKey,
+  ServiceMark,
+} from "@/components/integrations/service-mark";
 import { cn } from "@/lib/utils";
 import type {
   ConversationMcpServer,
@@ -241,48 +245,64 @@ export function McpServerDialog({
                     <p>No MCP servers are linked to this chat yet.</p>
                   </div>
                 ) : (
-                  servers.map((server) => (
-                    <div
-                      key={server.userMcpServerId}
-                      className="group flex flex-col gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-3 transition-colors hover:border-zinc-700 hover:bg-zinc-800/50 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-sm text-zinc-100">
-                          {server.name}
-                        </p>
-                        <p className="mt-1 truncate text-xs text-zinc-400">
-                          {server.endpoint}
-                        </p>
-                      </div>
+                  servers.map((server) => {
+                    const serviceKey = resolveServiceMarkKey(
+                      server.name,
+                      server.endpoint,
+                    );
 
-                      <div className="flex shrink-0 items-center gap-4 rounded-lg bg-zinc-950/50 p-2 sm:bg-transparent sm:p-0">
-                        <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-300 hover:text-white">
-                          <Switch
-                            checked={server.useInCurrentChat}
-                            onCheckedChange={(checked: boolean) =>
-                              void onServersChange({
-                                ...server,
-                                useInCurrentChat: checked,
-                              })
-                            }
-                          />
-                          Current chat
-                        </label>
-                        <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-300 hover:text-white">
-                          <Switch
-                            checked={server.useByDefault}
-                            onCheckedChange={(checked: boolean) =>
-                              void onServersChange({
-                                ...server,
-                                useByDefault: checked,
-                              })
-                            }
-                          />
-                          Default for new chats
-                        </label>
+                    return (
+                      <div
+                        key={server.userMcpServerId}
+                        className="group flex flex-col gap-3 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-3 transition-colors hover:border-zinc-700 hover:bg-zinc-800/50 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="flex min-w-0 flex-1 items-start gap-3">
+                          {serviceKey ? (
+                            <ServiceMark
+                              serviceKey={serviceKey}
+                              className="size-10 shrink-0 rounded-xl"
+                              svgClassName="size-4"
+                            />
+                          ) : null}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium text-sm text-zinc-100">
+                              {server.name}
+                            </p>
+                            <p className="mt-1 truncate text-xs text-zinc-400">
+                              {server.endpoint}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-4 rounded-lg bg-zinc-950/50 p-2 sm:bg-transparent sm:p-0">
+                          <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-300 hover:text-white">
+                            <Switch
+                              checked={server.useInCurrentChat}
+                              onCheckedChange={(checked: boolean) =>
+                                void onServersChange({
+                                  ...server,
+                                  useInCurrentChat: checked,
+                                })
+                              }
+                            />
+                            Current chat
+                          </label>
+                          <label className="flex cursor-pointer items-center gap-2 text-xs text-zinc-300 hover:text-white">
+                            <Switch
+                              checked={server.useByDefault}
+                              onCheckedChange={(checked: boolean) =>
+                                void onServersChange({
+                                  ...server,
+                                  useByDefault: checked,
+                                })
+                              }
+                            />
+                            Default for new chats
+                          </label>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -439,15 +459,25 @@ function MarketServerCard({
   isConnected: boolean;
   onQuickAddFromMarket: (item: SystemMcpMarketItem) => Promise<void>;
 }) {
+  const serviceKey = resolveServiceMarkKey(
+    server.icon,
+    server.slug,
+    server.name,
+    server.provider,
+  );
   const Icon = marketIcons[server.icon] ?? BadgeInfo;
   const canQuickAdd = server.requiresAuth || isDirectSystemMcpMarketItem(server);
 
   return (
     <div className="group flex flex-col justify-between gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 transition-all hover:border-blue-500/50 hover:bg-blue-500/5">
       <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-200">
-          <Icon className="h-4.5 w-4.5" />
-        </div>
+        {serviceKey ? (
+          <ServiceMark serviceKey={serviceKey} className="size-11 shrink-0 rounded-xl" svgClassName="size-4.5" />
+        ) : (
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-200">
+            <Icon className="h-4.5 w-4.5" />
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="truncate font-medium text-sm text-zinc-200 group-hover:text-blue-100">

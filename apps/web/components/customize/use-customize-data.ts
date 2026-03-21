@@ -17,6 +17,8 @@ import { useUserStore } from "@/store/user";
 import type {
   ConnectorFormState,
   CustomizeSection,
+  MarketConnectorItem,
+  MarketSkillItem,
   SkillFormState,
   SubagentRoleItem,
   UserMcpItem,
@@ -29,6 +31,8 @@ export function useCustomizeData(activeTab: CustomizeSection) {
   const [marketLoading, setMarketLoading] = useState(true);
   const [skills, setSkills] = useState<UserSkillItem[]>([]);
   const [connectors, setConnectors] = useState<UserMcpItem[]>([]);
+  const [marketSkills, setMarketSkills] = useState<MarketSkillItem[]>([]);
+  const [marketConnectors, setMarketConnectors] = useState<MarketConnectorItem[]>([]);
   const [plugins, setPlugins] = useState<SystemPluginMarketItem[]>([]);
   const [skillForm, setSkillForm] = useState<SkillFormState>({ name: "", dir: "" });
   const [connectorForm, setConnectorForm] = useState<ConnectorFormState>({
@@ -101,6 +105,8 @@ export function useCustomizeData(activeTab: CustomizeSection) {
       return;
     }
 
+    setMarketConnectors(result.data.mcpServers);
+    setMarketSkills(result.data.skills);
     setPlugins(
       result.data.plugins.map((plugin) => ({
         pluginId: plugin.pluginId,
@@ -170,6 +176,21 @@ export function useCustomizeData(activeTab: CustomizeSection) {
     await refreshSettings();
   };
 
+  const handleQuickAddMarketSkill = async (skill: MarketSkillItem) => {
+    const result = await addUserSkillAction({
+      name: skill.name,
+      directory: skill.directory,
+      sourceType: skill.sourceType,
+    });
+    if (!result.success) {
+      showActionError(result.message);
+      return;
+    }
+
+    toast.success(`Skill added: ${skill.name}`);
+    await refreshSettings();
+  };
+
   const handleAddConnector = async () => {
     const name = connectorForm.name.trim();
     const endpoint = connectorForm.endpoint.trim();
@@ -183,6 +204,23 @@ export function useCustomizeData(activeTab: CustomizeSection) {
 
     setConnectorForm({ name: "", endpoint: "" });
     toast.success("Connector added");
+    await refreshSettings();
+  };
+
+  const handleQuickAddMarketConnector = async (
+    connector: MarketConnectorItem,
+  ) => {
+    const result = await addUserMcpServerAction({
+      name: connector.name,
+      endpoint: connector.endpoint,
+      sourceType: connector.sourceType,
+    });
+    if (!result.success) {
+      showActionError(result.message);
+      return;
+    }
+
+    toast.success(`Connector added: ${connector.name}`);
     await refreshSettings();
   };
 
@@ -247,8 +285,12 @@ export function useCustomizeData(activeTab: CustomizeSection) {
     connectors,
     disconnectConnector,
     disconnectingConnectorId,
+    handleQuickAddMarketConnector,
+    handleQuickAddMarketSkill,
     loading,
+    marketConnectors,
     marketLoading,
+    marketSkills,
     plugins,
     sectionStatus,
     setConnectorForm,

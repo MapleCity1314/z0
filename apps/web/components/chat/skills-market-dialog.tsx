@@ -23,6 +23,10 @@ import {
 } from "@z0/ui/dialog";
 import { Input } from "@z0/ui/input";
 import { Switch } from "@z0/ui/switch";
+import {
+  resolveServiceMarkKey,
+  ServiceMark,
+} from "@/components/integrations/service-mark";
 import { cn } from "@/lib/utils";
 import type {
   ConversationSkill,
@@ -226,6 +230,20 @@ export function SkillsDialog({
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
+                          {(() => {
+                            const serviceKey = resolveServiceMarkKey(
+                              skill.name,
+                              skill.directory,
+                            );
+
+                            return serviceKey ? (
+                              <ServiceMark
+                                serviceKey={serviceKey}
+                                className="size-8 shrink-0 rounded-xl"
+                                svgClassName="size-3.5"
+                              />
+                            ) : null;
+                          })()}
                           <p className="truncate text-sm font-medium text-zinc-100">
                             {skill.name}
                           </p>
@@ -364,13 +382,33 @@ export function SkillsDialog({
                                 key={skill.systemSkillId}
                                 className="group flex flex-col justify-between gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 transition-all hover:border-yellow-500/50 hover:bg-yellow-500/5 sm:flex-row sm:items-center"
                               >
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate text-sm font-medium text-zinc-200 group-hover:text-yellow-100">
-                                    {skill.name}
-                                  </p>
-                                  <p className="mt-1 truncate text-xs text-zinc-500 group-hover:text-yellow-400/70">
-                                    {skill.directory}
-                                  </p>
+                                <div className="flex min-w-0 flex-1 items-start gap-3">
+                                  {(() => {
+                                    const serviceKey = resolveServiceMarkKey(
+                                      skill.name,
+                                      skill.directory,
+                                    );
+
+                                    return serviceKey ? (
+                                      <ServiceMark
+                                        serviceKey={serviceKey}
+                                        className="size-11 shrink-0"
+                                        svgClassName="size-4.5"
+                                      />
+                                    ) : (
+                                      <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950 text-zinc-400">
+                                        <Terminal className="size-4.5" />
+                                      </div>
+                                    );
+                                  })()}
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-medium text-zinc-200 group-hover:text-yellow-100">
+                                      {skill.name}
+                                    </p>
+                                    <p className="mt-1 truncate text-xs text-zinc-500 group-hover:text-yellow-400/70">
+                                      {skill.directory}
+                                    </p>
+                                  </div>
                                 </div>
                                 <Button
                                   type="button"

@@ -23,12 +23,20 @@ import {
   EmptyStateCard,
   itemMotion,
   LoadingCard,
+  MarketConnectorCard,
+  MarketSkillCard,
   summarizePluginCapabilities,
   ToggleCard,
 } from "@/components/customize/cards";
+import {
+  resolveServiceMarkKey,
+  ServiceMark,
+} from "@/components/integrations/service-mark";
 import { GlassCard, PillInput } from "@/components/customize/shared";
 import type {
   ConnectorFormState,
+  MarketConnectorItem,
+  MarketSkillItem,
   SkillFormState,
   SubagentRoleItem,
   UserMcpItem,
@@ -38,7 +46,9 @@ import type {
 export function SkillsSection({
   loading,
   skills,
+  marketSkills,
   onAdd,
+  onAddMarketSkill,
   onToggleDefault,
   formState,
   setFormState,
@@ -46,7 +56,9 @@ export function SkillsSection({
 }: {
   loading: boolean;
   skills: UserSkillItem[];
+  marketSkills: MarketSkillItem[];
   onAdd: () => void;
+  onAddMarketSkill: (skill: MarketSkillItem) => void;
   onToggleDefault: (userSkillId: string, next: boolean) => void;
   formState: SkillFormState;
   setFormState: (next: SkillFormState) => void;
@@ -93,20 +105,70 @@ export function SkillsSection({
             />
           ) : null}
           {!loading
-            ? skills.map((skill) => (
-                <motion.div layout key={skill.userSkillId} {...itemMotion}>
-                  <ToggleCard
-                    title={skill.systemSkillName}
-                    subtitle={skill.directory}
-                    checked={skill.useByDefault}
-                    disabled={savingSkillDefaultId === skill.userSkillId}
-                    onCheckedChange={(next) => onToggleDefault(skill.userSkillId, next)}
-                  />
-                </motion.div>
-              ))
+            ? skills.map((skill) => {
+                const serviceKey = resolveServiceMarkKey(
+                  skill.systemSkillName,
+                  skill.directory,
+                );
+
+                return (
+                  <motion.div layout key={skill.userSkillId} {...itemMotion}>
+                    <ToggleCard
+                      title={skill.systemSkillName}
+                      subtitle={skill.directory}
+                      checked={skill.useByDefault}
+                      disabled={savingSkillDefaultId === skill.userSkillId}
+                      visual={
+                        serviceKey ? (
+                          <ServiceMark
+                            serviceKey={serviceKey}
+                            className="size-11"
+                            svgClassName="size-4.5"
+                          />
+                        ) : undefined
+                      }
+                      onCheckedChange={(next) => onToggleDefault(skill.userSkillId, next)}
+                    />
+                  </motion.div>
+                );
+              })
             : null}
         </AnimatePresence>
       </CardGrid>
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-500">
+            System Market
+          </h3>
+          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+            Built-in and cataloged skills available for one-click install.
+          </p>
+        </div>
+
+        <CardGrid>
+          <AnimatePresence mode="popLayout">
+            {loading ? (
+              <LoadingCard key="skills-market-loading" label="Loading skill market" />
+            ) : null}
+            {!loading && marketSkills.length === 0 ? (
+              <EmptyStateCard
+                key="skills-market-empty"
+                icon={Sparkles}
+                title="No market skills"
+                description="No system or catalog skills are currently available."
+              />
+            ) : null}
+            {!loading
+              ? marketSkills.map((skill) => (
+                  <motion.div layout key={`${skill.systemSkillId}-${skill.directory}`} {...itemMotion}>
+                    <MarketSkillCard skill={skill} onAdd={() => onAddMarketSkill(skill)} />
+                  </motion.div>
+                ))
+              : null}
+          </AnimatePresence>
+        </CardGrid>
+      </div>
     </div>
   );
 }
@@ -114,7 +176,9 @@ export function SkillsSection({
 export function ConnectorsSection({
   loading,
   connectors,
+  marketConnectors,
   onAdd,
+  onAddMarketConnector,
   onDisconnect,
   onToggleDefault,
   formState,
@@ -124,7 +188,9 @@ export function ConnectorsSection({
 }: {
   loading: boolean;
   connectors: UserMcpItem[];
+  marketConnectors: MarketConnectorItem[];
   onAdd: () => void;
+  onAddMarketConnector: (connector: MarketConnectorItem) => void;
   onDisconnect: (userMcpServerId: string) => void;
   onToggleDefault: (userMcpServerId: string, next: boolean) => void;
   formState: ConnectorFormState;
@@ -202,6 +268,51 @@ export function ConnectorsSection({
             : null}
         </AnimatePresence>
       </CardGrid>
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-500">
+            System Market
+          </h3>
+          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+            Cataloged connectors and MCP servers that can be added or configured from z0.
+          </p>
+        </div>
+
+        <CardGrid>
+          <AnimatePresence mode="popLayout">
+            {loading ? (
+              <LoadingCard key="mcp-market-loading" label="Loading connector market" />
+            ) : null}
+            {!loading && marketConnectors.length === 0 ? (
+              <EmptyStateCard
+                key="mcp-market-empty"
+                icon={PlugZap}
+                title="No market connectors"
+                description="No system or catalog connectors are currently available."
+              />
+            ) : null}
+            {!loading
+              ? marketConnectors.map((connector) => {
+                  const actionHref =
+                    connector.slug && (connector.requiresAuth || connector.requiresSetup)
+                      ? `/connectors/${connector.slug}?returnTo=${encodeURIComponent(pathname || "/customize")}`
+                      : null;
+
+                  return (
+                    <motion.div layout key={`${connector.systemServerId}-${connector.endpoint}`} {...itemMotion}>
+                      <MarketConnectorCard
+                        connector={connector}
+                        actionHref={actionHref}
+                        onAdd={() => onAddMarketConnector(connector)}
+                      />
+                    </motion.div>
+                  );
+                })
+              : null}
+          </AnimatePresence>
+        </CardGrid>
+      </div>
     </div>
   );
 }

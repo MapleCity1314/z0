@@ -2,21 +2,32 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
+  ArrowRight,
   Blocks,
   Bot,
   Cable,
   CheckCircle2,
   Loader2,
   OctagonAlert,
+  Plus,
   ShieldAlert,
   Sparkles,
   Unplug,
   Wrench,
 } from "lucide-react";
 import { GlassCard } from "@/components/customize/shared";
-import type { SystemPluginMarketItem } from "@/lib/chat";
+import {
+  resolveServiceMarkKey,
+  ServiceMark,
+} from "@/components/integrations/service-mark";
+import type {
+  SystemMcpMarketItem,
+  SystemPluginMarketItem,
+  SystemSkillMarketItem,
+} from "@/lib/chat";
 import { Switch } from "@z0/ui/switch";
 import type { UserMcpItem } from "./types";
 
@@ -59,21 +70,26 @@ export function ToggleCard({
   subtitle,
   checked,
   disabled,
+  visual,
   onCheckedChange,
 }: {
   title: string;
   subtitle: string;
   checked: boolean;
   disabled?: boolean;
+  visual?: ReactNode;
   onCheckedChange: (next: boolean) => void;
 }) {
   return (
     <GlassCard className="group relative flex items-center justify-between hover:bg-white/[0.03] dark:hover:bg-white/[0.03]">
-      <div className="min-w-0">
-        <h4 className="truncate font-medium text-zinc-950 dark:text-zinc-200">{title}</h4>
-        <p className="mt-1 truncate text-[10px] uppercase tracking-tighter text-zinc-500 dark:text-zinc-500">
-          {subtitle}
-        </p>
+      <div className="flex min-w-0 items-center gap-3">
+        {visual ? <div className="shrink-0">{visual}</div> : null}
+        <div className="min-w-0">
+          <h4 className="truncate font-medium text-zinc-950 dark:text-zinc-200">{title}</h4>
+          <p className="mt-1 truncate text-[10px] uppercase tracking-tighter text-zinc-500 dark:text-zinc-500">
+            {subtitle}
+          </p>
+        </div>
       </div>
       <label className="flex flex-none items-center gap-3 rounded-full bg-white/70 px-4 py-2 text-[10px] font-bold uppercase text-zinc-500 transition-colors group-hover:bg-white group-hover:text-zinc-900 dark:bg-white/5 dark:text-zinc-400 dark:group-hover:bg-white/10 dark:group-hover:text-zinc-200">
         <span>Default</span>
@@ -157,6 +173,11 @@ export function ConnectorCard({
   onDisconnect: () => void;
 }) {
   const status = getConnectorStatusMeta(connector);
+  const serviceKey = resolveServiceMarkKey(
+    connector.connectorSlug,
+    connector.systemServerName,
+    connector.authProvider,
+  );
   const canReconnect =
     connector.requiresAuth &&
     !!connector.connectorSlug &&
@@ -168,14 +189,19 @@ export function ConnectorCard({
   return (
     <GlassCard className="group h-full hover:bg-white/[0.03] dark:hover:bg-white/[0.03]">
       <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500">
-            {connector.sourceType}
-            {connector.authProvider ? ` / ${connector.authProvider}` : ""}
-          </p>
-          <h4 className="mt-2 truncate text-lg font-medium text-zinc-950 dark:text-zinc-200">
-            {connector.systemServerName}
-          </h4>
+        <div className="flex min-w-0 items-start gap-3">
+          {serviceKey ? (
+            <ServiceMark serviceKey={serviceKey} className="size-12 shrink-0" svgClassName="size-5" />
+          ) : null}
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500">
+              {connector.sourceType}
+              {connector.authProvider ? ` / ${connector.authProvider}` : ""}
+            </p>
+            <h4 className="mt-2 truncate text-lg font-medium text-zinc-950 dark:text-zinc-200">
+              {connector.systemServerName}
+            </h4>
+          </div>
         </div>
         <ConnectorStatusPill
           label={status.label}
@@ -297,6 +323,134 @@ export function CapabilityPill({
 
 export function CardGrid({ children }: { children: React.ReactNode }) {
   return <div className="grid gap-4 md:grid-cols-2">{children}</div>;
+}
+
+export function MarketSkillCard({
+  skill,
+  disabled,
+  onAdd,
+}: {
+  skill: SystemSkillMarketItem;
+  disabled?: boolean;
+  onAdd: () => void;
+}) {
+  const serviceKey = resolveServiceMarkKey(skill.name, skill.directory);
+
+  return (
+    <GlassCard className="group h-full hover:bg-white/[0.03] dark:hover:bg-white/[0.03]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          {serviceKey ? (
+            <ServiceMark serviceKey={serviceKey} className="size-12 shrink-0" svgClassName="size-5" />
+          ) : (
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-zinc-400 dark:text-zinc-500">
+              <Sparkles className="size-5" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500">
+              {skill.sourceType}
+            </p>
+            <h4 className="mt-2 truncate text-lg font-medium text-zinc-950 dark:text-zinc-200">
+              {skill.name}
+            </h4>
+          </div>
+        </div>
+      </div>
+
+      <p className="mt-3 truncate text-[11px] uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-500">
+        {skill.directory}
+      </p>
+
+      <div className="mt-6">
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={disabled}
+          className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-medium text-zinc-950 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+        >
+          <Plus className="size-4" />
+          Add Skill
+        </button>
+      </div>
+    </GlassCard>
+  );
+}
+
+export function MarketConnectorCard({
+  connector,
+  actionHref,
+  disabled,
+  onAdd,
+}: {
+  connector: SystemMcpMarketItem;
+  actionHref: string | null;
+  disabled?: boolean;
+  onAdd: () => void;
+}) {
+  const serviceKey = resolveServiceMarkKey(
+    connector.icon,
+    connector.slug,
+    connector.name,
+    connector.provider,
+  );
+
+  return (
+    <GlassCard className="group h-full hover:bg-white/[0.03] dark:hover:bg-white/[0.03]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          {serviceKey ? (
+            <ServiceMark serviceKey={serviceKey} className="size-12 shrink-0" svgClassName="size-5" />
+          ) : null}
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500">
+              {connector.category} / {connector.provider}
+            </p>
+            <h4 className="mt-2 truncate text-lg font-medium text-zinc-950 dark:text-zinc-200">
+              {connector.name}
+            </h4>
+          </div>
+        </div>
+        <ConnectorStatusPill
+          label={connector.requiresAuth ? "Auth" : "Direct"}
+          tone={connector.requiresAuth ? "warning" : "neutral"}
+          icon={connector.requiresAuth ? ShieldAlert : Cable}
+        />
+      </div>
+
+      <p className="mt-3 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+        {connector.shortDescription}
+      </p>
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        {connector.tags.slice(0, 3).map((tag) => (
+          <CapabilityPill key={`${connector.systemServerId}-${tag}`} label={tag} icon={Cable} />
+        ))}
+      </div>
+
+      <div className="mt-6">
+        {actionHref ? (
+          <Link
+            href={actionHref}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-medium text-zinc-950 transition-colors hover:bg-zinc-100 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+          >
+            {connector.requiresAuth || connector.requiresSetup ? "Open Setup" : "Open"}
+            <ArrowRight className="size-4" />
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={onAdd}
+            disabled={disabled}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-medium text-zinc-950 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+          >
+            <Plus className="size-4" />
+            Add Connector
+          </button>
+        )}
+      </div>
+    </GlassCard>
+  );
 }
 
 export function summarizePluginCapabilities(plugin: SystemPluginMarketItem) {

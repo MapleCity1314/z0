@@ -1,5 +1,7 @@
 "use client";
 
+import type { SystemMcpMarketItem, SystemSkillMarketItem } from "@/lib/chat";
+
 export type CustomizeSection = "skills" | "connectors" | "plugins" | "subagents";
 
 export type UserMcpItem = {
@@ -43,3 +45,7 @@ export type SubagentRoleItem = {
   pluginName: string;
   status: string;
 };
+
+export type MarketSkillItem = SystemSkillMarketItem;
+
+export type MarketConnectorItem = SystemMcpMarketItem;

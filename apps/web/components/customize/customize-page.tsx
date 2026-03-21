@@ -26,9 +26,13 @@ export function CustomizePage() {
     disconnectConnector,
     disconnectingConnectorId,
     handleAddConnector,
+    handleQuickAddMarketConnector,
+    handleQuickAddMarketSkill,
     handleAddSkill,
     loading,
+    marketConnectors,
     marketLoading,
+    marketSkills,
     plugins,
     savingConnectorDefaultId,
     savingSkillDefaultId,
@@ -94,10 +98,14 @@ export function CustomizePage() {
                       <SkillsSection
                         loading={loading}
                         skills={skills}
+                        marketSkills={marketSkills}
                         formState={skillForm}
                         setFormState={setSkillForm}
                         savingSkillDefaultId={savingSkillDefaultId}
                         onAdd={() => void handleAddSkill()}
+                        onAddMarketSkill={(skill) =>
+                          void handleQuickAddMarketSkill(skill)
+                        }
                         onToggleDefault={(userSkillId, next) =>
                           void toggleSkillDefault(userSkillId, next)
                         }
@@ -108,11 +116,15 @@ export function CustomizePage() {
                       <ConnectorsSection
                         loading={loading}
                         connectors={connectors}
+                        marketConnectors={marketConnectors}
                         formState={connectorForm}
                         setFormState={setConnectorForm}
                         disconnectingConnectorId={disconnectingConnectorId}
                         savingConnectorDefaultId={savingConnectorDefaultId}
                         onAdd={() => void handleAddConnector()}
+                        onAddMarketConnector={(connector) =>
+                          void handleQuickAddMarketConnector(connector)
+                        }
                         onDisconnect={(userMcpServerId) =>
                           void disconnectConnector(userMcpServerId)
                         }

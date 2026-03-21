@@ -8,7 +8,7 @@ describe("Switch", () => {
     const markup = renderToStaticMarkup(<Switch defaultChecked />);
 
     expect(markup).toContain("bg-primary");
-    expect(markup).toContain("translate-x-[calc(100%-2px)]");
+    expect(markup).toContain("transform:translateX(14px)");
     expect(markup).toContain("dark:bg-primary-foreground");
   });
 
@@ -16,7 +16,7 @@ describe("Switch", () => {
     const markup = renderToStaticMarkup(<Switch checked={false} />);
 
     expect(markup).toContain("bg-input");
-    expect(markup).toContain("translate-x-0");
+    expect(markup).toContain("transform:translateX(0)");
     expect(markup).toContain("dark:bg-foreground");
   });
 });

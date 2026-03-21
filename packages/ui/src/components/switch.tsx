@@ -53,9 +53,12 @@ function Switch({
         className={cn(
           "pointer-events-none block size-4 rounded-full ring-0 transition-[transform,background-color]",
           visualChecked
-            ? "translate-x-[calc(100%-2px)] bg-background dark:bg-primary-foreground"
-            : "translate-x-0 bg-background dark:bg-foreground",
+            ? "bg-background dark:bg-primary-foreground"
+            : "bg-background dark:bg-foreground",
         )}
+        style={{
+          transform: visualChecked ? "translateX(14px)" : "translateX(0)",
+        }}
       />
     </SwitchPrimitive.Root>
   );

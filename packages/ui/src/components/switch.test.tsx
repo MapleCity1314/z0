@@ -8,7 +8,7 @@ describe("Switch", () => {
     const markup = renderToStaticMarkup(<Switch defaultChecked />);
 
     expect(markup).toContain("data-[state=checked]:bg-primary");
-    expect(markup).toContain("data-[state=checked]:translate-x-3");
+    expect(markup).toContain("data-[state=checked]:translate-x-[calc(100%-2px)]");
     expect(markup).toContain("data-[state=unchecked]:translate-x-0");
     expect(markup).toContain("dark:data-[state=checked]:bg-primary-foreground");
   });

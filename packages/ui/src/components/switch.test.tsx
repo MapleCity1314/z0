@@ -7,8 +7,9 @@ describe("Switch", () => {
   it("keeps styling tied to Radix data-state for controlled and uncontrolled usage", () => {
     const markup = renderToStaticMarkup(<Switch defaultChecked />);
 
-    expect(markup).toContain("data-[state=checked]:justify-end");
-    expect(markup).toContain("data-[state=unchecked]:justify-start");
+    expect(markup).toContain("data-[state=checked]:bg-primary");
+    expect(markup).toContain("data-[state=checked]:translate-x-3");
+    expect(markup).toContain("data-[state=unchecked]:translate-x-0");
     expect(markup).toContain("dark:data-[state=checked]:bg-primary-foreground");
   });
 });

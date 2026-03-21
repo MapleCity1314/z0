@@ -497,6 +497,7 @@ export function ChatComposer({
             chatId,
             name: marketItem.name,
             directory: marketItem.directory,
+            sourceType: marketItem.sourceType,
           });
           if (!result.success) {
             showActionError(result.message);

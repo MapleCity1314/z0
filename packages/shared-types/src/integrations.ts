@@ -101,6 +101,7 @@ export interface AddMcpServerRequest {
 export interface AddSkillRequest {
   name: string;
   directory: string;
+  sourceType?: string;
 }
 
 export interface UpdateChatMcpServerStateRequest {

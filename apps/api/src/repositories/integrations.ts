@@ -16,6 +16,7 @@ import {
   userSkill,
 } from "@z0/backend";
 import { mapIntegrationMcpServer, mapSystemMcpMarketItem } from "./mcp-market";
+import { mergeSystemSkillMarketItems } from "./skill-market";
 import { db } from "./shared";
 
 function now() {
@@ -59,12 +60,14 @@ export class DrizzleIntegrationsRepository implements IntegrationsRepository {
       .where(eq(skill.isActive, true))
       .orderBy(desc(skill.updatedAt))
       .then((rows) =>
-        rows.map((row) => ({
-          systemSkillId: row.systemSkillId,
-          name: row.name,
-          directory: row.directory,
-          sourceType: row.sourceType ?? "external",
-        })),
+        mergeSystemSkillMarketItems(
+          rows.map((row) => ({
+            systemSkillId: row.systemSkillId,
+            name: row.name,
+            directory: row.directory,
+            sourceType: row.sourceType ?? "external",
+          })),
+        ),
       );
   }
 

@@ -122,6 +122,7 @@ export async function addChatSkillAction(params: {
   chatId: string;
   name: string;
   directory: string;
+  sourceType?: string;
 }) {
   try {
     await apiFetch<{ userSkillId: string }>(
@@ -131,6 +132,7 @@ export async function addChatSkillAction(params: {
         body: JSON.stringify({
           name: params.name,
           directory: params.directory,
+          sourceType: params.sourceType,
         } satisfies AddSkillRequest),
       },
       { actor: await getActor() },
@@ -230,6 +232,7 @@ export async function addUserMcpServerAction(params: {
 export async function addUserSkillAction(params: {
   name: string;
   directory: string;
+  sourceType?: string;
 }) {
   try {
     await apiFetch<{ userSkillId: string }>(
@@ -239,6 +242,7 @@ export async function addUserSkillAction(params: {
         body: JSON.stringify({
           name: params.name,
           directory: params.directory,
+          sourceType: params.sourceType,
         } satisfies AddSkillRequest),
       },
       { actor: await getActor() },

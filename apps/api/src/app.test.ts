@@ -318,7 +318,14 @@ describe("createApp", () => {
             scopes: [],
           },
         ],
-        skills: [],
+        skills: [
+          {
+            systemSkillId: "system-skill-z0-twitter",
+            name: "@z0/twitter",
+            directory: "packages/twitter",
+            sourceType: "system",
+          },
+        ],
         plugins: [
           {
             pluginId: "@z0/plugin-project",
@@ -352,6 +359,12 @@ describe("createApp", () => {
         slug: "notion",
         category: "Knowledge Base",
         requiresSetup: true,
+      }),
+    );
+    expect(payload.data.skills[0]).toEqual(
+      expect.objectContaining({
+        name: "@z0/twitter",
+        sourceType: "system",
       }),
     );
   });

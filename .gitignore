@@ -29,6 +29,7 @@ build
 dist
 target
 artifacts
+apps/web/public/downloads/
 coverage
 *.tsbuildinfo
 pnpm-debug.log*

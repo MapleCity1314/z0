@@ -71,6 +71,10 @@ import {
 import { Button } from "@z0/ui/button";
 import { CHAT_MESSAGE_FRAME_CLASS } from "@/components/chat/layout";
 import {
+  ExcalidrawSceneViewer,
+  getExcalidrawScene,
+} from "@/components/chat/conversation/excalidraw-scene-viewer";
+import {
   getDataPartName,
   getToolName,
   getToolTaskInfo,
@@ -575,6 +579,49 @@ const toolPartRenderers: Record<ToolRendererKind, ToolPartRenderer> = {
           />
           <TaskContent>{renderToolTaskItems(toolName, toolPart)}</TaskContent>
         </Task>
+      </div>
+    );
+  },
+  excalidraw: (part, index, toolName) => {
+    const toolPart = part as any;
+    const scene = getExcalidrawScene(toolPart.output);
+
+    if (!scene) {
+      return (
+        <div key={index} className={CHAT_MESSAGE_FRAME_CLASS}>
+          <Tool defaultOpen={false}>
+            <ToolHeader
+              title={toolPart.input?.title || toolName}
+              type={toolPart.type}
+              state={toolPart.state}
+            />
+            <ToolContent>
+              {toolPart.input ? <ToolInput input={toolPart.input} /> : null}
+              <ToolOutput
+                output={toolPart.output}
+                errorText={toolPart.errorText}
+              />
+            </ToolContent>
+          </Tool>
+        </div>
+      );
+    }
+
+    return (
+      <div key={index} className={cn(CHAT_MESSAGE_FRAME_CLASS, "my-2")}>
+        <Tool defaultOpen={false}>
+          <ToolHeader
+            title={toolPart.input?.title || "Excalidraw Scene"}
+            type={toolPart.type}
+            state={toolPart.state}
+          />
+          <ToolContent>
+            <ExcalidrawSceneViewer
+              scene={scene}
+              toolCallId={toolPart.toolCallId}
+            />
+          </ToolContent>
+        </Tool>
       </div>
     );
   },

@@ -225,7 +225,7 @@ export async function addUserMcpServerAction(params: {
   sourceType?: string;
 }) {
   try {
-    await apiFetch<{ userMcpServerId: string }>(
+    const data = await apiFetch<{ userMcpServerId: string }>(
       "/v1/integrations/me/mcp-servers",
       {
         method: "POST",
@@ -237,7 +237,11 @@ export async function addUserMcpServerAction(params: {
       },
       { actor: await getActor() },
     );
-    return { success: true, message: "MCP server added" } as const;
+    return {
+      success: true,
+      message: "MCP server added",
+      data,
+    } as const;
   } catch (error) {
     return toActionError(error, "Failed to add MCP server");
   }
@@ -249,7 +253,7 @@ export async function addUserSkillAction(params: {
   sourceType?: string;
 }) {
   try {
-    await apiFetch<{ userSkillId: string }>(
+    const data = await apiFetch<{ userSkillId: string }>(
       "/v1/integrations/me/skills",
       {
         method: "POST",
@@ -261,7 +265,11 @@ export async function addUserSkillAction(params: {
       },
       { actor: await getActor() },
     );
-    return { success: true, message: "Skill added" } as const;
+    return {
+      success: true,
+      message: "Skill added",
+      data,
+    } as const;
   } catch (error) {
     return toActionError(error, "Failed to add skill");
   }

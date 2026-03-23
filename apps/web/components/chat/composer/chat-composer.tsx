@@ -54,9 +54,15 @@ import { WelcomeSuggestions } from "./welcome-suggestions";
 interface ChatComposerProps {
   chatId: string;
   onSubmit: (message: { text: string; files: FileUIPart[] }) => void;
+  onFirstSendGateChange?: (state: {
+    blocked: boolean;
+    reason: "hydrating" | "warming" | "failed" | "ready";
+    message?: string;
+  }) => void;
   status: ChatStatus;
   messagesLength: number;
   showWelcome: boolean;
+  useDraftIntegrations: boolean;
   webSearchEnabled: boolean;
   onWebSearchToggle: () => void;
   thinkingEnabled: boolean;
@@ -85,9 +91,11 @@ const supportsMcpWarmup = (endpoint: string) =>
 export function ChatComposer({
   chatId,
   onSubmit,
+  onFirstSendGateChange,
   status,
   messagesLength,
   showWelcome,
+  useDraftIntegrations,
   webSearchEnabled,
   onWebSearchToggle,
   thinkingEnabled,
@@ -104,6 +112,7 @@ export function ChatComposer({
   const [pluginsDialogOpen, setPluginsDialogOpen] = useState(false);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const [integrationsLoading, setIntegrationsLoading] = useState(false);
+  const [integrationsHydrated, setIntegrationsHydrated] = useState(false);
 
   const [mcpServers, setMcpServers] = useState<ConversationMcpServer[]>([]);
   const [skills, setSkills] = useState<ConversationSkill[]>([]);
@@ -147,17 +156,20 @@ export function ChatComposer({
       setSystemSkillMarket([]);
       setSystemPluginMarket([]);
       setIntegrationsLoading(false);
+      setIntegrationsHydrated(true);
       return;
     }
 
     setIntegrationsLoading(true);
+    setIntegrationsHydrated(false);
     const [integrationsResult, marketResult] = await Promise.all([
-      showWelcome
+      useDraftIntegrations
         ? getUserIntegrationSettingsAction()
         : getChatIntegrationsAction(chatId),
       getSystemIntegrationMarketAction(),
     ]);
     setIntegrationsLoading(false);
+    setIntegrationsHydrated(true);
 
     if (!integrationsResult.success || !integrationsResult.data) {
       showActionError(integrationsResult.message);
@@ -171,7 +183,9 @@ export function ChatComposer({
         name: item.systemServerName,
         endpoint: item.endpoint,
         sourceType: item.sourceType,
-        useInCurrentChat: showWelcome ? item.useByDefault : item.enabledInChat,
+        useInCurrentChat: useDraftIntegrations
+          ? item.useByDefault
+          : item.enabledInChat,
         useByDefault: item.useByDefault,
         connectorSlug: item.connectorSlug,
         requiresAuth: item.requiresAuth,
@@ -189,7 +203,9 @@ export function ChatComposer({
         name: item.systemSkillName,
         directory: item.directory,
         sourceType: item.sourceType,
-        useInCurrentChat: showWelcome ? item.useByDefault : item.enabledInChat,
+        useInCurrentChat: useDraftIntegrations
+          ? item.useByDefault
+          : item.enabledInChat,
         useByDefault: item.useByDefault,
       })),
     );
@@ -241,7 +257,7 @@ export function ChatComposer({
     setSkillName("");
     setSkillDirectory("");
     void refreshChatIntegrations();
-  }, [chatId, user, showWelcome]);
+  }, [chatId, user, useDraftIntegrations]);
 
   const plannedPluginsCount = useMemo(
     () =>
@@ -250,7 +266,7 @@ export function ChatComposer({
   );
   const mcpWarmTargets = useMemo(() => {
     const targets = mcpServers.filter((server) =>
-      (showWelcome ? server.useByDefault : server.useInCurrentChat) &&
+      (useDraftIntegrations ? server.useByDefault : server.useInCurrentChat) &&
       supportsMcpWarmup(server.endpoint),
     );
 
@@ -259,7 +275,7 @@ export function ChatComposer({
       name: server.name,
       endpoint: server.endpoint,
     }));
-  }, [mcpServers, showWelcome]);
+  }, [mcpServers, useDraftIntegrations]);
   const mcpWarmSignature = useMemo(
     () =>
       mcpWarmTargets
@@ -268,6 +284,58 @@ export function ChatComposer({
         .join("|"),
     [mcpWarmTargets],
   );
+  const isFirstTurn = messagesLength === 0;
+  const isWaitingForInitialIntegrations =
+    isFirstTurn && user !== undefined && !integrationsHydrated;
+  const requiresMcpReadyBeforeFirstSend =
+    isFirstTurn && mcpWarmTargets.length > 0;
+  const isWaitingForMcpWarmup =
+    isWaitingForInitialIntegrations ||
+    (requiresMcpReadyBeforeFirstSend &&
+      (integrationsLoading ||
+        mcpWarmState === "idle" ||
+        mcpWarmState === "booting"));
+  const hasMcpWarmupFailure =
+    !isWaitingForInitialIntegrations &&
+    requiresMcpReadyBeforeFirstSend && mcpWarmState === "error";
+  const mcpFirstSendNotice = isWaitingForMcpWarmup
+    ? isWaitingForInitialIntegrations
+      ? "Waiting for MCP Tool configuration..."
+      : `Waiting for MCP Tool${mcpWarmTargets.length > 1 ? "s" : ""} to start${mcpWarmTargets.length > 0 ? `: ${mcpWarmTargets.map((server) => server.name).join(", ")}` : ""}`
+      : hasMcpWarmupFailure
+      ? `MCP Tool startup failed. Open MCP Servers before sending the first message.`
+      : null;
+  const textareaPlaceholder = isWaitingForMcpWarmup
+    ? isWaitingForInitialIntegrations
+      ? "Waiting for MCP Tool configuration..."
+      : `Waiting for MCP Tool${mcpWarmTargets.length > 1 ? "s" : ""}...`
+    : hasMcpWarmupFailure
+      ? "MCP Tool startup failed. Open MCP Servers."
+      : hidePlaceholderForGhost
+        ? ""
+        : showWelcome
+          ? "Send a message to z0 Agent"
+          : "Ask z0 Agent to build...";
+
+  useEffect(() => {
+    onFirstSendGateChange?.({
+      blocked: isWaitingForMcpWarmup || hasMcpWarmupFailure,
+      reason: isWaitingForInitialIntegrations
+        ? "hydrating"
+        : isWaitingForMcpWarmup
+          ? "warming"
+          : hasMcpWarmupFailure
+            ? "failed"
+            : "ready",
+      message: mcpFirstSendNotice ?? undefined,
+    });
+  }, [
+    hasMcpWarmupFailure,
+    isWaitingForInitialIntegrations,
+    isWaitingForMcpWarmup,
+    mcpFirstSendNotice,
+    onFirstSendGateChange,
+  ]);
 
   useEffect(() => {
     if (!user) {
@@ -363,12 +431,26 @@ export function ChatComposer({
     if (!name || !endpoint) return;
 
     void (async () => {
-      const result = showWelcome
-        ? await addUserMcpServerAction({ name, endpoint })
-        : await addChatMcpServerAction({ chatId, name, endpoint });
-      if (!result.success) {
-        showActionError(result.message);
-        return;
+      if (useDraftIntegrations) {
+        const result = await addUserMcpServerAction({ name, endpoint });
+        if (!result.success || !result.data?.userMcpServerId) {
+          showActionError(result.message);
+          return;
+        }
+        const defaultResult = await setUserMcpDefaultAction({
+          userMcpServerId: result.data.userMcpServerId,
+          useByDefault: true,
+        });
+        if (!defaultResult.success) {
+          showActionError(defaultResult.message);
+          return;
+        }
+      } else {
+        const result = await addChatMcpServerAction({ chatId, name, endpoint });
+        if (!result.success) {
+          showActionError(result.message);
+          return;
+        }
       }
       setMcpName("");
       setMcpEndpoint("");
@@ -382,12 +464,26 @@ export function ChatComposer({
     if (!name || !directory) return;
 
     void (async () => {
-      const result = showWelcome
-        ? await addUserSkillAction({ name, directory })
-        : await addChatSkillAction({ chatId, name, directory });
-      if (!result.success) {
-        showActionError(result.message);
-        return;
+      if (useDraftIntegrations) {
+        const result = await addUserSkillAction({ name, directory });
+        if (!result.success || !result.data?.userSkillId) {
+          showActionError(result.message);
+          return;
+        }
+        const defaultResult = await setUserSkillDefaultAction({
+          userSkillId: result.data.userSkillId,
+          useByDefault: true,
+        });
+        if (!defaultResult.success) {
+          showActionError(defaultResult.message);
+          return;
+        }
+      } else {
+        const result = await addChatSkillAction({ chatId, name, directory });
+        if (!result.success) {
+          showActionError(result.message);
+          return;
+        }
       }
       setSkillName("");
       setSkillDirectory("");
@@ -395,11 +491,30 @@ export function ChatComposer({
     })();
   };
 
+  const handleSubmit = (message: { text: string; files: FileUIPart[] }) => {
+    if (isWaitingForMcpWarmup) {
+      toast.message("MCP servers are still starting", {
+        description: "Wait until the active MCP servers finish booting before sending the first message.",
+      });
+      return;
+    }
+
+    if (hasMcpWarmupFailure) {
+      toast.error("Active MCP servers are not ready", {
+        description: "Open MCP Servers and fix the failed runtime before sending the first message.",
+      });
+      setMcpDialogOpen(true);
+      return;
+    }
+
+    onSubmit(message);
+  };
+
   return (
     <PromptInputProvider>
       <div className="relative">
         <PromptInput
-          onSubmit={onSubmit}
+          onSubmit={handleSubmit}
           className={cn(
             !showWelcome && "shadow-2xl shadow-zinc-200/50 dark:shadow-black/80",
           )}
@@ -420,14 +535,21 @@ export function ChatComposer({
 
           <PromptInputBody>
             <PromptInputTextarea
-              placeholder={
-                hidePlaceholderForGhost
-                  ? ""
-                  : showWelcome
-                    ? "Send a message to z0 Agent"
-                    : "Ask z0 Agent to build..."
-              }
+              placeholder={textareaPlaceholder}
+              disabled={isWaitingForMcpWarmup}
             />
+            {mcpFirstSendNotice ? (
+              <div
+                className={cn(
+                  "px-3 pt-2 text-xs",
+                  hasMcpWarmupFailure
+                    ? "text-rose-500"
+                    : "text-amber-600 dark:text-amber-300",
+                )}
+              >
+                {mcpFirstSendNotice}
+              </div>
+            ) : null}
 
             <PromptInputFooter>
               <PromptInputTools>
@@ -465,7 +587,8 @@ export function ChatComposer({
                   type={status === "streaming" ? "button" : "submit"}
                   disabled={
                     status === "submitted" ||
-                    (!messagesLength && status === "streaming")
+                    (!messagesLength && status === "streaming") ||
+                    isWaitingForMcpWarmup
                   }
                   onClick={(event: MouseEvent<HTMLButtonElement>) => {
                     if (status === "streaming") {
@@ -512,21 +635,35 @@ export function ChatComposer({
             );
             return;
           }
-          const result = showWelcome
-            ? await addUserMcpServerAction({
-                name: marketItem.name,
-                endpoint: marketItem.endpoint,
-                sourceType: marketItem.sourceType,
-              })
-            : await addChatMcpServerAction({
-                chatId,
-                name: marketItem.name,
-                endpoint: marketItem.endpoint,
-                sourceType: marketItem.sourceType,
-              });
-          if (!result.success) {
-            showActionError(result.message);
-            return;
+          if (useDraftIntegrations) {
+            const result = await addUserMcpServerAction({
+              name: marketItem.name,
+              endpoint: marketItem.endpoint,
+              sourceType: marketItem.sourceType,
+            });
+            if (!result.success || !result.data?.userMcpServerId) {
+              showActionError(result.message);
+              return;
+            }
+            const defaultResult = await setUserMcpDefaultAction({
+              userMcpServerId: result.data.userMcpServerId,
+              useByDefault: true,
+            });
+            if (!defaultResult.success) {
+              showActionError(defaultResult.message);
+              return;
+            }
+          } else {
+            const result = await addChatMcpServerAction({
+              chatId,
+              name: marketItem.name,
+              endpoint: marketItem.endpoint,
+              sourceType: marketItem.sourceType,
+            });
+            if (!result.success) {
+              showActionError(result.message);
+              return;
+            }
           }
           toast.success(`已添加 MCP：${marketItem.name}`);
           await refreshChatIntegrations();
@@ -545,7 +682,7 @@ export function ChatComposer({
             ),
           );
 
-          const result = showWelcome
+          const result = useDraftIntegrations
             ? await setUserMcpDefaultAction({
                 userMcpServerId: nextServer.userMcpServerId,
                 useByDefault: nextServer.useByDefault,
@@ -584,21 +721,35 @@ export function ChatComposer({
         skills={skills}
         marketSkills={systemSkillMarket}
         onQuickAddFromMarket={async (marketItem) => {
-          const result = showWelcome
-            ? await addUserSkillAction({
-                name: marketItem.name,
-                directory: marketItem.directory,
-                sourceType: marketItem.sourceType,
-              })
-            : await addChatSkillAction({
-                chatId,
-                name: marketItem.name,
-                directory: marketItem.directory,
-                sourceType: marketItem.sourceType,
-              });
-          if (!result.success) {
-            showActionError(result.message);
-            return;
+          if (useDraftIntegrations) {
+            const result = await addUserSkillAction({
+              name: marketItem.name,
+              directory: marketItem.directory,
+              sourceType: marketItem.sourceType,
+            });
+            if (!result.success || !result.data?.userSkillId) {
+              showActionError(result.message);
+              return;
+            }
+            const defaultResult = await setUserSkillDefaultAction({
+              userSkillId: result.data.userSkillId,
+              useByDefault: true,
+            });
+            if (!defaultResult.success) {
+              showActionError(defaultResult.message);
+              return;
+            }
+          } else {
+            const result = await addChatSkillAction({
+              chatId,
+              name: marketItem.name,
+              directory: marketItem.directory,
+              sourceType: marketItem.sourceType,
+            });
+            if (!result.success) {
+              showActionError(result.message);
+              return;
+            }
           }
           toast.success(`已添加 Skill：${marketItem.name}`);
           await refreshChatIntegrations();
@@ -614,7 +765,7 @@ export function ChatComposer({
             ),
           );
 
-          const result = showWelcome
+          const result = useDraftIntegrations
             ? await setUserSkillDefaultAction({
                 userSkillId: nextSkill.userSkillId,
                 useByDefault: nextSkill.useByDefault,

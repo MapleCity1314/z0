@@ -57,10 +57,40 @@ export function FeatureMenu({
   mcpWarmState,
   showWelcome,
 }: FeatureMenuProps) {
-  const enabledMcpCount = mcpServers.filter((server) =>
+  const activeMcpServers = mcpServers.filter((server) =>
     showWelcome ? server.useByDefault : server.useInCurrentChat,
-  ).length;
-  const enabledSkillsCount = skills.filter((skill) => skill.useInCurrentChat).length;
+  );
+  const activeSkills = skills.filter((skill) =>
+    showWelcome ? skill.useByDefault : skill.useInCurrentChat,
+  );
+  const enabledMcpCount = activeMcpServers.length;
+  const enabledSkillsCount = activeSkills.length;
+  const activeMcpSummary =
+    activeMcpServers.length === 0
+      ? "No active MCP servers"
+      : [
+          activeMcpServers
+            .slice(0, 2)
+            .map((server) => server.name)
+            .join(", "),
+          activeMcpServers.length > 2
+            ? `+${activeMcpServers.length - 2} more`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+  const activeSkillsSummary =
+    activeSkills.length === 0
+      ? "No active skills"
+      : [
+          activeSkills
+            .slice(0, 2)
+            .map((skill) => skill.name)
+            .join(", "),
+          activeSkills.length > 2 ? `+${activeSkills.length - 2} more` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
 
   return (
     <PromptInputActionMenu>
@@ -120,9 +150,14 @@ export function FeatureMenu({
             className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
             onClick={onOpenMcpDialog}
           >
-            <span className="flex items-center gap-2">
-              <Server className="size-4" />
-              MCP Servers
+            <span className="flex min-w-0 flex-col items-start">
+              <span className="flex items-center gap-2">
+                <Server className="size-4" />
+                MCP Servers
+              </span>
+              <span className="max-w-[14rem] truncate pl-6 text-muted-foreground text-xs">
+                {activeMcpSummary}
+              </span>
             </span>
             <span className="inline-flex items-center gap-2">
               <span className="text-muted-foreground text-xs">
@@ -144,9 +179,14 @@ export function FeatureMenu({
             className="mt-1 flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
             onClick={onOpenSkillsDialog}
           >
-            <span className="flex items-center gap-2">
-              <Sparkles className="size-4" />
-              Agent Skills
+            <span className="flex min-w-0 flex-col items-start">
+              <span className="flex items-center gap-2">
+                <Sparkles className="size-4" />
+                Agent Skills
+              </span>
+              <span className="max-w-[14rem] truncate pl-6 text-muted-foreground text-xs">
+                {activeSkillsSummary}
+              </span>
             </span>
             <span className="inline-flex items-center gap-2">
               <span className="text-muted-foreground text-xs">

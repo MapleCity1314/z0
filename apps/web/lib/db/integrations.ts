@@ -761,6 +761,15 @@ export async function linkUserDefaultIntegrationsToChat(params: {
       ),
   ]);
 
+  console.log("[Integrations] Linking default integrations to chat", {
+    userId,
+    chatId,
+    defaultMcpCount: defaultMcpRows.length,
+    defaultMcpIds: defaultMcpRows.map((row) => row.userMcpServerId),
+    defaultSkillCount: defaultSkillRows.length,
+    defaultSkillIds: defaultSkillRows.map((row) => row.userSkillId),
+  });
+
   if (defaultMcpRows.length > 0) {
     await db
       .insert(chatMcpServer)
@@ -796,4 +805,11 @@ export async function linkUserDefaultIntegrationsToChat(params: {
         set: { enabled: true, updatedAt: now() },
       });
   }
+
+  console.log("[Integrations] Finished linking defaults to chat", {
+    userId,
+    chatId,
+    linkedMcpCount: defaultMcpRows.length,
+    linkedSkillCount: defaultSkillRows.length,
+  });
 }

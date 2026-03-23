@@ -129,13 +129,8 @@ export function McpServerDialog({
     "market",
     "external",
   ];
-  const connectedServerIds = useMemo(
-    () =>
-      new Set(
-        servers
-          .filter((server) => server.authStatus === "connected")
-          .map((server) => server.systemServerId),
-      ),
+  const linkedServerIds = useMemo(
+    () => new Set(servers.map((server) => server.systemServerId)),
     [servers],
   );
 
@@ -493,7 +488,7 @@ export function McpServerDialog({
                                     <MarketServerCard
                                       key={server.systemServerId}
                                       server={server}
-                                      isConnected={connectedServerIds.has(
+                                      isLinked={linkedServerIds.has(
                                         server.systemServerId,
                                       )}
                                       onQuickAddFromMarket={onQuickAddFromMarket}
@@ -529,11 +524,11 @@ const marketIcons: Record<string, LucideIcon> = {
 
 function MarketServerCard({
   server,
-  isConnected,
+  isLinked,
   onQuickAddFromMarket,
 }: {
   server: SystemMcpMarketItem;
-  isConnected: boolean;
+  isLinked: boolean;
   onQuickAddFromMarket: (item: SystemMcpMarketItem) => Promise<void>;
 }) {
   const serviceKey = resolveServiceMarkKey(
@@ -577,10 +572,10 @@ function MarketServerCard({
                 Direct
               </span>
             )}
-            {isConnected ? (
+            {isLinked ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-300">
                 <Check className="h-3 w-3" />
-                Connected
+                Added
               </span>
             ) : null}
           </div>
@@ -625,7 +620,7 @@ function MarketServerCard({
           >
             <Plus className="mr-1 h-3.5 w-3.5" />
             {server.requiresAuth
-              ? isConnected
+              ? isLinked
                 ? "Reconnect"
                 : "Connect"
               : "Quick add"}

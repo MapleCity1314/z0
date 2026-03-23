@@ -6,13 +6,39 @@ import type { AppServices } from "../services";
 export function registerIntegrationRoutes(app: Hono, services: AppServices) {
   app.get("/v1/integrations/chats/:chatId", async (c) => {
     const actor = await requireActor(c);
-    return jsonResult(
-      c,
-      await services.integrationsService.getChatIntegrations({
-        userId: actor.userId,
-        chatId: c.req.param("chatId"),
-      }),
-    );
+    const chatId = c.req.param("chatId");
+    const result = await services.integrationsService.getChatIntegrations({
+      userId: actor.userId,
+      chatId,
+    });
+
+    console.log("[Integrations API] GET /v1/integrations/chats/:chatId", {
+      userId: actor.userId,
+      chatId,
+      success: result.ok,
+      mcpCount: result.ok ? result.data.mcpServers.length : 0,
+      skillCount: result.ok ? result.data.skills.length : 0,
+      mcpServers: result.ok
+        ? result.data.mcpServers.map((item) => ({
+            userMcpServerId: item.userMcpServerId,
+            systemServerId: item.systemServerId,
+            name: item.systemServerName,
+            enabledInChat: item.enabledInChat,
+            useByDefault: item.useByDefault,
+          }))
+        : [],
+      skills: result.ok
+        ? result.data.skills.map((item) => ({
+            userSkillId: item.userSkillId,
+            systemSkillId: item.systemSkillId,
+            name: item.systemSkillName,
+            enabledInChat: item.enabledInChat,
+            useByDefault: item.useByDefault,
+          }))
+        : [],
+    });
+
+    return jsonResult(c, result);
   });
 
   app.post("/v1/integrations/chats/:chatId/mcp-servers", async (c) => {
@@ -85,15 +111,50 @@ export function registerIntegrationRoutes(app: Hono, services: AppServices) {
 
   app.get("/v1/integrations/me", async (c) => {
     const actor = await requireActor(c);
-    return jsonResult(
-      c,
-      await services.integrationsService.getUserIntegrationSettings(actor.userId),
+    const result = await services.integrationsService.getUserIntegrationSettings(
+      actor.userId,
     );
+
+    console.log("[Integrations API] GET /v1/integrations/me", {
+      userId: actor.userId,
+      success: result.ok,
+      mcpCount: result.ok ? result.data.mcpServers.length : 0,
+      skillCount: result.ok ? result.data.skills.length : 0,
+      mcpServers: result.ok
+        ? result.data.mcpServers.map((item) => ({
+            userMcpServerId: item.userMcpServerId,
+            systemServerId: item.systemServerId,
+            name: item.systemServerName,
+            useByDefault: item.useByDefault,
+          }))
+        : [],
+      skills: result.ok
+        ? result.data.skills.map((item) => ({
+            userSkillId: item.userSkillId,
+            systemSkillId: item.systemSkillId,
+            name: item.systemSkillName,
+            useByDefault: item.useByDefault,
+          }))
+        : [],
+    });
+
+    return jsonResult(c, result);
   });
 
   app.get("/v1/integrations/market", async (c) => {
     await requireActor(c);
-    return jsonResult(c, await services.integrationsService.getSystemIntegrationMarket());
+    const result = await services.integrationsService.getSystemIntegrationMarket();
+
+    console.log("[Integrations API] GET /v1/integrations/market", {
+      success: result.ok,
+      mcpCount: result.ok ? result.data.mcpServers.length : 0,
+      skillCount: result.ok ? result.data.skills.length : 0,
+      pluginCount: result.ok ? result.data.plugins.length : 0,
+      mcpNames: result.ok ? result.data.mcpServers.map((item) => item.name) : [],
+      skillNames: result.ok ? result.data.skills.map((item) => item.name) : [],
+    });
+
+    return jsonResult(c, result);
   });
 
   app.post("/v1/integrations/me/mcp-servers", async (c) => {

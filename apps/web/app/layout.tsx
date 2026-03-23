@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Suspense } from "react";
+import "@excalidraw/excalidraw/index.css";
 import "./globals.css";
 import { ThemeProvider } from "@/components/provider/theme-provider";
 import { SessionProvider } from "@/components/provider/session-provider";

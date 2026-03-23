@@ -58,6 +58,15 @@ export function ChatScreen({
   const [thinkingEnabled, setThinkingEnabled] = useState(false);
   const [selectedModel, setSelectedModel] =
     useState<SelectableModelName>("z0-pro");
+  const [useDraftIntegrations, setUseDraftIntegrations] = useState(isNewChat);
+  const firstSendGateRef = useRef<{
+    blocked: boolean;
+    reason: "hydrating" | "warming" | "failed" | "ready";
+    message?: string;
+  }>({
+    blocked: isNewChat,
+    reason: isNewChat ? "hydrating" : "ready",
+  });
   const [studioModeEnabled, setStudioModeEnabled] = useState(
     Boolean(initialProjectId),
   );
@@ -87,6 +96,7 @@ export function ChatScreen({
     setSelectedProjectId(effectiveProjectId);
     // 始终更新 store（包括设置为 null 来关闭面板）
     setStoreProjectId(effectiveProjectId);
+    setUseDraftIntegrations(isNewChat);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]); // 依赖 id，当切换对话时重新执行
 
@@ -321,6 +331,7 @@ export function ChatScreen({
       messages.some((message) => message.role === "user")
     ) {
       pendingUrlUpdateRef.current = false;
+      setUseDraftIntegrations(false);
       window.history.replaceState({}, "", `/c/${id}`);
       mutate("recent-chats");
     }
@@ -338,6 +349,22 @@ export function ChatScreen({
     const uiMessage = buildOutgoingUserMessage(message);
 
     if (showWelcome) {
+      if (firstSendGateRef.current.blocked) {
+        if (firstSendGateRef.current.reason === "failed") {
+          toast.error(
+            firstSendGateRef.current.message ??
+              "MCP Tool startup failed. Open MCP Servers first.",
+          );
+          return;
+        }
+
+        toast.message(
+          firstSendGateRef.current.message ??
+            "Waiting for MCP Tool configuration...",
+        );
+        return;
+      }
+
       pendingUrlUpdateRef.current = true;
     }
 
@@ -348,9 +375,13 @@ export function ChatScreen({
     <ChatComposer
       chatId={id}
       onSubmit={handleSendMessage}
+      onFirstSendGateChange={(state) => {
+        firstSendGateRef.current = state;
+      }}
       status={status}
       messagesLength={messages.length}
       showWelcome={showWelcome}
+      useDraftIntegrations={useDraftIntegrations}
       webSearchEnabled={webSearchEnabled}
       onWebSearchToggle={() => setWebSearchEnabled(!webSearchEnabled)}
       thinkingEnabled={thinkingEnabled}

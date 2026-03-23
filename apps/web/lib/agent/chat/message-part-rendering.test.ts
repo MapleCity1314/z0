@@ -31,6 +31,12 @@ describe("message-part-rendering", () => {
     const textPart = { type: "text", text: "hello" } as UIMessagePart<any, any>;
 
     expect(isToolPart(toolPart)).toBe(true);
+    expect(
+      isToolPart({
+        type: "dynamic-tool",
+        toolName: "mcp_excalidraw_excalidraw_scene_create",
+      } as UIMessagePart<any, any>),
+    ).toBe(true);
     expect(isDataPart(toolPart)).toBe(false);
     expect(isDataPart(dataPart)).toBe(true);
     expect(isToolPart(textPart)).toBe(false);
@@ -98,6 +104,12 @@ describe("message-part-rendering", () => {
     const dataPart = { type: "data-plan", data: {} } as UIMessagePart<any, any>;
 
     expect(getToolName(toolPart)).toBe("runBuild");
+    expect(
+      getToolName({
+        type: "dynamic-tool",
+        toolName: "mcp_excalidraw_excalidraw_scene_create",
+      } as UIMessagePart<any, any>),
+    ).toBe("mcp_excalidraw_excalidraw_scene_create");
     expect(getDataPartName(dataPart)).toBe("plan");
   });
 
@@ -155,6 +167,16 @@ describe("message-part-rendering", () => {
   });
 
   it("resolves renderer variants for tool and data parts", () => {
+    expect(
+      resolveToolRendererKind("mcp_excalidraw_excalidraw_scene_create", {
+        output: {
+          structuredContent: {
+            type: "excalidraw/scene",
+            elements: [],
+          },
+        },
+      }),
+    ).toBe("excalidraw");
     expect(
       resolveToolRendererKind("createArtifact", { output: { code: "x" } }),
     ).toBe("artifact");

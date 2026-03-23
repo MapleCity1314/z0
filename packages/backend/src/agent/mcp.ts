@@ -1,4 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   createMCPClient,
   type MCPClient,
@@ -93,6 +95,44 @@ function getNpmCommand() {
   return process.platform === "win32" ? "npm.cmd" : "npm";
 }
 
+function redactMcpEndpoint(endpoint: string) {
+  if (endpoint.startsWith("npm:")) {
+    const [packageSpec = ""] = endpoint.slice("npm:".length).split("?", 2);
+    return `npm:${packageSpec}`;
+  }
+
+  if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
+    try {
+      const url = new URL(endpoint);
+      return `${url.origin}${url.pathname}`;
+    } catch {
+      return endpoint;
+    }
+  }
+
+  return endpoint;
+}
+
+function summarizeServerForLog(server: AgentMcpServerMetadata) {
+  return {
+    id: server.id,
+    name: server.name,
+    sourceType: server.sourceType,
+    endpoint: redactMcpEndpoint(server.endpoint),
+  };
+}
+
+function getNodeCommand() {
+  return process.execPath;
+}
+
+const currentFilePath = fileURLToPath(import.meta.url);
+const currentDirPath = dirname(currentFilePath);
+const connectorsMcpScriptPath = resolve(
+  currentDirPath,
+  "../../../connectors-mcp/bin/z0-connectors-mcp.mjs",
+);
+
 function parseNpmEndpoint(endpoint: string): AgentResolvedMcpConnection | null {
   if (!endpoint.startsWith("npm:")) {
     return null;
@@ -106,11 +146,29 @@ function parseNpmEndpoint(endpoint: string): AgentResolvedMcpConnection | null {
   }
 
   const params = new URLSearchParams(query);
-  const args = ["exec", "--yes", packageSpec, ...params.getAll("args")];
+  const rawArgs = params.getAll("args");
   const envEntries = [...params.entries()]
     .filter(([key]) => key.startsWith("env."))
     .map(([key, value]) => [key.slice(4), value] as const);
   const cwd = params.get("cwd") || undefined;
+
+  if (packageSpec === "@z0/connectors-mcp") {
+    return {
+      kind: "npm",
+      command: getNodeCommand(),
+      args: [
+        connectorsMcpScriptPath,
+        ...rawArgs.filter((arg) => arg !== "server"),
+      ],
+      env:
+        envEntries.length > 0
+          ? Object.fromEntries(envEntries)
+          : undefined,
+      cwd,
+    };
+  }
+
+  const args = ["exec", "--yes", packageSpec, ...rawArgs];
 
   return {
     kind: "npm",
@@ -170,6 +228,12 @@ class NpmBootMcpTransport implements MCPTransport {
         ...process.env,
         ...this.config.env,
       },
+    });
+
+    console.log("[Agent MCP] Spawned stdio transport", {
+      command: this.config.command,
+      args: this.config.args,
+      cwd: this.config.cwd ?? process.cwd(),
     });
 
     this.#child = child;
@@ -467,12 +531,21 @@ async function createRuntimeWithWarmResults(params: {
 
   for (const server of params.servers) {
     try {
+      console.log("[Agent MCP] Creating runtime for server", {
+        server: summarizeServerForLog(server),
+      });
       const transport = createTransport(resolveMcpConnection(server));
       const client = await createMCPClient({
         transport,
       });
 
       const serverTools = await client.tools();
+      console.log("[Agent MCP] Server exposed tools", {
+        serverName: server.name,
+        endpoint: redactMcpEndpoint(server.endpoint),
+        toolNames: Object.keys(serverTools),
+        toolCount: Object.keys(serverTools).length,
+      });
       const merged = mergeMcpToolMetadata(serverTools, server, usedNames);
 
       clients.push(client);
@@ -488,6 +561,12 @@ async function createRuntimeWithWarmResults(params: {
         retryable: false,
       });
     } catch (error) {
+      console.error("[Agent MCP] Failed to create runtime for server", {
+        serverName: server.name,
+        endpoint: redactMcpEndpoint(server.endpoint),
+        sourceType: server.sourceType,
+        message: error instanceof Error ? error.message : String(error),
+      });
       serverStatuses.push({
         id: server.id,
         name: server.name,
@@ -562,6 +641,19 @@ export async function getConfiguredMcpServers(params: {
     )
     .orderBy(desc(userMcpServer.updatedAt));
 
+  console.log("[Agent MCP] Loaded configured chat MCP rows", {
+    userId: params.userId,
+    chatId: params.chatId,
+    rowCount: rows.length,
+    rows: rows.map((row) => ({
+      systemServerId: row.id,
+      userMcpServerId: row.userMcpServerId,
+      name: row.name,
+      sourceType: row.sourceType ?? "external",
+      endpoint: redactMcpEndpoint(row.endpoint),
+    })),
+  });
+
   const servers: AgentMcpServerMetadata[] = [];
 
   for (const row of rows) {
@@ -592,6 +684,14 @@ export async function getConfiguredMcpServers(params: {
         : row.endpoint;
 
     if (!endpoint) {
+      console.warn("[Agent MCP] Skipping configured server without runtime endpoint", {
+        userId: params.userId,
+        chatId: params.chatId,
+        systemServerId: row.id,
+        userMcpServerId: row.userMcpServerId,
+        name: row.name,
+        connectorSlug,
+      });
       continue;
     }
 
@@ -602,6 +702,13 @@ export async function getConfiguredMcpServers(params: {
       sourceType: row.sourceType ?? "external",
     });
   }
+
+  console.log("[Agent MCP] Resolved configured chat MCP servers", {
+    userId: params.userId,
+    chatId: params.chatId,
+    serverCount: servers.length,
+    servers: servers.map((server) => summarizeServerForLog(server)),
+  });
 
   return servers;
 }

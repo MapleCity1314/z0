@@ -56,6 +56,23 @@ describe("createRemoteAgentTools", () => {
     ).toBe(true);
   });
 
+  it("exposes the real saveFile schema to the model", () => {
+    const tools = createRemoteAgentTools({
+      actor: { userId: "user-1", role: "user" },
+      webSearchEnabled: false,
+      projectId: null,
+      chatId: "chat-1",
+    });
+
+    const schema = tools.saveFile.inputSchema;
+
+    expect(schema).toBeDefined();
+    expect(schema.safeParse({ content: "hello" }).success).toBe(false);
+    expect(
+      schema.safeParse({ filename: "notes.txt", content: "hello" }).success,
+    ).toBe(true);
+  });
+
   it("executes tools through the web bridge", async () => {
     const tools = createRemoteAgentTools({
       actor: { userId: "user-1", role: "admin" },

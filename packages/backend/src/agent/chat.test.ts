@@ -1,3 +1,4 @@
+import { streamText } from "ai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createAgentChatResponse,
@@ -5,6 +6,7 @@ import {
 } from "./chat";
 import { mapAgentChatError } from "./chat-errors";
 import type { ChatRequestPayload } from "./request";
+import * as modelModule from "./model";
 
 vi.mock("ai", () => ({
   convertToModelMessages: vi.fn(async (messages) => messages),
@@ -75,6 +77,28 @@ describe("createAgentChatResponse", () => {
       userId: "user-1",
       chatId: "chat-1",
     });
+  });
+
+  it("omits temperature when the resolved model disallows custom values", async () => {
+    const dependencies = makeDependencies();
+    const getTemperatureForModelSpy = vi
+      .spyOn(modelModule, "getTemperatureForModel")
+      .mockReturnValueOnce(undefined);
+
+    await createAgentChatResponse({
+      payload: makePayload(),
+      dependencies,
+    });
+
+    expect(getTemperatureForModelSpy).toHaveBeenCalledWith("z0-mini", {
+      isReasoning: false,
+      fallback: 0.7,
+    });
+    expect(vi.mocked(streamText)).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        temperature: expect.anything(),
+      }),
+    );
   });
 });
 

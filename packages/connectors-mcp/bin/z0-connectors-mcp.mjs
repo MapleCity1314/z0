@@ -37,63 +37,122 @@ function requireToken() {
   }
 }
 
+function createTitleElement(title) {
+  return {
+    id: "title",
+    type: "text",
+    x: 80,
+    y: 100,
+    width: 480,
+    height: 48,
+    angle: 0,
+    strokeColor: "#111827",
+    backgroundColor: "transparent",
+    fillStyle: "solid",
+    strokeWidth: 1,
+    strokeStyle: "solid",
+    roughness: 0,
+    opacity: 100,
+    groupIds: [],
+    frameId: null,
+    roundness: null,
+    seed: 1,
+    version: 1,
+    versionNonce: 1,
+    isDeleted: false,
+    boundElements: null,
+    updated: Date.now(),
+    link: null,
+    locked: false,
+    text: title,
+    fontSize: 32,
+    fontFamily: 1,
+    textAlign: "left",
+    verticalAlign: "top",
+    baseline: 32,
+    containerId: null,
+    originalText: title,
+    lineHeight: 1.25,
+  };
+}
+
+function normalizeExcalidrawScene(input) {
+  if (input.scene && typeof input.scene === "object") {
+    return {
+      ...input.scene,
+      type: "excalidraw/scene",
+      version:
+        typeof input.scene.version === "number" ? input.scene.version : 1,
+      appState: {
+        viewBackgroundColor: "#ffffff",
+        ...(input.scene.appState && typeof input.scene.appState === "object"
+          ? input.scene.appState
+          : {}),
+      },
+      elements: Array.isArray(input.scene.elements) ? input.scene.elements : [],
+      files:
+        input.scene.files && typeof input.scene.files === "object"
+          ? input.scene.files
+          : undefined,
+    };
+  }
+
+  const elements = Array.isArray(input.elements) ? input.elements : [];
+  const hasElements = elements.length > 0;
+  const title =
+    typeof input.title === "string" && input.title.trim().length > 0
+      ? input.title.trim()
+      : "Untitled diagram";
+
+  return {
+    type: "excalidraw/scene",
+    version: 1,
+    appState: {
+      viewBackgroundColor: "#ffffff",
+      ...(input.appState && typeof input.appState === "object"
+        ? input.appState
+        : {}),
+    },
+    elements: hasElements ? elements : [createTitleElement(title)],
+    files:
+      input.files && typeof input.files === "object" ? input.files : undefined,
+  };
+}
+
 const TOOL_DEFINITIONS = {
   excalidraw: [
     {
       name: "excalidraw_scene_create",
-      description: "Create a starter Excalidraw scene JSON from a prompt.",
+      description:
+        "Create a complete Excalidraw scene. Prefer passing a full `scene` object or detailed `elements` array for the whole diagram, not just a title.",
       inputSchema: {
         type: "object",
         properties: {
           title: { type: "string" },
+          scene: {
+            type: "object",
+            additionalProperties: true,
+          },
+          elements: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: true,
+            },
+          },
+          appState: {
+            type: "object",
+            additionalProperties: true,
+          },
+          files: {
+            type: "object",
+            additionalProperties: true,
+          },
         },
-        required: ["title"],
         additionalProperties: false,
       },
       async execute(input) {
-        return {
-          type: "excalidraw/scene",
-          version: 1,
-          appState: { viewBackgroundColor: "#ffffff" },
-          elements: [
-            {
-              id: "title",
-              type: "text",
-              x: 80,
-              y: 100,
-              width: 480,
-              height: 48,
-              angle: 0,
-              strokeColor: "#111827",
-              backgroundColor: "transparent",
-              fillStyle: "solid",
-              strokeWidth: 1,
-              strokeStyle: "solid",
-              roughness: 0,
-              opacity: 100,
-              groupIds: [],
-              frameId: null,
-              roundness: null,
-              seed: 1,
-              version: 1,
-              versionNonce: 1,
-              isDeleted: false,
-              boundElements: null,
-              updated: Date.now(),
-              link: null,
-              locked: false,
-              text: String(input.title),
-              fontSize: 32,
-              fontFamily: 1,
-              textAlign: "left",
-              verticalAlign: "top",
-              baseline: 32,
-              containerId: null,
-              originalText: String(input.title),
-              lineHeight: 1.25,
-            },
-          ],
-        };
+        return normalizeExcalidrawScene(input ?? {});
       },
     },
   ],
@@ -373,6 +432,9 @@ async function handleRequest(message) {
 }
 
 let buffer = Buffer.alloc(0);
+
+// Keep the stdio MCP process alive while the parent transport owns stdin.
+process.stdin.resume();
 
 process.stdin.on("data", async (chunk) => {
   buffer = Buffer.concat([buffer, Buffer.from(chunk)]);

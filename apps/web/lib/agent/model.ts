@@ -1,5 +1,8 @@
 export {
   getModelFromServer,
+  getResolvedModelId,
+  getTemperatureForModel,
+  getTemperatureForResolvedModelId,
   isReasoningModel,
   kimi,
   model,

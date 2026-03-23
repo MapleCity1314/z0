@@ -85,6 +85,33 @@ export function registerAgentRoutes(app: Hono) {
               reservedToolNames: Object.keys(remoteTools),
             });
 
+            console.log("[Agent API] Built tool runtime", {
+              userId: actor.userId,
+              chatId: payload.id,
+              remoteToolCount: Object.keys(remoteTools).length,
+              remoteToolNames: Object.keys(remoteTools),
+              mcpServerCount: mcpServers.length,
+              mcpServers: mcpServers.map((server) => ({
+                id: server.id,
+                name: server.name,
+                sourceType: server.sourceType,
+              })),
+              mcpToolCount: mcpRuntime.mcpTools.length,
+              mcpTools: mcpRuntime.mcpTools.map((tool) => ({
+                name: tool.name,
+                serverName: tool.serverName,
+                originalName: tool.originalName,
+              })),
+              mcpStatuses: mcpRuntime.serverStatuses.map((status) => ({
+                id: status.id,
+                name: status.name,
+                sourceType: status.sourceType,
+                availability: status.availability,
+                toolCount: status.toolCount,
+                retryable: status.retryable,
+              })),
+            });
+
             return {
               tools: {
                 ...remoteTools,

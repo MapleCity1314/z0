@@ -5,7 +5,11 @@ export type ToolTaskInfo = {
   subtitle?: string;
 };
 
-export type ToolRendererKind = "artifact" | "inspector" | "task";
+export type ToolRendererKind =
+  | "artifact"
+  | "inspector"
+  | "task"
+  | "excalidraw";
 export type DataRendererKind =
   | "image"
   | "artifact"
@@ -34,8 +38,13 @@ const SEARCH_TOOL_NAMES = new Set([
 
 export function isToolPart(
   part: UIMessagePart<any, any>,
-): part is UIMessagePart<any, any> & { type: `tool-${string}` } {
-  return typeof part.type === "string" && part.type.startsWith("tool-");
+): part is UIMessagePart<any, any> & {
+  type: `tool-${string}` | "dynamic-tool";
+} {
+  return (
+    typeof part.type === "string" &&
+    (part.type.startsWith("tool-") || part.type === "dynamic-tool")
+  );
 }
 
 export function isDataPart(
@@ -70,7 +79,11 @@ export function getToolName(part: UIMessagePart<any, any>) {
     return null;
   }
 
-  return (part as any).toolName || part.type.replace("tool-", "");
+  if (typeof (part as any).toolName === "string" && (part as any).toolName) {
+    return (part as any).toolName;
+  }
+
+  return part.type === "dynamic-tool" ? "unknown" : part.type.replace("tool-", "");
 }
 
 export function isSearchToolName(toolName: string) {
@@ -106,6 +119,13 @@ export function resolveToolRendererKind(
   toolName: string,
   toolPart: Record<string, any>,
 ): ToolRendererKind {
+  if (
+    toolName.startsWith("mcp_excalidraw_") ||
+    toolPart.output?.structuredContent?.type === "excalidraw/scene"
+  ) {
+    return "excalidraw";
+  }
+
   if (
     ["createArtifact", "codeArtifact", "updateArtifact"].includes(toolName) &&
     toolPart.output?.code

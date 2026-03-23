@@ -53,7 +53,13 @@ export function resolveAgentToolForBridge(params: {
   buildTools: (
     webSearchEnabled: boolean,
     projectId: string | null,
-  ) => Record<string, { execute?: (input: unknown, context: unknown) => Promise<unknown> }>;
+  ) => Record<
+    string,
+    {
+      execute?: (input: unknown, context: unknown) => Promise<unknown>;
+      inputSchema?: { parse?: (input: unknown) => unknown };
+    }
+  >;
 }) {
   const tools = params.buildTools(params.webSearchEnabled, params.projectId);
   const targetTool = tools[params.toolName];
@@ -71,9 +77,7 @@ export function resolveAgentToolForBridge(params: {
   }
 
   return {
-    targetTool: {
-      execute: targetTool.execute,
-    },
+    targetTool,
     error: null,
   };
 }

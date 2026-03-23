@@ -90,6 +90,28 @@ describe("createConfiguredMcpToolRuntime", () => {
     });
   });
 
+  it("resolves local connectors MCP endpoints to the workspace script", () => {
+    expect(
+      resolveMcpConnection({
+        id: "server-1",
+        name: "Excalidraw",
+        endpoint: "npm:@z0/connectors-mcp?args=excalidraw&args=server",
+        sourceType: "market",
+      }),
+    ).toEqual({
+      kind: "npm",
+      command: process.execPath,
+      args: [
+        expect.stringContaining(
+          "packages/connectors-mcp/bin/z0-connectors-mcp.mjs",
+        ),
+        "excalidraw",
+      ],
+      env: undefined,
+      cwd: undefined,
+    });
+  });
+
   it("rejects unsupported endpoint formats", () => {
     expect(() =>
       resolveMcpConnection({

@@ -11,6 +11,28 @@ import archiver from "archiver";
 import { createWriteStream } from "node:fs";
 import { nanoid } from "nanoid";
 
+const saveFileInputSchema = z.object({
+  filename: z
+    .string()
+    .min(1)
+    .describe("File name with extension (e.g., 'app.py', 'config.json')"),
+  content: z.string().describe("File content"),
+  description: z.string().optional().describe("Brief description of the file"),
+});
+
+function formatToolError(error: unknown) {
+  if (error instanceof z.ZodError) {
+    return error.issues
+      .map((issue) => {
+        const path = issue.path.join(".");
+        return path ? `${path}: ${issue.message}` : issue.message;
+      })
+      .join("; ");
+  }
+
+  return error instanceof Error ? error.message : "Failed to save file";
+}
+
 // Storage directory for temporary files
 const TEMP_DIR = join(process.cwd(), "public", "downloads");
 
@@ -60,16 +82,13 @@ Supported use cases:
 - Generating data files (JSON, CSV, etc.)
 - Creating documentation (Markdown, text files)
 
-Returns the file ID for later reference.`,
+  Returns the file ID for later reference.`,
 
-  inputSchema: z.object({
-    filename: z.string().describe("File name with extension (e.g., 'app.py', 'config.json')"),
-    content: z.string().describe("File content"),
-    description: z.string().optional().describe("Brief description of the file"),
-  }),
+  inputSchema: saveFileInputSchema,
 
-  execute: async ({ filename, content, description }) => {
+  execute: async (rawInput) => {
     try {
+      const { filename, content, description } = saveFileInputSchema.parse(rawInput);
       await ensureTempDir();
       await cleanupOldFiles();
 
@@ -93,10 +112,13 @@ Returns the file ID for later reference.`,
         message: `File saved successfully: ${filename}`,
       };
     } catch (error) {
-      console.error("[FilePackage] ❌ Save error:", error);
+      if (!(error instanceof z.ZodError)) {
+        console.error("[FilePackage] ❌ Save error:", error);
+      }
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to save file",
+        error: formatToolError(error),
       };
     }
   },

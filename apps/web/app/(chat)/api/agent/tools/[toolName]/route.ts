@@ -104,10 +104,43 @@ export async function POST(
     });
   }
 
+  if (!targetTool || typeof targetTool.execute !== "function") {
+    return NextResponse.json(
+      createToolBridgeErrorResponse({
+        code: "not_found:tool_bridge",
+        message: `Unknown agent tool: ${toolName}`,
+        status: 404,
+        toolName,
+      }),
+      { status: 404 },
+    );
+  }
+
   const executeTool = targetTool.execute;
+  const inputSchema = (
+    targetTool as { inputSchema?: { parse?: (input: unknown) => unknown } }
+  ).inputSchema;
+  let parsedInput: unknown;
 
   try {
-    const data = await executeTool(body.input ?? {}, {
+    parsedInput =
+      typeof inputSchema?.parse === "function"
+        ? inputSchema.parse(body.input ?? {})
+        : body.input ?? {};
+  } catch (error) {
+    const errorResponse = normalizeToolBridgeExecutionError({
+      error,
+      toolName,
+      fallbackMessage: "Tool execution failed",
+    });
+
+    return NextResponse.json(errorResponse, {
+      status: errorResponse.error.status,
+    });
+  }
+
+  try {
+    const data = await executeTool(parsedInput, {
       toolCallId: body.toolCallId,
       messages: {
         chatId: body.chatId,
@@ -121,7 +154,11 @@ export async function POST(
       toolName,
       chatId: body.chatId ?? null,
       projectId: body.projectId ?? null,
-      message: error instanceof Error ? error.message : String(error),
+      errorName: error instanceof Error ? error.name : typeof error,
+      status:
+        typeof (error as { status?: unknown })?.status === "number"
+          ? (error as { status: number }).status
+          : undefined,
     });
 
     const errorResponse = normalizeToolBridgeExecutionError({

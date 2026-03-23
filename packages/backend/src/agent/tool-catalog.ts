@@ -49,6 +49,43 @@ const tavilySearchInputSchema = z.object({
     .describe("Time range for search results"),
 });
 
+const saveFileInputSchema = z.object({
+  filename: z
+    .string()
+    .min(1)
+    .describe("File name with extension (e.g., 'app.py', 'config.json')"),
+  content: z.string().describe("File content"),
+  description: z.string().optional().describe("Brief description of the file"),
+});
+
+const saveMultipleFilesInputSchema = z.object({
+  files: z
+    .array(
+      z.object({
+        filename: z.string().min(1).describe("File name with extension"),
+        content: z.string().describe("File content"),
+        path: z
+          .string()
+          .optional()
+          .describe("Subdirectory path (e.g., 'src/', 'config/')"),
+      }),
+    )
+    .min(1)
+    .describe("Array of files to save"),
+  description: z.string().optional().describe("Description of the file package"),
+});
+
+const createZipInputSchema = z.object({
+  packageId: z
+    .string()
+    .min(1)
+    .describe("Package ID from saveFile or saveMultipleFiles"),
+  zipName: z
+    .string()
+    .optional()
+    .describe("Custom ZIP file name (without .zip extension)"),
+});
+
 export const AGENT_TOOL_CATALOG: AgentToolCatalogEntry[] = [
   {
     name: "createArtifact",
@@ -569,6 +606,12 @@ export function summarizeAgentToolCatalog(
 
 export function getAgentToolInputSchema(toolName: string) {
   switch (toolName) {
+    case "saveFile":
+      return saveFileInputSchema;
+    case "saveMultipleFiles":
+      return saveMultipleFilesInputSchema;
+    case "createZip":
+      return createZipInputSchema;
     case "tavilySearch":
       return tavilySearchInputSchema;
     default:

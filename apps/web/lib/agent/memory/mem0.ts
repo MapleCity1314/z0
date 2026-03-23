@@ -6,7 +6,13 @@
  * API stable and fall back to local extraction plus standard generation.
  */
 import { generateText } from "ai";
-import { getModelFromServer, type ModelName } from "@/lib/agent/model";
+import {
+  getModelFromServer,
+  getTemperatureForModel,
+  getTemperatureForResolvedModelId,
+  getResolvedModelId,
+  type ModelName,
+} from "@/lib/agent/model";
 
 export function createMem0Provider(_userId: string) {
   return null;
@@ -16,6 +22,7 @@ export async function extractMemoriesWithLLM(
   message: string,
 ): Promise<Array<{ memory: string; category: string }>> {
   try {
+    const temperature = getTemperatureForModel("z0-mini", { fallback: 0.3 });
     const extractionPrompt = `Extract durable user facts from the message below.
 
 Rules:
@@ -37,7 +44,7 @@ Return [] when nothing should be stored.`;
     const result = await generateText({
       model: getModelFromServer("z0-mini") as Parameters<typeof generateText>[0]["model"],
       prompt: extractionPrompt,
-      temperature: 0.3,
+      ...(temperature === undefined ? {} : { temperature }),
     });
 
     const jsonMatch = result.text.match(/\[[\s\S]*\]/);
@@ -83,9 +90,14 @@ export async function generateWithMemory(
   prompt: string,
   modelName: ModelName = "z0-mini",
 ): Promise<{ text: string; memories?: unknown[] }> {
+  const temperature = getTemperatureForResolvedModelId(
+    getResolvedModelId(modelName),
+    0.7,
+  );
   const result = await generateText({
     model: getModelFromServer(modelName) as Parameters<typeof generateText>[0]["model"],
     prompt,
+    ...(temperature === undefined ? {} : { temperature }),
   });
 
   return { text: result.text };

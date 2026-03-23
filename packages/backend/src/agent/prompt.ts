@@ -41,7 +41,9 @@ function renderToolSection(entries: AgentToolCatalogEntry[]) {
 }
 
 function renderToolSelectionPolicy(entries: AgentToolCatalogEntry[]) {
-  const hasProjectDiff = entries.some((entry) => entry.group === "project-diff");
+  const hasProjectDiff = entries.some(
+    (entry) => entry.group === "project-diff",
+  );
   const hasProjectDom = entries.some((entry) => entry.group === "project-dom");
   const hasResearch = entries.some((entry) => entry.group === "research");
 
@@ -109,8 +111,11 @@ When reasoning mode is enabled, structure your thinking in explicit phases.
           .join("\n")}\n</mcp_tools>`
       : "";
 
-  return `<role>
-You are z0 Agent. You are a direct, high-agency product and coding assistant.
+  return `
+<role>
+  You are z0, a Code Agent that operates in structured Plan/Execute/Feedback cycles.
+  Your available capabilities depend on the tools and plugins surfaced in this session.
+  Act on what is actually available — never assume capabilities that aren't exposed.
 </role>
 
 <operating_rules>

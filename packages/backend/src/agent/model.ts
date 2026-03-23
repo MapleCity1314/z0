@@ -219,6 +219,112 @@ export const Z0_MODEL_MAP = {
 export type ModelName = keyof typeof Z0_MODEL_MAP;
 export type SelectableModelName = ModelName;
 
+function getResolvedModelIdForAlias(modelId: ProviderLanguageModelId): string {
+  const [provider, alias] = modelId.split(":", 2) as [
+    ProviderLanguageModelId extends `${infer P}:${string}` ? P : never,
+    string,
+  ];
+
+  if (provider === "kimi") {
+    switch (alias) {
+      case "k2.5":
+        return process.env.KIMI_CHAT_MODEL ?? "kimi-k2.5";
+      case "k2-0905-preview":
+        return process.env.KIMI_PRO_MODEL ?? "kimi-k2-0905-preview";
+      case "thinking":
+        return process.env.KIMI_THINKING_MODEL ?? "kimi-thinking";
+      case "vision":
+        return process.env.KIMI_VISION_MODEL ?? "moonshot-v1-32k-vision-preview";
+      default:
+        return alias;
+    }
+  }
+
+  if (provider === "google") {
+    switch (alias) {
+      case "3.1-flash":
+        return process.env.GEMINI_FLASH_MODEL ?? "gemini-3.1-flash";
+      case "3.1-pro":
+        return process.env.GEMINI_PRO_MODEL ?? "gemini-3.1-pro";
+      default:
+        return alias;
+    }
+  }
+
+  if (provider === "openai") {
+    switch (alias) {
+      case "codex53":
+        return process.env.OPENAI_Z0_PRO_MODEL ?? "gpt-5.3";
+      case "codex54":
+        return process.env.OPENAI_Z0_MAX_MODEL ?? "gpt-5.4";
+      default:
+        return alias;
+    }
+  }
+
+  if (provider === "claude") {
+    switch (alias) {
+      case "sonnet46":
+        return process.env.CLAUDE_SONNET_MODEL ?? "claude-sonnet-4-6";
+      case "opus46":
+        return process.env.CLAUDE_OPUS_MODEL ?? "claude-opus-4-6";
+      default:
+        return alias;
+    }
+  }
+
+  return alias;
+}
+
+export function getResolvedModelId(
+  modelName: ModelName,
+  options?: { isReasoning?: boolean; enableThinking?: boolean },
+): string {
+  const mapped = Z0_MODEL_MAP[modelName];
+  if (!mapped) {
+    throw new Error(`Model "${modelName}" not found.`);
+  }
+
+  const isReasoning =
+    options?.isReasoning ?? options?.enableThinking ?? false;
+  const modelId = isReasoning ? mapped.thinking : mapped.standard;
+  return getResolvedModelIdForAlias(modelId);
+}
+
+export function getTemperatureForModel(
+  modelName: ModelName,
+  options?: { isReasoning?: boolean; enableThinking?: boolean; fallback?: number },
+): number | undefined {
+  return getTemperatureForResolvedModelId(
+    getResolvedModelId(modelName, options),
+    options?.fallback,
+  );
+}
+
+export function getTemperatureForResolvedModelId(
+  modelId: string,
+  fallback?: number,
+): number | undefined {
+  const resolvedModelId = modelId.trim().toLowerCase();
+
+  // GPT-5 and OpenAI reasoning-model families reject custom temperatures and only allow 1.
+  if (
+    resolvedModelId === "gpt-5" ||
+    resolvedModelId.startsWith("gpt-5.") ||
+    resolvedModelId.startsWith("gpt-5-") ||
+    resolvedModelId === "o1" ||
+    resolvedModelId.startsWith("o1-") ||
+    resolvedModelId === "o3" ||
+    resolvedModelId.startsWith("o3-") ||
+    resolvedModelId === "o4" ||
+    resolvedModelId.startsWith("o4-")
+  ) {
+    return undefined;
+  }
+
+  return fallback;
+}
+
 export const selectableModels: {
   id: SelectableModelName;
   name: string;

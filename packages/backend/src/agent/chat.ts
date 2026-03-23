@@ -10,6 +10,7 @@ import {
   extractLatestUserQuery,
   getAnthropicReasoningOptions,
 } from "./request";
+import { getTemperatureForModel } from "./model";
 import { buildChatSystemPrompt } from "./prompt";
 import {
   calculateCostUSD,
@@ -158,6 +159,10 @@ export async function createAgentChatResponse(params: {
     payload.model,
     payload.isReasoning,
   );
+  const temperature = getTemperatureForModel(payload.model, {
+    isReasoning: payload.isReasoning,
+    fallback: 0.7,
+  });
 
   let result: ReturnType<typeof streamText>;
   try {
@@ -175,7 +180,7 @@ export async function createAgentChatResponse(params: {
       }),
       messages: modelMessages,
       providerOptions,
-      temperature: 0.7,
+      ...(temperature === undefined ? {} : { temperature }),
       stopWhen: stepCountIs(20),
       tools,
       toolChoice: "auto",

@@ -161,6 +161,7 @@ describe("agent tool bridge route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.AGENT_BRIDGE_TOKEN = "bridge-token";
+    vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
   it("rejects requests without the bridge token", async () => {
@@ -228,6 +229,54 @@ describe("agent tool bridge route", () => {
         messages: {
           projectId: null,
         },
+      },
+    });
+  });
+
+  it("rejects invalid tool input before execution", async () => {
+    const execute = vi.fn();
+
+    buildAgentTools.mockReturnValue({
+      demoTool: {
+        inputSchema: {
+          parse: vi.fn(() => {
+            throw new ZodError([]);
+          }),
+        },
+        execute,
+      },
+    });
+
+    const { POST } = await import("./route");
+    const request = new NextRequest("http://localhost/api/agent/tools/demoTool", {
+      method: "POST",
+      body: JSON.stringify({
+        webSearchEnabled: true,
+        input: {},
+      }),
+      headers: {
+        "content-type": "application/json",
+        ...createInternalAuthHeaders({
+          actor: { userId: "user-1", role: "user" },
+          purpose: "agent-bridge",
+        }),
+      },
+    });
+
+    const response = await POST(request, {
+      params: Promise.resolve({ toolName: "demoTool" }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(execute).not.toHaveBeenCalled();
+    expect(console.error).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({
+      error: {
+        code: "bad_request:tool_bridge",
+        message: "Invalid tool input",
+        status: 400,
+        retryable: false,
+        toolName: "demoTool",
       },
     });
   });

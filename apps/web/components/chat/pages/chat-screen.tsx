@@ -7,7 +7,7 @@ import { useChat } from "@ai-sdk/react";
 import { cn, fetchWithErrorHandlers } from "@/lib/utils";
 import { ChatSDKError } from "@/lib/error";
 import { toast } from "sonner";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useAutoResume } from "@/hooks/use-auto-resume";
 import { motion, AnimatePresence } from "framer-motion";
@@ -75,6 +75,7 @@ export function ChatScreen({
   );
 
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { resolvedTheme } = useTheme();
   const currentUserId = useUserStore((state) => state.user?.id ?? null);
@@ -258,10 +259,15 @@ export function ChatScreen({
 
   const query = searchParams.get("query");
   const [hasAppendedQuery, setHasAppendedQuery] = useState(false);
+  const pendingUrlUpdateRef = useRef(false);
 
   // 🔧 FIX: 处理 URL query 参数（例如从搜索框跳转过来的场景）
   useEffect(() => {
     if (query && !hasAppendedQuery) {
+      if (isNewChat) {
+        pendingUrlUpdateRef.current = true;
+      }
+
       // 发送 query 参数中的消息
       sendMessage({
         role: "user" as const,
@@ -270,11 +276,16 @@ export function ChatScreen({
 
       setHasAppendedQuery(true);
 
-      // 清理 URL 中的 query 参数，跳转到干净的对话页面
-      // 路由结构：app/(app)/c/[id] → URL: /c/{id}
-      router.replace(`/c/${id}`);
+      // 仅清理当前 URL 上的 query 参数，避免在首轮仍在流式时切换到 /c/[id]
+      // 导致 App Router 和本地 useChat 状态短暂失步。
+      const nextSearchParams = new URLSearchParams(searchParams.toString());
+      nextSearchParams.delete("query");
+      const nextUrl = nextSearchParams.size > 0
+        ? `${pathname}?${nextSearchParams.toString()}`
+        : pathname;
+      window.history.replaceState({}, "", nextUrl);
     }
-  }, [query, sendMessage, hasAppendedQuery, id, router]);
+  }, [query, sendMessage, hasAppendedQuery, isNewChat, pathname, searchParams]);
 
   useAutoResume({
     autoResume,
@@ -318,9 +329,6 @@ export function ChatScreen({
   const conversationResizeBehavior =
     status === "streaming" ? "instant" : "smooth";
 
-  // Track if we need to update URL after chat creation
-  const pendingUrlUpdateRef = useRef(false);
-
   // Delay the route change until the first turn is settled. Navigating while the
   // initial response is still streaming can replace the optimistic client state
   // with the server-rendered /c/[id] page before persistence finishes.
@@ -332,10 +340,10 @@ export function ChatScreen({
     ) {
       pendingUrlUpdateRef.current = false;
       setUseDraftIntegrations(false);
-      window.history.replaceState({}, "", `/c/${id}`);
+      router.replace(`/c/${id}`, { scroll: false });
       mutate("recent-chats");
     }
-  }, [status, id, messages, mutate]);
+  }, [status, id, messages, mutate, router]);
 
   const handleSendMessage = (message: {
     text: string;
